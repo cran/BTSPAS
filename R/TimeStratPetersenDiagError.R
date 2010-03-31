@@ -4,7 +4,7 @@
 TimeStratPetersenDiagError <- function(title, prefix, time, n1, m2, u2,
                      jump.after=NULL,
                      logitP.cov,
-                     n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
+                     n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
                      tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
                      mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
                      tau_xiP=1/var(logit((m2+.5)/(n1+1)),na.rm=TRUE),
@@ -176,7 +176,7 @@ for (i in 1:(length(ext.jump)-1)){
   all.knots <- c(all.knots, knots)
   # compute the design matrix for this set of strata
   z <- bs((1:nstrata.in.set)/(nstrata.in.set+1), knots=knots, degree=SplineDegree, 
-             intercept=T, Boundary.knots=c(0,1))
+             intercept=TRUE, Boundary.knots=c(0,1))
   # first two elements of b coeffients have a flat prior
   b.flat <- c(b.flat, ncol(SplineDesign)+(1:2))
   b.notflat <- c(b.notflat, ncol(SplineDesign)+3:(ncol(z)))
@@ -271,6 +271,7 @@ init.vals <- function(){
 
 # set up for the call to WinBugs or OpenBugs
 
+working.directory <- getwd()          # store all data and init files in the current directory
 if(openbugs){
    cat("\n\n*** Start of call to OpenBugs \n")
    bugs.directory = OPENBUGS.directory 
@@ -283,7 +284,6 @@ if(openbugs){
    over.relax <- FALSE
    parameters.to.save <- c(parameters, "deviance")  # always get the deviance
    parametersToSave <- parameters.to.save
-   working.directory = getwd()          # store all data and init files in the current directory
 
    cat("OpenBugs files created in:", working.directory, "\n")
    BRugs::modelCheck(modelFile)    # check the model
@@ -374,6 +374,7 @@ else {
       n.burnin=n.burnin,
       n.sims=n.sims,      # (approx) number of final simulations to save
       bugs.directory=bugs.directory,
+      working.directory=working.directory,
       debug=debug     )
    results
    } # end of else clause

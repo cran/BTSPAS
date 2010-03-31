@@ -1,3 +1,13 @@
+# TO DO 
+#    - update documentation files 
+#       list of -> vector of
+#       add logitP.fixed and logitP.fixed.values to parameters 
+#    - fix plot of logitP vs time to "drop" the fixed values or plot with a different symbol?
+#    - bayesian predictive posterior plots (the Bayesian p-values)
+
+# 2010-03-12 CJS added n.chains etc to calling arguments
+# 2010-03-03 CJS allowed the user for fix some logitPs to account for time when no sampling (or other events
+#                with known probability of capture take place
 # 2009-12-08 CJS added some basic error checking on arguments
 # 2009-12-07 CJS added bad.n1, bad.u2 arguments and fixups
 # 2009-12-01 CJS added open/winbugs directory to argument list
@@ -7,6 +17,8 @@ TimeStratPetersenNonDiagError_fit<- function( title="TSPNDE", prefix="TSPNDE-",
                                  time, n1, m2, u2, sampfrac, jump.after=NULL,
                                  bad.n1=c(), bad.m2=c(), bad.u2=c(),
                                  logitP.cov=rep(1,length(u2)),
+                                 logitP.fixed=NULL, logitP.fixed.values=NULL, 
+                                 n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
                                  tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05, 
                                  mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
                                  tau_xiP=.6666,   # need a better initial value for variation in catchability
@@ -20,7 +32,7 @@ TimeStratPetersenNonDiagError_fit<- function( title="TSPNDE", prefix="TSPNDE-",
 # This is the classical stratified Petersen model where the recoveries can take place for this and multiple
 # strata later
 #
-   version <- '2009-12-07'
+   version <- '2010-03-03'
 
 # Input parameters are
 #    title  - title for the analysis (character string)
@@ -48,15 +60,18 @@ TimeStratPetersenNonDiagError_fit<- function( title="TSPNDE", prefix="TSPNDE-",
 #                 hatchery release occurs around stratum 14. This is a vector indicating the
 #                 strata AFTER which the spline curve is allowed to jump.
 #                 null or vector of arbitrary length.
-#    bad.n1  - list of stratum numbers where the value of n1 is suspect.
-#    bad.m2  - list of stratum numbers where the value of m2 is suspect.
+#    bad.n1  - vector of stratum numbers where the value of n1 is suspect.
+#    bad.m2  - vector of stratum numbers where the value of m2 is suspect.
 #              For example, the capture rate could be extremely low.
 #              These are set to NA prior to the call to WinBugs/OpenBugs
-#    bad.u2  - list of stratum numbers where the value of u2 is suspect.
+#    bad.u2  - vector of stratum numbers where the value of u2 is suspect.
 #    logitP.cov - matrix of covariates for logit(P). If the strata times are "missing" some values, an intercept is assumed
 #               for the first element of the covariance matrix and 0 for the rest of the covariates.
 #               CAUTION - this MAY not be what you want to do. It is likely best to enter ALL strata
 #               if you have any covariates. The default, if not specified, is a constant (the mean logit)
+#    logitP.fixed - vector of time values where the logitP will be specified in advance. Typically this occurs
+#                   when no sampling takes place and logitP <- logit(0) = -10
+#    logitP.fixed.values - vector of fixed values (on the logit scale). Use -10 for p[i] <- 0, and 10 for p[i] <- 1 
 #    tauU.alpha, tauU.beta   - parameters for the prior on variance in spline coefficients
 #    taueU.alpha, taueU.beta - parameters for the prior on variance in log(U) around fitted spline 
 #    mu_xiP, tau_xiP         - parameters for the prior on mean logit(P)'s [The intercept term]
@@ -83,7 +98,7 @@ if(length(logitP.cov) %% length(u2) != 0){
         length(u2),length(logitP.cov),dim(logitP.cov),"\n")
    return()}
 #  2. Check that rowsum of m2<= n1
-if(any(apply(m2,1,sum)>n1)){
+if(any(apply(m2,1,sum, na.rm=TRUE)>n1)){
    cat("***** ERROR ***** m2[i,+] must be <= n1[i]. The arguments are \n n1:",n1,"\n m2:",m2,"\n")
    return()}
 #  3. Elements of bad.m2 and jump.after must belong to time
@@ -109,6 +124,14 @@ if(openbugs){ # user wants to use OpenBUGS
       cat("***** ERROR ***** Can't find WINBUGS directory. You entered", WINBUGS.directory, "\n")
       return() }
 }
+#  5. check that index of logitP.fixed belong to time
+if(!all(logitP.fixed %in% time)){
+   cat("***** ERROR ***** logitP.fixed must be elements of strata identifiers. You entered \n logitP.fixed:",logitP.fixed,"\n Strata identifiers are \n time:",time, "\n")
+   return()}
+if(length(logitP.fixed)!=length(logitP.fixed.values)){
+   cat("***** ERROR ***** Lengths of logitP.fixed and logitP.fixed.values must all be equal. They are:",
+        length(logitP.fixed),length(logitP.fixed.values),"\n")
+   return()}
 
 
 
@@ -135,6 +158,10 @@ print(temp)
 cat("\n\n")
 cat("Jump point are after strata: ", jump.after)
 if(length(jump.after)==0) cat("none - A single spline is fit")
+cat("\nFixed logitP indices are:", logitP.fixed)
+if(length(logitP.fixed)==0) cat("none - NO fixed values")
+cat("\nFixed logitP values  are:", logitP.fixed.values)
+if(length(logitP.fixed)==0) cat("none - NO fixed values")
 
 
 # Obtain the Pooled Petersen estimator prior to fixup of bad.n1, bad.m2, and bad.u2 values
@@ -263,6 +290,10 @@ for(i in 1:length(new.n1)){
 cat("*** Expanded m2 array ***\n\n")
 print(expanded.m2)
 
+# assign the logitP fixed values etc.
+new.logitP.fixed <- rep(NA, length(new.u2))
+new.logitP.fixed[match(logitP.fixed, time)] <- logitP.fixed.values
+
 
 # Print out information on the prior distributions used
 cat("\n\n*** Information on priors *** \n")
@@ -292,8 +323,8 @@ if (debug)
    {results <- TimeStratPetersenNonDiagError(title=title, prefix=prefix, 
             time=new.time, n1=new.n1, m2=expanded.m2, u2=new.u2,
             jump.after=(1:length(u2))[time %in% jump.after],
-            logitP.cov=new.logitP.cov,
-            n.chains=3, n.iter=2000, n.burnin=300, n.sims=300, 
+            logitP.cov=new.logitP.cov, logitP.fixed=new.logitP.fixed,
+            n.chains=3, n.iter=2000, n.burnin=300, n.sims=300,  # set to small values for debugging only
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
             debug=debug, debug2=debug2,  openbugs=openbugs, InitialSeed=InitialSeed,
             OPENBUGS.directory=OPENBUGS.directory, WINBUGS.directory=WINBUGS.directory)
@@ -301,7 +332,8 @@ if (debug)
    {results <- TimeStratPetersenNonDiagError(title=title, prefix=prefix, 
             time=new.time, n1=new.n1, m2=expanded.m2, u2=new.u2, 
             jump.after=(1:length(u2))[time %in% jump.after],
-            logitP.cov=new.logitP.cov,
+            logitP.cov=new.logitP.cov, logitP.fixed=new.logitP.fixed,
+            n.chains=n.chains, n.iter=n.iter, n.burnin=n.burnin, n.sims=n.sims,
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
             debug=debug, debug2=debug2, openbugs=openbugs, InitialSeed=InitialSeed,
             OPENBUGS.directory=OPENBUGS.directory, WINBUGS.directory=WINBUGS.directory)
@@ -325,7 +357,7 @@ plot_logU <- function(title, time, n1, m2, u2, logitP.cov, results){
         main=paste(title,"\nFitted spline curve to raw U[i] with 95% credible intervals"),
         sub='Open/closed circles - initial and final estimates',
         ylab='log(U[i])',
-        xlab='Time Index')  # initial points on log scale.
+        xlab='Stratum')  # initial points on log scale.
 
 
    # which rows contain the etaU[xx] ?
@@ -358,7 +390,7 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
    }
    Nstrata.rel <- length(n1)
    Nstrata.cap <- ncol(m2) -1 # remember that last column of m2 is number of fish never seen again
-   logitP <- logit((apply(m2[,1:Nstrata.cap],1,sum)+1)/(n1+2))        # based on raw data
+   logitP <- max(-10,min(10,logit((apply(m2[,1:Nstrata.cap],1,sum)+1)/(n1+2))))        # based on raw data
    main.title <- paste(title,"\nPlot of logit(p[i]) with 95% credible intervals")
    if(ncol(as.matrix(logitP.cov))>1){main.title<- title}
     sub.title <- paste("Horizontal line is estimated beta.logitP[1]",
@@ -373,14 +405,21 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
    # which rows contain the logitP[xx] ?
    results.row.names <- rownames(results$summary)
    logitP.row.index  <- grep("^logitP", results.row.names)
-   logitP<- results$summary[logitP.row.index,]
+   logitP<- results$summary[logitP.row.index,]   # Notice that fixed logitPs will NOT be in this list
+   free.index <- (1:Nstrata.cap)[is.na(new.logitP.fixed)]
+   temp.logitP <- rep(NA,Nstrata.cap)
+   temp.logitP[free.index] <- logitP[,"mean"]   # pick out the free logitPs for plotting
  
    # plot the posterior mean of the logitP if there is only one column for a covariate
-   plot(time,   logitP[,"mean"],type="p", pch=19, main=main.title, sub=sub.title, ylab='logit(p[i])') # the final estimates
-   lines(time, logitP[,"mean"])  # join the mean of the fitted logitP
- 
+   ylim=c( min(c(temp.logitP,logitP.fixed.values,logitP[,"2.5%"] ), na.rm=TRUE), 
+           max(c(temp.logitP,logitP.fixed.values,logitP[,"97.5%"]), na.rm=TRUE))
+   plot(time, temp.logitP ,type="p", pch=19, main=main.title, sub=sub.title, ylab='logit(p[i])', ylim=ylim) # the final estimates
+   # plot the fixed logitPs
+   points(logitP.fixed, logitP.fixed.values, type="p", pch=13)
+   lines(time,temp.logitP)  # join the mean of the fitted free logitP
+
    # plot the 2.5 -> 97.5 posterior values
-   segments(time, logitP[,"2.5%"], time, logitP[,"97.5%"])
+   segments(time[free.index], logitP[,"2.5%"], time[free.index], logitP[,"97.5%"])
 
    if(ncol(as.matrix(logitP.cov))==1){  # if only 1 column for covariate vector, usually an intercept
       # plot the posterior mean of the beta.logitP[1] term which is usually
@@ -398,7 +437,7 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
       segments(time[1], intercept["mean"]+2*sigmaP["mean"], time[Nstrata.cap], intercept["mean"]+2*sigmaP["mean"], lty=3)
    }
    if(ncol(as.matrix(logitP.cov))>1){  # if exactly 2 covariates, plot the second covarite over time as well
-      par(new=T)   # reuse the same plot
+      par(new=TRUE)   # reuse the same plot
       plot(time, logitP.cov[,2], type="l", lty=2, axes=FALSE, xlab="", ylab="")  # plot the covariate
    }
 
@@ -436,25 +475,31 @@ abline(v=results$summary["Utot",c("2.5%","97.5%")])  # add vertical reference li
 dev.off()
 
 # plot the mean log(travel times) (the muLogTT) vs release stratum number
-pdf(file=paste(prefix,"-muLogTT.pdf", se=""))
+pdf(file=paste(prefix,"-muLogTT.pdf",sep=""))
 # which rows contain the muLogTT[xx] ?
 results.row.names <- rownames(results$summary)
 muLogTT.row.index    <- grep("muLogTT", results.row.names)
 muLogTT<- results$summary[muLogTT.row.index,]
+ylim <- c( min(c(muLogTT[,"mean"],muLogTT[,"2.5%"] ), na.rm=TRUE),
+           max(c(muLogTT[,"mean"],muLogTT[,"97.5%"]), na.rm=TRUE))
 plot (time[1:Nstrata.rel], muLogTT[,"mean"], type="p", pch=19,
-      main="mean log(travel time) vs stratum of release")  # fitted values
+      main=paste(title,"\n mean log(travel time) with 95% credible intervals"),
+      xlab="Stratum", ylab="mean log(travel time)", ylim=ylim)  # fitted values
 lines(time[1:Nstrata.rel],  muLogTT[,"mean"])  # join the points
 segments(time[1:Nstrata.rel], muLogTT[,"2.5%"], time[1:Nstrata.rel], muLogTT[,"97.5%"])  # plot the 2.5 -> 97.5 posterior values
 dev.off()
 
 # plot the sd log(travel times) (the sdLogTT) vs release stratum number
-pdf(file=paste(prefix,"-sdLogTT.pdf", se=""))
+pdf(file=paste(prefix,"-sdLogTT.pdf",sep=""))
 # which rows contain the sdLogTT[xx] ?
 results.row.names <- rownames(results$summary)
 sdLogTT.row.index    <- grep("sdLogTT", results.row.names)
 sdLogTT<- results$summary[sdLogTT.row.index,]
+ylim <- c( min(c(sdLogTT[,"mean"],sdLogTT[,"2.5%"] ), na.rm=TRUE),
+           max(c(sdLogTT[,"mean"],sdLogTT[,"97.5%"]), na.rm=TRUE))
 plot(time[1:Nstrata.rel], sdLogTT[,"mean"], type="p", pch=19,
-      main="sd log(travel time) vs stratum of release")  # fitted values
+      main=paste(title,"\n sd log(travel time) with 95% credible intervals"),
+      xlab='Stratum', ylab="sd(log travel time)", ylim=ylim)  # fitted values
 lines(time[1:Nstrata.rel],  sdLogTT[,"mean"])  # join the points
 segments(time[1:Nstrata.rel], sdLogTT[,"2.5%"], time[1:Nstrata.rel], sdLogTT[,"97.5%"])  # plot the 2.5 -> 97.5 posterior values
 dev.off()

@@ -1,9 +1,13 @@
+% 2010-03-29 CJS updated with alternate Chinook program to separate YoY and Age1 Chinook
+% 2010-03-12 CJS Updated argument list on _fit
 % 2010-02-06 CJS Added alias to the fitting function as well.
 % 2009-12-08 CJS Documentation added.
 
 \name{TimeStratPetersenDiagErrorWHChinook_fit}
 \alias{TimeStratPetersenDiagErrorWHChinook_fit}
 \alias{TimeStratPetersenDiagErrorWHChinook}
+\alias{TimeStratPetersenDiagErrorWHChinook2_fit}
+\alias{TimeStratPetersenDiagErrorWHChinook2}
 \title{Wrapper (*_fit) and function to call the Time Statified Petersen Estimator with Diagonal Entries and separating Wild
 from Hatchery Chinook function.}
 \description{Takes the number of marked fish released, the number of recaptures, 
@@ -12,12 +16,16 @@ uses Bayesian methods to fit a fit a spline through the population numbers and a
 trap efficiencies over time.  The output is written to files and an MCMC object is also created with samples
 from the posterior.
 
-Normally use the *_fit to pass the data to the fitting function.}
+Normally use the *_fit to pass the data to the fitting function.
+
+}
+ 
 \usage{
 TimeStratPetersenDiagErrorWHChinook_fit(title="TSPDE-WHChinook", prefix="TSPDE-WHChinook-", 
     time, n1, m2, u2.A, u2.N, clip.frac.H, sampfrac, hatch.after = NULL, 
     bad.m2 = c(), bad.u2.A=c(), bad.u2.N=c(),
     logitP.cov = rep(1, length(n1)), 
+    n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
     tauU.alpha = 1, tauU.beta = 0.05, taueU.alpha = 1, taueU.beta = 0.05, 
     mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)),  
     tau_xiP = 1/var(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE),  
@@ -30,6 +38,40 @@ TimeStratPetersenDiagErrorWHChinook_fit(title="TSPDE-WHChinook", prefix="TSPDE-W
 TimeStratPetersenDiagErrorWHChinook( 
     title, prefix, time, n1, m2, u2.A, u2.N,
     hatch.after=NULL, clip.frac.H=.25, 
+    logitP.cov,
+    n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
+    tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
+    mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)), 
+    tau_xiP=1/var(logit((m2+.5)/(n1+1)), na.rm=TRUE), 
+    tauP.alpha=.001, tauP.beta=.001, 
+    debug=FALSE, debug2=FALSE, openbugs=TRUE,
+    InitialSeed,
+    OPENBUGS.directory, WINBUGS.directory)
+
+TimeStratPetersenDiagErrorWHChinook2_fit(
+    title="TSPDE-WHChinook2", prefix="TSPDE-WHChinook2-", 
+    time, n1, m2, 
+    u2.A.YoY, u2.N.YoY, u2.A.1, u2.N.1,
+    clip.frac.H.YoY, clip.frac.H.1, sampfrac, 
+    hatch.after.YoY=NULL, 
+    bad.m2=c(), bad.u2.A.YoY=c(), bad.u2.N.YoY=c(), bad.u2.A.1=c(), bad.u2.N.1=c(),
+    logitP.cov=rep(1,length(n1)),
+    n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
+    tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05, 
+    mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)), 
+    tau_xiP=1/var(logit((m2+.5)/(n1+1)), na.rm=TRUE), 
+    tauP.alpha=.001, tauP.beta=.001,
+    run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
+    debug=FALSE, debug2=FALSE, openbugs=TRUE,
+    OPENBUGS.directory=file.path("c:","Program Files","OpenBugs"),
+    WINBUGS.directory=file.path("c:","Program Files","WinBUGS14"),
+    InitialSeed=trunc(runif(1,min=1, max=1000000000))) 
+
+TimeStratPetersenDiagErrorWHChinook2 (
+    title, prefix, time, n1, m2, 
+    u2.A.YoY, u2.N.YoY, u2.A.1, u2.N.1,
+    hatch.after.YoY=NULL, 
+    clip.frac.H.YoY=.25, clip.frac.H.1 = .25,
     logitP.cov,
     n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
     tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
@@ -53,12 +95,22 @@ TimeStratPetersenDiagErrorWHChinook(
         consequently, unclipped fish are a  mixture of wild and hatchery fish.}
   \item{u2.A}{A numeric vector of the number of unmarked fish with adipose clips captured in each stratum. }
   \item{u2.N}{A numeric vector of the number of unmarked fish with NO-adipose clips captured in each stratum. }
+  \item{u2.A.YoY}{A numeric vector of the number of unmarked YoY fish with adipose clips captured in each stratum.} 
+  \item{u2.N.YoY}{A numeric vector of the number of unmarked YoY fish with adipose clips captured in each stratum.} 
+  \item{u2.A.1}{A numeric vector of the number of unmarked Age1 fish with adipose clips captured in each stratum.} 
+  \item{u2.N.1}{A numeric vector of the number of unmarked Age1 fish with adipose clips captured in each stratum.} 
   \item{clip.frac.H}{A numeric value for the fraction of the hatchery fish that have the adipose fin clipped
+        (between 0 and 1).}
+  \item{clip.frac.H.YoY}{A numeric value for the fraction of the YoY hatchery fish that have the adipose fin clipped
+        (between 0 and 1).}
+  \item{clip.frac.H.1}{A numeric value for the fraction of the Age1 hatchery fish that have the adipose fin clipped
         (between 0 and 1).}
   \item{sampfrac}{A numeric vector with entries between 0 and 1 indicating what fraction of the stratum was sampled. For example, if strata
        are calendar weeks, and sampling occurred only on 3 of the 7 days, then the value of \code{sampfrac} for that stratum would be 3/7.}
   \item{hatch.after}{A numeric vector with elements belonging to \code{time}.
        At which point do hatchery fish arrive? They arrive in the immediate stratum AFTER these entries.}
+  \item{hatch.after.YoY}{A numeric vector with elements belonging to \code{time}.
+       At which point do YoY hatchery fish arrive? They arrive in the immediate stratum AFTER these entries.}
   \item{bad.m2}{A numeric vector with elements belonging to \code{time}. 
       In some cases, something goes wrong in the stratum, and the
       number of recovered fish should be ignored. 
@@ -66,10 +118,22 @@ TimeStratPetersenDiagErrorWHChinook(
       marked fish and so only very few are recovered. The values of \code{m2} will be set to NA for these strata.}
   \item{bad.u2.N}{A numeric vector with elements belonging to \code{time}. 
       In some cases, something goes wrong in the stratum, and the
-      number of unmarked with NO adipose fin clip  should be ignored. }
+      number of unmarked fish with NO adipose fin clip  should be ignored. }
+  \item{bad.u2.N.YoY}{A numeric vector with elements belonging to \code{time}. 
+      In some cases, something goes wrong in the stratum, and the
+      number of unmarked YoY with NO adipose fin clip  should be ignored. }
   \item{bad.u2.A}{A numeric vector with elements belonging to \code{time}. 
       In some cases, something goes wrong in the stratum, and the
-      number of unmarked with an adipose fin clip  should be ignored. }
+      number of unmarked fish with an adipose fin clip  should be ignored. }
+  \item{bad.u2.A.YoY}{A numeric vector with elements belonging to \code{time}. 
+      In some cases, something goes wrong in the stratum, and the
+      number of unmarked YoY with an adipose fin clip  should be ignored. }
+  \item{bad.u2.N.1}{A numeric vector with elements belonging to \code{time}. 
+      In some cases, something goes wrong in the stratum, and the
+      number of unmarked Age1 with NO adipose fin clip  should be ignored. }
+  \item{bad.u2.A.1}{A numeric vector with elements belonging to \code{time}. 
+      In some cases, something goes wrong in the stratum, and the
+      number of unmarked Age1 with an adipose fin clip  should be ignored. }
   \item{logitP.cov}{A numeric matrix for covariates to fit the logit(catchability). Default is a single intercept, i.e. all strata
       have the same mean logit(catchability). } \cr \cr
 
@@ -111,7 +175,8 @@ contact \email{cschwarz@stat.sfu.ca} for more details.
 \examples{ 
 ##---- See the demo files for examples of how to use this package
 ##
-##     demo("demo-TSPDEWHChinook",     package='BTSPAS', ask=FALSE)  # the simplest usage
+##     demo("demo-TSPDE-WHchinook",     package='BTSPAS', ask=FALSE)  # the simplest usage
+##     demo("demo-TSPDE-WHchinook2",    package='BTSPAS', ask=FALSE)  # the simplest usage
 ##
 } % end of examples section
 

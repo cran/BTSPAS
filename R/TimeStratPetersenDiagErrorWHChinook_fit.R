@@ -1,3 +1,4 @@
+# 2010-03-12 CJS added n.chains etc to calling arguments of the _fit function
 # 2009-12-08 CJS added some basic error checking on arguments
 # 2009-12-05 CJS added title to argument list
 # 2009-12-01 CJS added openbugs/winbugs to argument list; some basic error checking
@@ -7,6 +8,7 @@ TimeStratPetersenDiagErrorWHChinook_fit<-
                  time, n1, m2, u2.A, u2.N, clip.frac.H, sampfrac, 
                  hatch.after=NULL, bad.m2=c(), bad.u2.A=c(), bad.u2.N=c(),
                  logitP.cov=rep(1,length(n1)),
+                 n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
                  tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05, 
                  mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)), 
                  tau_xiP=1/var(logit((m2+.5)/(n1+1)), na.rm=TRUE), 
@@ -439,7 +441,7 @@ if (debug)
             time=new.time, n1=new.n1, m2=new.m2, u2.A=new.u2.A, u2.N=new.u2.N, 
             hatch.after=hatch.after-min(time)+1, clip.frac.H=clip.frac.H,
             logitP.cov=new.logitP.cov,
-            n.chains=3, n.iter=2000, n.burnin=300, n.sims=300, 
+            n.chains=3, n.iter=2000, n.burnin=300, n.sims=300,  # set to low values for debugging only
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
             debug=debug,  openbugs=openbugs, InitialSeed=InitialSeed ,
             OPENBUGS.directory=OPENBUGS.directory, WINBUGS.directory=WINBUGS.directory)
@@ -448,6 +450,7 @@ if (debug)
             time=new.time, n1=new.n1, m2=new.m2, u2.A=new.u2.A, u2.N=new.u2.N, 
             hatch.after=hatch.after-min(time)+1, clip.frac.H=clip.frac.H,
             logitP.cov=new.logitP.cov,
+            n.chains=n.chains, n.iter=n.iter, n.burnin=n.burnin, n.sims=n.sims,
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
             openbugs=openbugs, InitialSeed=InitialSeed,
             OPENBUGS.directory=OPENBUGS.directory, WINBUGS.directory=WINBUGS.directory)
@@ -594,7 +597,7 @@ plot_logitP <- function(title, time, n1, m2, u2.A, u2.N, logitP.cov, results){
       segments(time[1], intercept["mean"]+2*sigmaP["mean"], time[Nstrata], intercept["mean"]+2*sigmaP["mean"], lty=3)
    }
    if(ncol(logitP.cov)>1){  # if exactly 2 covariates, plot the second covarite over time as well
-      par(new=T)   # reuse the same plot
+      par(new=TRUE)   # reuse the same plot
       plot(time, logitP.cov[,2], type="l", lty=2, axes=FALSE, xlab="", ylab="")  # plot the covariate
    }
 

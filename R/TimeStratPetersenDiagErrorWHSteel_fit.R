@@ -1,3 +1,4 @@
+# 2010-03-12 CJS added n.sims etc to calling arguments so users can set
 # 2009-12-01 CJS added openbugs/winbugs directory to argument list; added some basic error checking of arguments
 
 TimeStratPetersenDiagErrorWHSteel_fit<- function( title="TSPDE-WHSteel", prefix="TSPDE-WHSteel-", 
@@ -5,6 +6,7 @@ TimeStratPetersenDiagErrorWHSteel_fit<- function( title="TSPDE-WHSteel", prefix=
                                  hatch.after=NULL, bad.m2=c(), 
                                  bad.u2.W.YoY=c(), bad.u2.W.1=c(), bad.u2.H.1=c(),
                                  logitP.cov=rep(1,length(n1)),
+                                 n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
                                  tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05, 
                                  mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)), 
                                  tau_xiP=1/var( logit((m2+.5)/(n1+1)), na.rm=TRUE),
@@ -414,7 +416,7 @@ if (debug)
             time=new.time, n1=new.n1, m2=new.m2, u2.W.YoY=new.u2.W.YoY, u2.W.1=new.u2.W.1, u2.H.1=new.u2.H.1, 
             hatch.after=hatch.after-min(time)+1, 
             logitP.cov=new.logitP.cov,
-            n.chains=3, n.iter=2000, n.burnin=300, n.sims=300, 
+            n.chains=3, n.iter=2000, n.burnin=300, n.sims=300,   # set to low value for debugging only
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
             debug=debug, debug2=debug2,  openbugs=openbugs, InitialSeed=InitialSeed ,
             WINBUGS.directory=WINBUGS.directory, OPENBUGS.directory=OPENBUGS.directory)
@@ -423,6 +425,7 @@ if (debug)
             time=new.time, n1=new.n1, m2=new.m2, u2.W.YoY=new.u2.W.YoY, u2.W.1=new.u2.W.1, u2.H.1=new.u2.H.1, 
             hatch.after=hatch.after-min(time)+1, 
             logitP.cov=new.logitP.cov,
+            n.chains=n.chains, n.iter=n.iter, n.burnin=n.burnin, n.sims=n.sims, 
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
             debug=debug, debug2=debug2, openbugs=openbugs, InitialSeed=InitialSeed,
             WINBUGS.directory=WINBUGS.directory, OPENBUGS.directory=OPENBUGS.directory)
@@ -580,7 +583,7 @@ plot_logitP <- function(title, time, n1, m2, u2.W.YoY, u2.W.1, u2.H.1, logitP.co
       segments(time[1], intercept["mean"]+2*sigmaP["mean"], time[Nstrata], intercept["mean"]+2*sigmaP["mean"], lty=3, lwd=2)
    }
    if(ncol(logitP.cov)>1){  # if exactly 2 covariates, plot the second covarite over time as well
-      par(new=T)   # reuse the same plot
+      par(new=TRUE)   # reuse the same plot
       plot(time, logitP.cov[,2], type="l", lty=2, axes=FALSE, xlab="", ylab="")  # plot the covariate
    }
 

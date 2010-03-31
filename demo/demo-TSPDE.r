@@ -128,7 +128,10 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagError_fit(
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 
-# rename  WinBugs files files that were created
+# Rename files that were created.
+# Note that if WinBugs is used, the files are called coda1, coda2, coda3 
+# rather than CODAchain1 etc and so the code below needs to be modified.
+
 file.copy("data.txt",       paste(demo.prefix,".data.txt",sep=""),      overwrite=TRUE)
 file.copy("CODAindex.txt",  paste(demo.prefix,".CODAindex.txt",sep=""), overwrite=TRUE)
 file.copy("CODAchain1.txt", paste(demo.prefix,".CODAchain1.txt",sep=""),overwrite=TRUE)

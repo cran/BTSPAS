@@ -5,7 +5,7 @@
 .First.lib <- function(libname,pkgname){
 
   .First.windows <- function(){
-    cat("***** BTSPAS: Bayesian Time Stratified Petersen Analysis System (2009-12-09) ***** \n\n",
+    cat("***** BTSPAS: Bayesian Time Stratified Petersen Analysis System (2010-03-31) ***** \n\n",
         "      Help available with  help(package='BTSPAS')  or  \n",
         "                           help(BTSPAS)                \n\n",
         '      List of demonstrations available with demo(package="BTSPAS") \n',

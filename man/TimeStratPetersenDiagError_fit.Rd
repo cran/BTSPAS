@@ -1,3 +1,4 @@
+% 2010-03-12 CJS Updated argument list on _fit
 % 2010-02-06 CJS Added alias to function
 % 2009-12-01 CJS Documentation added.
 \name{TimeStratPetersenDiagError_fit}
@@ -18,6 +19,7 @@ recaptures take place outside the stratum of release.}
 \usage{
 TimeStratPetersenDiagError_fit(title, prefix, time, n1, m2, u2, sampfrac, 
     jump.after = NULL, bad.m2 = c(), logitP.cov = rep(1, length(n1)), 
+    n.chains = 3, n.iter = 2e+05, n.burnin = 1e+05, n.sims = 2000, 
     tauU.alpha = 1, tauU.beta = 0.05, taueU.alpha = 1, taueU.beta = 0.05, 
     mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)),  
     tau_xiP = 1/var(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE),  

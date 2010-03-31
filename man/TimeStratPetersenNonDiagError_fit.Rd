@@ -1,8 +1,13 @@
+% 2010-03-29 CJs Updated with *NP functions and updated argument list
+% 2010-03-12 CJS Updated argument list on _fit
+% 2010-03-03 CJS Add ability to fix some logitP to certain values.
 % 2010-02-06 CJS Added documentation on called function as well.
 % 2009-12-08 CJS Documentation added.
 \name{TimeStratPetersenNonDiagError_fit}
 \alias{TimeStratPetersenNonDiagError_fit}
 \alias{TimeStratPetersenNonDiagError}
+\alias{TimeStratPetersenNonDiagErrorNP_fit}
+\alias{TimeStratPetersenNonDiagErrorNP}
 \title{Wrapper (*_fit) and function to call the Time Statified Petersen Estimator with NON Diagonal Entries function.}
 \description{Takes the number of marked fish released, the number of recaptures, 
 and the number of unmarked fish and 
@@ -13,13 +18,18 @@ from the posterior.
 Normally the user makes a call to the *_fit function which then calls the fitting function.
 
 Use the \code{\link{TimeStratPetersenDiagError_fit}} function for cases where
-recaptures take place ONLY in the stratum of release, i.e. the diagonal case.}
+recaptures take place ONLY in the stratum of release, i.e. the diagonal case.
 
+The non-diagonal case fits a log-normal distribution for the travel time. The *NP functions fit
+a non-parametric distribution for the travel times.
+}
 \usage{
 TimeStratPetersenNonDiagError_fit(title="TSPNDE", prefix="TSPNDE-", 
     time, n1, m2, u2, sampfrac, jump.after = NULL, 
     bad.n1=c(), bad.m2 = c(), bad.u2=c(),
     logitP.cov = rep(1, length(u2)), 
+    logitP.fixed=NULL, logitP.fixed.values=NULL,
+    n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
     tauU.alpha = 1, tauU.beta = 0.05, taueU.alpha = 1, taueU.beta = 0.05, 
     mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)),  
     tau_xiP = .6666,
@@ -32,13 +42,44 @@ TimeStratPetersenNonDiagError_fit(title="TSPNDE", prefix="TSPNDE-",
 TimeStratPetersenNonDiagError (
     title, prefix, time, n1, m2, u2,
     jump.after=NULL,
-    logitP.cov,
+    logitP.cov, logitP.fixed=rep(NA,length(u2)), 
     n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
     tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
     mu_xiP=-2, tau_xiP=.6666, 
     tauP.alpha=.001, tauP.beta=.001, 
     debug=FALSE, debug2=FALSE, openbugs=TRUE, InitialSeed,
     OPENBUGS.directory, WINBUGS.directory )
+
+TimeStratPetersenNonDiagErrorNP_fit( 
+    title="TSPNDENP", prefix="TSPNDENP-", 
+    time, n1, m2, u2, sampfrac, jump.after=NULL,
+    bad.n1=c(), bad.m2=c(), bad.u2=c(),
+    logitP.cov=rep(1,length(u2)),
+    logitP.fixed=NULL, logitP.fixed.values=NULL, 
+    n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
+    tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05, 
+    mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
+    tau_xiP=.6666,   # need a better initial value for variation in catchability
+    tauP.alpha=.001, tauP.beta=.001,
+    Delta.max=NULL,tauTT.alpha=.1,tauTT.beta=.1,
+    run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
+    debug=FALSE, debug2=FALSE, openbugs=TRUE,
+    OPENBUGS.directory=file.path("c:","Program Files","OpenBugs"),
+    WINBUGS.directory=file.path("c:","Program Files","WinBUGS14"),
+    InitialSeed=trunc(runif(1,min=1, max=1000000000))) 
+
+TimeStratPetersenNonDiagErrorNP (
+     title, prefix, time, n1, m2, u2,
+     jump.after=NULL,
+     logitP.cov=rep(1,length(u2)), logitP.fixed=rep(NA,length(u2)),
+     n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
+     tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
+     Delta.max,tauTT.alpha=.1, tauTT.beta=.1,
+     mu_xiP=-2, tau_xiP=.6666, 
+     tauP.alpha=.001, tauP.beta=.001, 
+     debug=FALSE, debug2=FALSE, openbugs=TRUE, InitialSeed,
+     OPENBUGS.directory, WINBUGS.directory )
+#
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -79,7 +120,16 @@ TimeStratPetersenNonDiagError (
       The values of \code{u2} in the entire row will be set to NA for these strata.}
   \item{logitP.cov}{A numeric matrix for covariates to fit the logit(catchability). 
       Default is a single intercept, i.e. all strata
-      have the same mean logit(catchability). } \cr \cr
+      have the same mean logit(catchability). }
+  \item{logitP.fixed}{A numeric vector (could be null) of the time strata where the
+      logit(P) whould be fixed. Typically, this is used when the capture rates for
+      some strata are 0 and logit(P) is set to -10 for these strata. The fixed
+      values are given in \code{logitP.fixed.values}}
+  \item{logitP.fixed.values}{A numerical vector (could be null) of the fixed values
+      for logit(P) at strata given by logitP.fixed. Typically this is used when 
+      certain strata have a 0 capture rate and the fixed value is set to -10  which
+      on the logit scale gives p[i] essentially 0. Don't specify values such as -50
+      because numerical problems could occur in WinBugs/OpenBugs.} \cr \cr
 
 
    \bold{The following parameters are usually not set by the user.} \cr
@@ -93,6 +143,11 @@ TimeStratPetersenNonDiagError (
   \item{tauU.beta}{One of the parameters along with \code{tauU.alpha} for the prior for the variance of the random noise for the smoothing spline.}
   \item{taueU.alpha}{One of the parameters along with \code{taueU.beta} for the prior for the variance of noise around the spline.}
   \item{taueU.beta}{One of the parameters along with \code{taueU.alpha} for the prior for the variance of noise around the spline.}
+  \item{Delta.max}{Maximum transition time for marked fish, i.e. all fish assumed to have moved by Delta.max unit of time}
+  \item{tauTT.alpha}{One of the parameters along with \code{tauTT.beta} for the prior on 1/var of logit continuation
+                    ratio for travel times}
+  \item{tauTT.beta}{One of the parameters along with \code{tauTT.alpha} for the prior on 1/var of logit continuation
+                    ratio for travel times}
   \item{mu_xiP}{One of the parameters for the prior for the mean of the logit(catchability) across strata}
   \item{tau_xiP}{One of the parameter for the prior for the mean of the logit(catchability) across strata}
   \item{tauP.alpha}{One of the parameters for the prior for the variance in logit(catchability) among strata}

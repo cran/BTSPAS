@@ -19,8 +19,8 @@ Full details are available at
 \details{
 \tabular{ll}{
 Package: \tab BTSPAS\cr
-Version: \tab 0.1-1\cr
-Date: \tab 2009-10-13\cr
+Version: \tab 1.0-3\cr
+Date: \tab 2010-03-31\cr
 Depends: \tab R2WinBUGS, coda, splines, actuar, BRugs\cr
 License: \tab GPL (>=2)\cr
 URL: \tab http://www.r-project.org\cr
@@ -34,10 +34,11 @@ Built: \tab R 2.10.0; ; 2009-12-03 23:01:26 UTC; windows\cr
 
 Index: \cr
 
-\link{TimeStratPetersenDiagError_fit}   Wrapper to call the Time Statified Petersen Estimator with Diagonal Entries function.\cr
-\link{TimeStratPetersenDiagErrorWHChinook_fit}   Wrapper to call the Time Statified Petersen Estimator with Diagonal Entries to separate wild and hatchery Chinook function.\cr
-\link{TimeStratPetersenDiagErrorWHSteel_fit}   Wrapper to call the Time Statified Petersen Estimator with Diagonal Entries to separate wild and hatchery Steelhead function. \cr
-\link{TimeStratPetersenNonDiagError_fit}   Wrapper to call the Time Statified Petersen Estimator with NON Diagonal Entries. \cr
+\link{TimeStratPetersenDiagError_fit}	Wrapper to call the Time Statified Petersen Estimator with Diagonal Entries function.\cr
+\link{TimeStratPetersenDiagErrorWHChinook_fit}	Wrapper to call the Time Statified Petersen Estimator with Diagonal Entries to separate wild and hatchery Chinook function.\cr
+\link{TimeStratPetersenDiagErrorWHChinook2_fit}	Wrapper to call the Time Statified Petersen Estimator with Diagonal Entries to separate wild and hatchery Chinook function when age 1 fish residualize overwinter.\cr
+\link{TimeStratPetersenDiagErrorWHSteel_fit}	Wrapper to call the Time Statified Petersen Estimator with Diagonal Entries to separate wild and hatchery Steelhead function. \cr
+\link{TimeStratPetersenNonDiagError_fit}	Wrapper to call the Time Statified Petersen Estimator with NON Diagonal Entries. \cr
 }
 \author{
 Carl J Schwarz \email{cschwarz@stat.sfu.ca} and

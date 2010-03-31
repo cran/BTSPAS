@@ -2,10 +2,12 @@
 \alias{BTSPAS-internal}
 \alias{PredictivePosterior.TSPDE}
 \alias{PredictivePosterior.TSPDE.WHCH}
+\alias{PredictivePosterior.TSPDE.WHCH2}
 \alias{PredictivePosterior.TSPDE.WHSteel}
 \alias{PredictivePosterior.TSPNDE}
 \alias{PredictivePosteriorPlot.TSPDE}
 \alias{PredictivePosteriorPlot.TSPDE.WHCH}
+\alias{PredictivePosteriorPlot.TSPDE.WHCH2}
 \alias{PredictivePosteriorPlot.TSPDE.WHSteel}
 \alias{PredictivePosteriorPlot.TSPNDE}
 \alias{RunTime}

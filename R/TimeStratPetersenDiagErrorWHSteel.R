@@ -258,7 +258,7 @@ Uguess.H.1[1:hatch.after] <- 0   # no hatchery fish prior to release from hatche
 # Wild YoY  fish. This covers the entire experiment.
 SplineDegree <- 3           # Degree of spline between occasions
 knots <- seq(4,Nstrata,4)/(Nstrata+1) # a knot roughly every 4th stratum
-SplineDesign.W.YoY <- bs((1:Nstrata)/(Nstrata+1), knots=knots, degree=SplineDegree, intercept=T, Boundary.knots=c(0,1))
+SplineDesign.W.YoY <- bs((1:Nstrata)/(Nstrata+1), knots=knots, degree=SplineDegree, intercept=TRUE, Boundary.knots=c(0,1))
 b.flat.W.YoY      <- c(1,2)
 b.notflat.W.YoY   <- 3:(ncol(SplineDesign.W.YoY))
 n.b.flat.W.YoY    <- length(b.flat.W.YoY)
@@ -269,7 +269,7 @@ init.bU.W.YoY    <- lm(log(Uguess.W.YoY+1) ~ SplineDesign.W.YoY-1)$coefficients 
 # Wild 1+  fish. This covers the entire experiment.
 SplineDegree <- 3           # Degree of spline between occasions
 knots <- seq(4,Nstrata,4)/(Nstrata+1) # a knot roughly every 4th stratum
-SplineDesign.W.1   <- bs((1:Nstrata)/(Nstrata+1), knots=knots, degree=SplineDegree, intercept=T, Boundary.knots=c(0,1))
+SplineDesign.W.1   <- bs((1:Nstrata)/(Nstrata+1), knots=knots, degree=SplineDegree, intercept=TRUE, Boundary.knots=c(0,1))
 b.flat.W.1        <- c(1,2)
 b.notflat.W.1     <- 3:(ncol(SplineDesign.W.1))
 n.b.flat.W.1      <- length(b.flat.W.1)
@@ -281,7 +281,7 @@ init.bU.W.1       <- lm(log(Uguess.W.1+1) ~ SplineDesign.W.1-1)$coefficients  # 
 # of zero for 1:hatch.after to make it easier in WinBugs
 SplineDegree <- 3           # Degree of spline between occasions
 knots <- (seq((hatch.after+4),Nstrata-1,4)-hatch.after)/(Nstrata-hatch.after+1) # a knot roughly every 4th stratum
-SplineDesign.H.1 <- bs((1:(Nstrata-hatch.after))/(Nstrata-hatch.after+1), knots=knots, degree=SplineDegree, intercept=T, Boundary.knots=c(0,1))
+SplineDesign.H.1 <- bs((1:(Nstrata-hatch.after))/(Nstrata-hatch.after+1), knots=knots, degree=SplineDegree, intercept=TRUE, Boundary.knots=c(0,1))
 b.flat.H.1      <- c(1,2)
 b.notflat.H.1   <- 3:(ncol(SplineDesign.H.1))
 n.b.flat.H.1    <- length(b.flat.H.1)
@@ -358,6 +358,7 @@ init.vals <- function(){
 
 # set up for the call to WinBugs or OpenBugs
 
+working.directory <-  getwd()          # store all data and init files in the current directory
 if(openbugs){
    cat("\n\n*** Start of call to OpenBugs \n")
    bugs.directory = OPENBUGS.directory 
@@ -370,7 +371,6 @@ if(openbugs){
    over.relax <- FALSE
    parameters.to.save <- c(parameters, "deviance")  # always get the deviance
    parametersToSave <- parameters.to.save
-   working.directory = getwd()          # store all data and init files in the current directory
 
    cat("OpenBugs files created in:", working.directory, "\n")
    BRugs::modelCheck(modelFile)    # check the model
@@ -459,6 +459,7 @@ if(openbugs){
       n.burnin=n.burnin,
       n.sims=n.sims,      # (approx) number of final simulations to save
       bugs.directory=bugs.directory,
+      working.directory=working.directory, 
       debug=debug     )
    results
    } # end of else clause

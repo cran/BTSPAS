@@ -1,21 +1,20 @@
-# 2010-03-03 CJS allowed some logitP[j] top be fixed at arbitrary values (on the logit scale)
-#                added definition of storage.class(logitP) to deal with no fixed values where the program bombed
-# 2009-12-07 CJS changed etaP to logitP
-# 2009-12-05 CJS added title to argument list
-# 2009-12-01 CJS added openbugs/winbugs directory to argument list
+# 2010-03-11 Added fixed values of logitP[j] to be provided by user.
+# 2010-03-02 SJB Created file.
 
-TimeStratPetersenNonDiagError <- function(title, prefix, time, n1, m2, u2,
-                     jump.after=NULL,
-                     logitP.cov=rep(1,length(u2)), logitP.fixed=rep(NA,length(u2)),
-                     n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
-                     tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
-                     mu_xiP=-2, tau_xiP=.6666, 
-                     tauP.alpha=.001, tauP.beta=.001, 
-                     debug=FALSE, debug2=FALSE, openbugs=TRUE, InitialSeed,
-                     OPENBUGS.directory, WINBUGS.directory ){
+TimeStratPetersenNonDiagErrorNP <- function(title, prefix, time, n1, m2, u2,
+                                            jump.after=NULL,
+                                            logitP.cov=rep(1,length(u2)), logitP.fixed=rep(NA,length(u2)),
+                                            n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
+                                            tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
+                                            Delta.max,tauTT.alpha=.1, tauTT.beta=.1,
+                                            mu_xiP=-2, tau_xiP=.6666, 
+                                            tauP.alpha=.001, tauP.beta=.001, 
+                                            debug=FALSE, debug2=FALSE, openbugs=TRUE, InitialSeed,
+                                            OPENBUGS.directory, WINBUGS.directory ){
 #
-#  Fit the smoothed time-Stratified Petersen estimator with NON-Diagonal recoveries 
-#  This model allows recoveries outside the stratum of release and error in the smoothed U curve
+#  Fit the smoothed time-Stratified Petersen estimator with NON-Diagonal recoveries.
+#  This model allows recoveries outside the stratum of release and error in the smoothed U curve.
+#  The travel time model is based on the continuation ratio and makes no parametric assumptions.
 #
 #  Packages Required - must be installed BEFORE calling this functin
 #
@@ -45,7 +44,7 @@ TimeStratPetersenNonDiagError <- function(title, prefix, time, n1, m2, u2,
 #      logitP.cov - covariates for logit(P)=X beta.logitP.cov
 #                 - specify anything you want for fixed logitP's as the covariate values are simply ignored. 
 #                 - recommend that you specify 1 for the intercept and 0's for everything else
-#      logitP.fixed- values for logitP that are fixed in advance. Use NA if corresponding value is not fixed, 
+#      logitP.fixed - values for logitP that are fixed in advance. Use NA if corresponding value is not fixed, 
 #                    otherwise specify the logitP value.
 
 
@@ -60,13 +59,16 @@ library("splines")    # used to compute the Bspline design matrix
 #
 sink("model.txt")  # NOTE: NO " allowed in model as this confuses the cat command
 cat("
-model TimeStratPetersenNonDiagError{
+
+model TimeStratPetersenNonDiagErrorNP{
+
 # Time Stratified Petersen with NON Diagonal recapture and allowing for error in the smoothed U curve.
-
-# Refer to Bonner (2008) Ph.D. thesis from Simon Fraser University available at
-#     http://www.stat.sfu.ca/people/alumni/Theses/Bonner-2008.pdf
-# The model is in Appendix B. The discussion of the model is in Chapter 2.
-
+# Non-parametric estimateion of travel times for marked individuals.
+#
+# Refer to Bonner and Schwarz (2010) Smoothed Estimates
+#   for Time-Stratified Mark-Recapture Experiments using Bayesian
+#   P-Splines
+#
 #  Data input:
 #      Nstrata.rel - number of strata where fish are releases
 #      Nstrata.cap - number of (future strata) where fish are recaptured.
@@ -109,30 +111,51 @@ model TimeStratPetersenNonDiagError{
 #         which comes from spline with parameters bU[1... Knots+q]
 #         + error term eU[i] 
 #
-#      muLogTT[i] = mean log(travel time) assuming a log-normal distribution for travel time
-#      sdLogTT[i] = sd   log(travel time) assuming a log-normal distribution for travel time
-#                        Note that the etasdLogTT=log(sdLogTT) is modelled to keep the sd positive
+#      muTT[j] = mean(logit(delta[i,i+j-1])), j=1,...,Delta.max
+#      sdTT = sd(logit(delta[i,i+j-1])), j=1,....,Delta.max
+#      delta[i,i+j-1]=Theta[i,i+j-1]/(1-Theta[i,i]-...-Theta[i,i+j-2])
 #       
 
    ##### Fit the spline for the U's and specify hierarchial model for the logit(P)'s ######
-   for(i in 1:Nstrata.cap){
+   for(i in 1:(Nstrata.cap)){
+        ## Model for U's
         logUne[i] <- inprod(SplineDesign[i,1:n.bU],bU[1:n.bU])  # spline design matrix * spline coeff 
         etaU[i] ~ dnorm(logUne[i], taueU)              # add random error
         eU[i] <- etaU[i] - logUne[i]
    }
+
    for(i in 1:Nfree.logitP){   # model the free capture rates using covariates
         mu.logitP[free.logitP.index[i]] <- inprod(logitP.cov[free.logitP.index[i],1:NlogitP.cov], beta.logitP[1:NlogitP.cov]) 
         logitP[free.logitP.index[i]] ~ dnorm(mu.logitP[free.logitP.index[i]],tauP)
    }
 
-
-   ##### Hyperpriors #####
-   ## Mean and sd of log travel-times
+   ##### Priors and hyperpriors #####
+   ## Transition probabilities -- continuation ratio model
    for(i in 1:Nstrata.rel){
-     muLogTT[i]    ~ dnorm(xiMu,tauMu)
-     etasdLogTT[i] ~ dnorm(xiSd,tauSd)
+        ## delta[i,j] is the probability that a marked fish released on day i passes the second trap
+        ## on day i+j-1 given that it does not pass the on days i,...,i+j-2. r[i,j]=logit(delta[i,j])
+        ## is assumed to have a normal distribution with mean muTT[j] and precision tauTT.
+
+        r[i,1] ~ dnorm(muTT[1],tauTT)
+		
+	logit(Theta[i,1] ) <- r[i,1]
+		
+	for(j in 2:Delta.max){
+		r[i,j] ~ dnorm(muTT[j],tauTT)
+			
+		logit(delta[i,j]) <- r[i,j]
+			
+		Theta[i,j] <- delta[i,j] * (1 - sum(Theta[i,1:(j-1)]))
+	}
+	Theta[i,Delta.max+1] <- 1- sum(Theta[i,1:Delta.max])
    }
 
+   for(j in 1:Delta.max){
+	muTT[j] ~ dnorm(0,.666)
+   }
+   tauTT~ dgamma(tauTT.alpha,tauTT.beta)
+   sdTT <- 1/sqrt(tauTT)
+	
    ## Run size - flat priors
    for(i in 1:n.b.flat){
       bU[b.flat[i]] ~ dflat()
@@ -142,6 +165,7 @@ model TimeStratPetersenNonDiagError{
       xiU[b.notflat[i]] <- 2*bU[b.notflat[i]-1] - bU[b.notflat[i]-2]
       bU [b.notflat[i]] ~ dnorm(xiU[b.notflat[i]],tauU)
    }
+
    tauU ~ dgamma(tauU.alpha,tauU.beta)  # Notice reduction from .0005 (in thesis) to .05
    sigmaU <- 1/sqrt(tauU)
    taueU ~ dgamma(taueU.alpha,taueU.beta) # dgamma(100,.05) # Notice reduction from .0005 (in thesis) to .05
@@ -156,47 +180,24 @@ model TimeStratPetersenNonDiagError{
    tauP ~ dgamma(tauP.alpha,tauP.beta)
    sigmaP <- 1/sqrt(tauP)
 
-   ## prior on the  Mean and log(sd) of log travel times
-   xiMu  ~ dnorm(0,.0625)
-   tauMu ~ dgamma(1,.01)
-   sigmaMu <- 1/sqrt(tauMu)
-
-   xiSd  ~ dnorm(0,.0625)
-   tauSd ~ dgamma(1,.1)
-   sigmaSd <- 1/sqrt(tauSd)
-
-   ##### Compute derived parameters #####
-   ## Get the sd of the log(travel times)
-   for(i in 1:Nstrata.rel){
-      log(sdLogTT[i]) <- etasdLogTT[i]
-   }
-
-   ## Transition probabilities
-   for(i in 1:Nstrata.rel){
-     # Probability of transition in 0 days (T<1 days)
-     Theta[i,i] <- phi((log(1)-muLogTT[i])/sdLogTT[i])
-     for(j in (i+1):Nstrata.cap){
-       # Probability of transition in j days (j-1<T<j)
-       Theta[i,j] <- phi((log(j-i+1)-muLogTT[i])/sdLogTT[i])- phi((log(j-i)-muLogTT[i])/sdLogTT[i])
-     }
-     Theta[i,Nstrata.cap+1] <- 1-sum(Theta[i,i:Nstrata.cap])  # fish never seen again
-   }
-
    ##### Likelihood contributions #####
    ## marked fish ##
    for(i in 1:Nstrata.rel){
       # Compute cell probabilities
-      for(j in i:Nstrata.cap){
-        Pmarked[i,j] <- Theta[i,j] * p[j]
+      for(j in 1:(Delta.max+1)){
+        Pmarked[i,j] <- Theta[i,j] * p[i+j-1]
       }
-      Pmarked[i,Nstrata.cap+1] <- 1- sum(Pmarked[i,i:Nstrata.cap])
+      Pmarked[i,Delta.max+2] <- 1- sum(Pmarked[i,1:(Delta.max+1)])
 
       # Likelihood contribution
-      m2[i,i:(Nstrata.cap+1)] ~ dmulti(Pmarked[i,i:(Nstrata.cap+1)],n1[i])
+      m2[i,1:(Delta.max+2)] ~ dmulti(Pmarked[i,],n1[i])
    }
+
    ## Capture probabilities and run size
+   for(j in 1:(Nstrata.cap + Extra.strata.cap)){
+      logit(p[j]) <- logitP[j]       # convert from logit scale
+   }
    for(j in 1:Nstrata.cap){
-      logit(p[j]) <- max(-10,min(10,logitP[j]))    # convert from logit scale; use limits to avoid over/underflow
       U[j]   <- round(exp(etaU[j]))       # convert from log scale
       u2[j] ~ dbin(p[j],U[j])      # capture of newly unmarked fish
    }
@@ -205,20 +206,17 @@ model TimeStratPetersenNonDiagError{
    Utot <- sum( U[1:Nstrata.cap])          # Total number of unmarked fish
    Ntot <- sum(n1[1:Nstrata.rel]) + Utot  # Total population size including those fish marked and released
 } # end of model
-
 ", fill=TRUE)
-sink()  # End of saving the WinBugs program
 
+sink()  # End of saving the WinBugs program
 
 # Now to create the initial values, and the data prior to call to WinBugs
 
 Nstrata.rel <- length(n1)
-Nstrata.cap <- ncol(m2)-1  # remember last column of m2 has the number of fish NOT recovered
+Nstrata.cap <- length(u2)
 
-
-Uguess <- pmax(c((u2[1:Nstrata.rel]+1)*(n1+2)/(apply(m2[,1:Nstrata.cap],1,sum)+1),rep(0,Nstrata.cap-Nstrata.rel)),
-          (u2+1)/expit(mu_xiP), na.rm=TRUE)  # try and keep Uguess larger than observed values
-
+## Count extra columns that will have to be added to account for Delta.max
+Extra.strata.cap <- max(0,Nstrata.rel + ncol(m2) - Nstrata.cap -1)
 
 # create the B-spline design matrix
 # Each set of strata separated at the jump.after[i] points forms a separate spline with a separate basis
@@ -231,6 +229,7 @@ SplineDegree <- 3           # Degree of spline between occasions
 b.flat <- NULL              # index of spline coefficients with a flat prior distribution -first two of each segment
 b.notflat <- NULL           # index of spline coefficients where difference is modelled
 all.knots <- NULL    
+
 for (i in 1:(length(ext.jump)-1)){
   nstrata.in.set <- ext.jump[i+1]-ext.jump[i]
   if(nstrata.in.set > 7)
@@ -249,7 +248,8 @@ for (i in 1:(length(ext.jump)-1)){
   SplineDesign <- cbind(SplineDesign, matrix(0, nrow=nrow(SplineDesign), ncol=ncol(z)))
   SplineDesign <- rbind(SplineDesign,
                          cbind( matrix(0,nrow=nrow(z),ncol=ncol(SplineDesign)-ncol(z)), z)  )
-  } # end of for loop
+} # end of for loop
+
 n.b.flat <- length(b.flat)
 n.b.notflat <- length(b.notflat)
 n.bU <- n.b.flat + n.b.notflat
@@ -260,33 +260,36 @@ logitP.cov <- as.matrix(logitP.cov)
 NlogitP.cov <- ncol(as.matrix(logitP.cov))
 
 # get the logitP's ready to allow for fixed values
-logitP <- as.numeric(logitP.fixed)
-storage.mode(logitP) <- "double" # if there are no fixed logits, the default class will be logical which bombs
+logitP <- c(as.numeric(logitP.fixed),rep(-10,Extra.strata.cap))
+storage.mode(logitP) <- "double"  # force the storage class to be correct if there are no fixed values
 free.logitP.index <- (1:Nstrata.cap)[ is.na(logitP.fixed)]  # free values are those where NA is specifed
 Nfree.logitP <- length(free.logitP.index)
 
-
-datalist <- list("Nstrata.rel", "Nstrata.cap", "n1", "m2", "u2", 
-                 "logitP", "Nfree.logitP", "free.logitP.index",   # those indices that are fixed and free to vary
+datalist <- list("Nstrata.rel", "Nstrata.cap","Extra.strata.cap",
+                 "Delta.max","n1", "m2", "u2",
+                 "logitP", "Nfree.logitP", "free.logitP.index",
                  "logitP.cov", "NlogitP.cov",
                  "SplineDesign",
                  "b.flat", "n.b.flat", "b.notflat", "n.b.notflat", "n.bU",
+                 "tauTT.alpha","tauTT.beta",
                  "tauU.alpha", "tauU.beta", "taueU.alpha", "taueU.beta",
                  "mu_xiP", "tau_xiP", "tauP.alpha", "tauP.beta")
 
 
-# get the initial values for the parameters of the model
+## Generate the initial values for the parameters of the model
 
+## 1) U and spline coefficients
+Uguess <- (u2+1)/expit(mu_xiP)  # try and keep Uguess larger than observed values
 
-Uguess <- pmax(c((u2[1:Nstrata.rel]+1)*(n1+2)/(apply(m2[,1:Nstrata.cap],1,sum)+1),rep(0,Nstrata.cap-Nstrata.rel)),
-          (u2+1)/expit(mu_xiP), na.rm=TRUE)  # try and keep Uguess larger than observed values
 init.bU   <- lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
+
 if(debug2) {
    cat("compute init.bU \n")
    browser()  # Stop here to examine the spline design matrix function
 }
 
-logitPguess <- c(logit((apply(m2[,1:Nstrata.cap],1,sum)+1)/(n1+1)),rep(mu_xiP,Nstrata.cap-Nstrata.rel))
+## 2) Capture probabilities
+logitPguess <- c(logit((apply(m2[,1:(Delta.max+1)],1,sum)+1)/(n1+1)),rep(mu_xiP,Nstrata.cap-Nstrata.rel))
 init.beta.logitP <- as.vector(lm( logitPguess ~ logitP.cov-1)$coefficients)
 if(debug2) {
    cat(" obtained initial values of beta.logitP\n")
@@ -296,29 +299,33 @@ if(debug2) {
 
 # create an initial plot of the fit
 pdf(file=paste(prefix,"-initialU.pdf",sep=""))
-plot(time, log(Uguess), 
+plot(time, log(Uguess[1:Nstrata.cap]), 
     main=paste(title,"\nInitial spline fit to estimated U[i]"),
     ylab="log(U[i])", xlab='Stratum')  # initial points on log scale.
 lines(time, SplineDesign %*% init.bU)  # add smoothed spline through points
 dev.off()
 
-
 parameters <- c("logitP", "beta.logitP", "tauP", "sigmaP",
                 "bU", "tauU", "sigmaU", 
                 "eU", "taueU", "sigmaeU", 
                 "Ntot", "Utot", "logUne", "etaU", "U",
-                 "muLogTT", "sdLogTT")      #  mean and sd of log(travel times)
+                 "muTT","sdTT","Theta")
+
 if( any(is.na(m2))) {parameters <- c(parameters,"m2")} # monitor in case some bad data where missing values present
 if( any(is.na(u2))) {parameters <- c(parameters,"u2")}
                  
 init.vals <- function(){
-   init.logitP <- c(logit((apply(m2[,1:Nstrata.cap],1,sum)+1)/(n1+1)),rep(mu_xiP,Nstrata.cap-Nstrata.rel))         # initial capture rates based on observed recaptures
+   init.logitP <- c(logit((apply(m2[,1:(Delta.max+1)],1,sum)+1)/(n1+1)),rep(mu_xiP,Nstrata.cap-Nstrata.rel))         # initial capture rates based on observed recaptures
    init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
-   init.logitP[!is.na(logitP.fixed)]<- NA        # no need to initialize the fixed values
+   init.logitP[!is.na(logitP.fixed)] <- NA        # no need to initialize the fixed values
+   
    init.beta.logitP <- as.vector(lm( init.logitP ~ logitP.cov-1)$coefficients)
    init.beta.logitP[is.na(init.beta.logitP)] <- 0 
    init.beta.logitP <- c(init.beta.logitP, 0)   # add one extra element so that single beta is still written as a 
                                              # vector in the init files etc.
+
+   init.logitP <- c(init.logitP,rep(NA,Extra.strata.cap)) # Add values for extra capture probabilities
+   
    init.tauP <- 1/var(init.logitP, na.rm=TRUE)     # 1/variance of logit(p)'s (ignoring the covariates for now)
 
    init.bU   <- lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
@@ -329,7 +336,7 @@ init.vals <- function(){
    sigmaU <- sd( init.bU[b.notflat]-2*init.bU[b.notflat-1]+init.bU[b.notflat-2], na.rm=TRUE)
    init.tauU <- 1/sigmaU^2
 
-   # variance of error in the U over and above the spline fit
+   # variance of error in the U' over and above the spline fit
    sigmaeU <- sd(init.eU, na.rm=TRUE)
    init.taueU <- 1/sigmaeU^2
 
@@ -338,16 +345,29 @@ init.vals <- function(){
    init.u2[ is.na(u2)] <- 100
    init.u2[!is.na(u2)] <- NA
 
-   # mean log(travel time) and sd log(travel time)
-   init.muLogTT <- as.vector(log(pmax(
-                   (m2[,1:Nstrata.cap] %*% 1:Nstrata.cap)/(1+apply(m2[,1:Nstrata.cap],1,sum)) - 1:Nstrata.rel,
-                    1, na.rm=TRUE)))
-   init.muLogTT <- as.vector(init.muLogTT)
-   init.etasdLogTT <- log(rep(.5,Nstrata.rel))  # note that log (sd(log travel time)) is being modelled
+   ## Transition probabilities
+   init.Theta <- t(sapply(1:Nstrata.rel,function(i){
+
+     if(all(is.na(m2[i,])) || sum(m2[i,])==0)
+        return(rep(NA,Delta.max+1))
+
+     else{
+       thetatmp <- pmax(.01,pmin(m2[i,-Delta.max+2]/sum(m2[i,-Delta.max+2]),.99))
+       return(thetatmp/sum(thetatmp))
+     }
+   }))
+
+   init.delta <- t(apply(init.Theta[,-Delta.max+1],1,function(theta){
+     theta/(1-c(0,cumsum(theta[-Delta.max])))
+   }))
+   
+   ## mean and standard deviation of transition probabilties
+   init.muTT <- apply(logit(init.delta),2,mean,na.rm=TRUE)
+   init.sdTT <- sd(as.vector(t(logit(init.delta)))-init.muTT,na.rm=TRUE)
    
    list(logitP=init.logitP, beta.logitP=init.beta.logitP, tauP=init.tauP, 
         bU=init.bU,  tauU=init.tauU, taueU=init.taueU, etaU=init.etaU, 
-        muLogTT=init.muLogTT, etasdLogTT=init.etasdLogTT)
+        muTT=init.muTT, tauTT=1/init.sdTT^2,r=logit(init.delta))
 }
 
 #browser()
@@ -355,7 +375,6 @@ init.vals <- function(){
 
 # set up for the call to WinBugs or OpenBugs
 
-working.directory <- getwd()          # store all data and init files in the current directory
 if(openbugs){
    cat("\n\n*** Start of call to OpenBugs \n")
    bugs.directory = OPENBUGS.directory 
@@ -368,17 +387,26 @@ if(openbugs){
    over.relax <- FALSE
    parameters.to.save <- c(parameters, "deviance")  # always get the deviance
    parametersToSave <- parameters.to.save
+   working.directory = getwd()          # store all data and init files in the current directory
 
    cat("OpenBugs files created in:", working.directory, "\n")
    BRugs::modelCheck(modelFile)    # check the model
 
-   # get the data and write to the data.txt file in the current directory
+   ## If extra columns were added to the data then we need to add fixed capture probabilities at 0.
+   ##    if(m2.excols>0){
+   ##      logitP <- c(logitP,rep(-10,m2.excols))
+   ##    }
+   
+   ## get the data and write to the data.txt file in the current directory
    datafileName = file.path(working.directory, "data.txt")
    data.list <- list()
    for(i in 1:length(datalist)){
-      data.list[[length(data.list)+1]] <-get(datalist[[i]])
+     data.list[[length(data.list)+1]] <- get(datalist[[i]])
    }
+
    names(data.list) <- as.list(datalist)
+   
+   
    temp <- BRugs::bugsData(data.list, fileName = datafileName, digits = 5)
    cat("Data files saved in ", temp, "\n")
 
@@ -437,7 +465,7 @@ if(openbugs){
    cat("Final dimension of saved simulation output is ", dim(results$sims.array), "\n")
 
    # save the information to the coda files
-   BRugs::samplesCoda("*", stem=paste(working.directory,"/",sep=""))  # write out coda files
+   BRugs::samplesCoda("*", stem=paste(working.directory,"/",sep=""))  # write out code files
    cat("Coda file created \n")
 
    cat("\n\n*** Finished OpenBugs ***\n\n")
@@ -454,7 +482,6 @@ if(openbugs){
       n.burnin=n.burnin,
       n.sims=n.sims,      # (approx) number of final simulations to save
       bugs.directory=bugs.directory,
-      working.directory=working.directory,
       debug=debug     )
    results
    } # end of else clause

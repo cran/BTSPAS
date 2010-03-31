@@ -37,7 +37,7 @@
 # 
 #  The program tries to fit a single spline to the entire dataset. However, in julian weeks
 #  23 and 40, hatchery released fish started to arrive at the trap resulting in sudden jump
-#  in abundance. The jump.after vector gives the julian weeks just BEFORE the suddent jump,
+#  in abundance. The jump.after vector gives the julian weeks just BEFORE the sudden jump,
 #  i.e. the spline is allowed to jump AFTER the julian weeks in jump.after.
 #
 #  The vector bad.m2 indicates which julian weeks something went wrong. For example, the
@@ -140,7 +140,10 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagErrorWHChinook_fit(
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 
-# rename  WinBugs files files that were created
+# Rename files that were created.
+# Note that if WinBugs is used, the files are called coda1, coda2, coda3 
+# rather than CODAchain1 etc and so the code below needs to be modified.
+
 file.copy("data.txt",       paste(demo.prefix,".data.txt",sep=""),      overwrite=TRUE)
 file.copy("CODAindex.txt",  paste(demo.prefix,".CODAindex.txt",sep=""), overwrite=TRUE)
 file.copy("CODAchain1.txt", paste(demo.prefix,".CODAchain1.txt",sep=""),overwrite=TRUE)
