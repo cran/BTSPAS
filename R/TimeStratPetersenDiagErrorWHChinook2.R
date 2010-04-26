@@ -1,3 +1,4 @@
+# 2010-04-26 CJS fixed problem where init.logitP failed when n1=m2 (logit=infinite) and lm() failed.
 # 2010-03-29 CJS Created first release
 
 # This DIFFERS from the TimeStratPetersenDiagErrorWHChinook routine in the following ways.
@@ -428,7 +429,7 @@ NlogitP.cov <- ncol(as.matrix(logitP.cov))
                 
 init.vals <- function(){
    # Initial values for the probability of capture
-   init.logitP <- logit((m2+1)/(n1+2))         # initial capture rates based on observed recaptures
+   init.logitP <- pmax(-10,pmin(10,logit((m2+1)/(n1+2))))         # initial capture rates based on observed recaptures
    init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
    init.beta.logitP <- as.vector(lm( init.logitP ~ logitP.cov-1)$coefficients)
    init.beta.logitP[init.beta.logitP=NA] <- 0 

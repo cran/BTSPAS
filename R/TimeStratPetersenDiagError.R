@@ -1,3 +1,4 @@
+# 2010-04-26 CJS fixed problem in computing logitPguess when m2=n1 and you get infinite logit value
 # 2009-12-05 CJS added title to argument list
 # 2009-12-01 CJS (added WinBugs/OpenBugs directory to the argument list
 
@@ -211,7 +212,7 @@ if(debug2) {
    browser()  # Stop here to examine the spline design matrix function
 }
 
-logitPguess <- logit( (m2+1)/(n1+1))
+logitPguess <- pmax(-10, pmin(10, logit( (m2+1)/(n1+1))))
 init.beta.logitP <- as.vector(lm( logitPguess ~ logitP.cov-1)$coefficients)
 if(debug2) {
    cat(" obtained initial values of beta.logitP\n")

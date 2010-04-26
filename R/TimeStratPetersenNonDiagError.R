@@ -1,3 +1,4 @@
+# 2010-04-26 CJS fixed problem with init.logitP when n1=m2=k and you get +infinity which craps out lm()
 # 2010-03-03 CJS allowed some logitP[j] top be fixed at arbitrary values (on the logit scale)
 #                added definition of storage.class(logitP) to deal with no fixed values where the program bombed
 # 2009-12-07 CJS changed etaP to logitP
@@ -313,6 +314,7 @@ if( any(is.na(u2))) {parameters <- c(parameters,"u2")}
                  
 init.vals <- function(){
    init.logitP <- c(logit((apply(m2[,1:Nstrata.cap],1,sum)+1)/(n1+1)),rep(mu_xiP,Nstrata.cap-Nstrata.rel))         # initial capture rates based on observed recaptures
+   init.logitP <- pmin(10,pmax(-10,init.logitP))
    init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
    init.logitP[!is.na(logitP.fixed)]<- NA        # no need to initialize the fixed values
    init.beta.logitP <- as.vector(lm( init.logitP ~ logitP.cov-1)$coefficients)

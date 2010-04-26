@@ -1,3 +1,4 @@
+# 2010-04-26 CJS fixed problem with initial values for logitP when n1=m2 (+infinite) which crashed lm()
 # 2009-12-05 CJS added title to argument list
 # 2009-12-01 CJS Added open/win bugs path names to argument list
 
@@ -288,7 +289,7 @@ NlogitP.cov <- ncol(as.matrix(logitP.cov))
                 
 init.vals <- function(){
    # Initial values for the probability of capture
-   init.logitP <- logit((m2+1)/(n1+2))         # initial capture rates based on observed recaptures
+   init.logitP <- pmin(10,pmax(-10,logit((m2+1)/(n1+2))))   # initial capture rates based on observed recaptures
    init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
    init.beta.logitP <- as.vector(lm( init.logitP ~ logitP.cov-1)$coefficients)
    init.beta.logitP[init.beta.logitP=NA] <- 0 

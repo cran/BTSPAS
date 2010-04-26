@@ -1,3 +1,4 @@
+# 2010-04-26 CJS fixed problem with init.logiP that failed when n1=m2 logit=+infinity and lm() failed
 # 2009-12-05 CJS added title to argument list
 # 2009-12-01 CJS added openbugs/winbugs directory to argument list
 
@@ -303,7 +304,7 @@ NlogitP.cov <- ncol(as.matrix(logitP.cov))
                 
 init.vals <- function(){
    # Initial values for the probability of capture
-   init.logitP <- logit((m2+1)/(n1+2))         # initial capture rates based on observed recaptures
+   init.logitP <- pmax(-10,pmin(10,logit((m2+1)/(n1+2))))  # initial capture rates based on observed recaptures
    init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
    init.beta.logitP <- as.vector(lm( init.logitP ~ logitP.cov-1)$coefficients)
    init.beta.logitP[init.beta.logitP=NA] <- 0 
