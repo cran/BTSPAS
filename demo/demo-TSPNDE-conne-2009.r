@@ -41,7 +41,7 @@ demo.proceed <- TRUE
 demo.ans <- " "
 while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
   cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
-  cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPDE' \n")
+  cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPNDE' \n")
   demo.ans <- readline(prompt="Do you want to proceed? (yes/no): ")
 }
 if(demo.ans %in% c("no","NO","n","N")){demo.proceed <- FALSE }
@@ -185,6 +185,7 @@ cat("\n\n\n ***** FILES and GRAPHS saved in \n    ", getwd(), "\n\n\n")
 print(dir())
 
 # move up the directory
+setwd("..")
 
 cat("\n\n\n ***** End of Demonstration *****\n\n\n")
 

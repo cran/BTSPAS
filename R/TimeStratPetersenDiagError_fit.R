@@ -1,3 +1,6 @@
+# 2010-09-06 CJS forced time, n1, m2, u2, sampfrac to be vectors
+# 2010-08-04 CJS added traceplots of logitP, logU, Utot, and Ntot to help diagnose non-mixing
+# 2010-08-04 CJS added version/date to results data structure
 # 2009-12005 CJS added title to argument list
 # 2009-12-01 CJS Added some basic error checking; added OPENBUGS/WINBUGS to argument list
 
@@ -17,7 +20,7 @@ TimeStratPetersenDiagError_fit<- function( title="TSDPE", prefix="TSPDE-",
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2009-12-01'
+   version <- '2010-09-06'
 
 # Input parameters are
 #    title - title for the analysis
@@ -54,6 +57,13 @@ TimeStratPetersenDiagError_fit<- function( title="TSDPE", prefix="TSPDE-",
 #    debug  - if TRUE, then this is a test run with very small MCMC chains run to test out the data
 #             and WINBUGS will run and stop waiting for your to exit and complete
 #    openbugs - if TRUE, then openbugs is called; else WInbugs is called
+
+# force input parameters to be vectors
+time     <- as.vector(time)
+n1       <- as.vector(n1)
+m2       <- as.vector(m2)
+u2       <- as.vector(u2)
+sampfrac <- as.vector(sampfrac)
 
 
 #  Do some basic error checking
@@ -442,6 +452,22 @@ discrep <-PredictivePosterior.TSPDE (new.n1, new.m2, new.u2, expit(results$sims.
 PredictivePosteriorPlot.TSPDE (discrep)
 dev.off()
 
+# create traceplots of logU, U, and logitP (along with R value) to look for non-convergence
+varnames <- names(results$sims.array[1,1,])  # extract the names of the variables 
+# First do the trace plots of logitP
+pdf(file=paste(prefix,"-trace-logitP.pdf",sep=""))
+parm.names <- varnames[grep("^logitP", varnames)]
+trace_plot(title=title, results=results, 
+    parms_to_plot=parm.names, panels=c(3,2))
+dev.off()
+
+# now for the traceplots of logU (etaU), Utot, and Ntot
+pdf(file=paste(prefix,"-trace-logU.pdf",sep=""))
+parm.names <- varnames[c(grep("Utot",varnames), grep("Ntot",varnames), grep("^etaU", varnames))]
+trace_plot(title=title, results=results, 
+    parms_to_plot=parm.names, panels=c(3,2))
+dev.off()
+
 
 sink(results.filename, append=TRUE)
 # What was the initial seed
@@ -487,7 +513,7 @@ sink()
 
 # add some of the raw data to the bugs object for simplicity in referencing it later
 results$data <- list( time=time, n1=n1, m2=m2, u2=u2, sampfrac=sampfrac, 
-                      jump.after=jump.after, bad.m2=bad.m2, logitP.cov=logitP.cov)
+                      jump.after=jump.after, bad.m2=bad.m2, logitP.cov=logitP.cov, version=version, date_run=date())
 
 return(results)
 } # end of function

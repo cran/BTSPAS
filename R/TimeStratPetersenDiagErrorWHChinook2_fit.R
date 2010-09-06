@@ -1,3 +1,6 @@
+# 2010-09-06 CJS forced input vectors to be vectors
+# 2010-08-06 CJS added creation of traceplots
+# 2010-08-03 CJS added version/date to final object
 # 2010-03-29 CJS Inital version of code
 
 TimeStratPetersenDiagErrorWHChinook2_fit<- 
@@ -22,7 +25,7 @@ TimeStratPetersenDiagErrorWHChinook2_fit<-
 # covariates for the the capture probabilities, and separating the YoY and Age1 wild vs hatchery fish
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2010-03-28'
+   version <- '2010-09-06'
 
 # Input parameters are
 #    title - title for the analysis
@@ -79,6 +82,16 @@ TimeStratPetersenDiagErrorWHChinook2_fit<-
 #    debug  - if TRUE, then this is a test run with very small MCMC chains run to test out the data
 #             and WINBUGS will run and stop waiting for your to exit and complete
 #    openbugs - if TRUE, then openbugs is called; else WInbugs is called
+
+# force the input vectors to be vectors
+time     <- as.vector(time)
+n1       <- as.vector(n1)
+m2       <- as.vector(m2)
+u2.A.YoY <- as.vector(u2.A.YoY)
+u2.N.YoY <- as.vector(u2.N.YoY)
+u2.A.1   <- as.vector(u2.A.1)
+u2.N.1   <- as.vector(u2.N.1)
+sampfrac <- as.vector(sampfrac)
 
 #  Do some basic error checking
 #  1. Check that length of n1, m2, u2, sampfrac, time all match
@@ -762,6 +775,23 @@ discrep <-PredictivePosterior.TSPDE.WHCH2 (time, new.n1, new.m2,   # get the dis
 PredictivePosteriorPlot.TSPDE.WHCH2 (discrep)
 dev.off()
 
+varnames <- names(results$sims.array[1,1,])  # extract the names of the variables 
+# First do the trace plots of logitP
+pdf(file=paste(prefix,"-trace-logitP.pdf",sep=""))
+parm.names <- varnames[grep("^logitP", varnames)]
+trace_plot(title=title, results=results, 
+    parms_to_plot=parm.names, panels=c(3,2))
+dev.off()
+
+# now for the traceplots of logU (etaU of the various flavour), Utot, and Ntot
+pdf(file=paste(prefix,"-trace-logU.pdf",sep=""))
+parm.names <- varnames[c(grep("Utot",varnames), grep("^etaU", varnames))]
+trace_plot(title=title, results=results, 
+    parms_to_plot=parm.names, panels=c(3,2))
+dev.off()
+
+
+
 
 sink(results.filename, append=TRUE)
 # What was the initial seed
@@ -840,7 +870,8 @@ results$data <- list( time=time, n1=n1, m2=m2,
                       bad.m2=bad.m2,
                       bad.u2.A.YoY=bad.u2.A.YoY, bad.u2.N.YoY=bad.u2.N.YoY, 
                       bad.u2.A.1=bad.u2.A.1, bad.u2.N.1=bad.u2.N.1, 
-                      logitP.cov=logitP.cov)
+                      logitP.cov=logitP.cov,
+                      version=version, date_run=date())
 
 return(results)
 } # end of function

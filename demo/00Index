@@ -1,5 +1,6 @@
 demo-TSPDE       Time Stratified Petersen with Diagonal Entries
 demo-TSPDE-cov  Time Stratified Petersen with Diagonal Entries with covariates for logit(p)
+demo-TSPDE-spline-in-logitP   Time Stratified Petersen with Diagonal Entries and spline fit to logit P
 demo-TSPDE-error  Error messages when calling TSPDE  
 demo-TSPDE-WHchinook   Time Stratified Petersen with Diagonal Entries separating YoY Wild vs Hatchery chinook fish
 demo-TSPDE-WHsteel    Time Stratified Petersen with Diagaonal Entries separating YoY and age 1+ Hatchery vs Wild Steelhead

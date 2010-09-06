@@ -1,3 +1,5 @@
+# 2010-05-25 CJS fixed error in se of Petersen estimator
+
 SimplePetersen <- function( n1, m2, u2) {
 #
 #   Estimate abundance of unmarked fish at second sample occasion using the SimplePetersen estimator
@@ -16,7 +18,7 @@ SimplePetersen <- function( n1, m2, u2) {
 #
 
    est <- (n1+1)*(u2+1)/(m2+1) - 1
-   se  <- sqrt((n1+1)*(u2+1)*(n1-m2)*(u2)/(m2+1)^2/(m2+1))
+   se  <- sqrt((n1+1)*(m2+u2+1)*(n1-m2)*(u2)/(m2+1)^2/(m2+2))
    list(est=est, se=se)
 } #end of function
 

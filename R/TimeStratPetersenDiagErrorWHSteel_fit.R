@@ -1,3 +1,6 @@
+# 2010-09-06 CJS forced input vectors to be vectors
+# 2010-08-06 CJS added trace plots of logitP and logU
+# 2010-08-03 CJS added version/date to final results
 # 2010-03-12 CJS added n.sims etc to calling arguments so users can set
 # 2009-12-01 CJS added openbugs/winbugs directory to argument list; added some basic error checking of arguments
 
@@ -21,7 +24,7 @@ TimeStratPetersenDiagErrorWHSteel_fit<- function( title="TSPDE-WHSteel", prefix=
 # The steelhead are nice because 100% of hatchery fish are adipose fin clipped and no wild fish are adipose fin clipped
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2009-12-01'
+   version <- '2010-09-06'
 
 # Input parameters are
 #    title - title for the analysis
@@ -63,6 +66,15 @@ TimeStratPetersenDiagErrorWHSteel_fit<- function( title="TSPDE-WHSteel", prefix=
 #    debug  - if TRUE, then this is a test run with very small MCMC chains run to test out the data
 #             and WINBUGS will run and stop waiting for your to exit and complete
 #    openbugs - if TRUE, then openbugs is called; else WInbugs is called
+
+# force input vectors to be vectors
+time      <- as.vector(time)
+n1        <- as.vector(n1)
+m2        <- as.vector(m2)
+u2.W.YoY  <- as.vector(u2.W.YoY)
+u2.W.1    <- as.vector(u2.W.1)
+u2.H.1    <- as.vector(u2.H.1)
+sampfrac  <- as.vector(sampfrac)
 
 #  Do some basic error checking
 #  1. Check that length of n1, m2, u2, sampfrac, time all match
@@ -646,6 +658,21 @@ PredictivePosteriorPlot.TSPDE.WHSteel(discrep)
 dev.off()
 
 
+varnames <- names(results$sims.array[1,1,])  # extract the names of the variables 
+# First do the trace plots of logitP
+pdf(file=paste(prefix,"-trace-logitP.pdf",sep=""))
+parm.names <- varnames[grep("^logitP", varnames)]
+trace_plot(title=title, results=results, 
+    parms_to_plot=parm.names, panels=c(3,2))
+dev.off()
+
+# now for the traceplots of logU (etaU), Utot, and Ntot
+pdf(file=paste(prefix,"-trace-logU.pdf",sep=""))
+parm.names <- varnames[c(grep("Utot",varnames), grep("Ntot",varnames), grep("^etaU", varnames))]
+trace_plot(title=title, results=results, 
+    parms_to_plot=parm.names, panels=c(3,2))
+dev.off()
+
 sink(results.filename, append=TRUE)
 # What was the initial seed
 cat("\n\n*** Initial Seed for this run ***: ", results$Seed.initial,"\n")
@@ -709,7 +736,8 @@ results$data <- list( time=time, n1=n1, m2=m2, u2.W.YoY=u2.W.YoY, u2.W.1=u2.W.1,
                       sampfrac=sampfrac, 
                       hatch.after=hatch.after, 
                       bad.m2=bad.m2, bad.u2.W.YoY=bad.u2.W.YoY, bad.u2.W.1=bad.u2.W.1, bad.u2.H.1=bad.u2.H.1, 
-                      logitP.cov=logitP.cov)
+                      logitP.cov=logitP.cov,
+                      version=version, date_run=date())
 
 return(results)
 } # end of function

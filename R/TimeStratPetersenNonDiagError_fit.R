@@ -5,6 +5,9 @@
 #    - fix plot of logitP vs time to "drop" the fixed values or plot with a different symbol?
 #    - bayesian predictive posterior plots (the Bayesian p-values)
 
+# 2010-09-06 CJS forced input vectors to be vectors
+# 2010-08-06 CJS produced traceplot
+# 2010-08-04 CJS added version/date to final result
 # 2010-03-12 CJS added n.chains etc to calling arguments
 # 2010-03-03 CJS allowed the user for fix some logitPs to account for time when no sampling (or other events
 #                with known probability of capture take place
@@ -32,7 +35,7 @@ TimeStratPetersenNonDiagError_fit<- function( title="TSPNDE", prefix="TSPNDE-",
 # This is the classical stratified Petersen model where the recoveries can take place for this and multiple
 # strata later
 #
-   version <- '2010-03-03'
+   version <- '2010-09-08'
 
 # Input parameters are
 #    title  - title for the analysis (character string)
@@ -81,6 +84,12 @@ TimeStratPetersenNonDiagError_fit<- function( title="TSPNDE", prefix="TSPNDE-",
 #    debug  - if TRUE, then this is a test run with very small MCMC chains run to test out the data
 #             and WINBUGS will run and stop waiting for your to exit and complete
 #    openbugs - if TRUE, then openbugs is called; else WInbugs is called
+
+# force input vectors to be vectors as needed. Note that m2 is NOT a vector!
+time     <- as.vector(time)
+n1       <- as.vector(n1)
+u2       <- as.vector(u2)
+sampfrac <- as.vector(sampfrac)
 
 #  Do some basic error checking
 #  1. Check that length of n1, m2, u2, sampfrac, time are consistent with each other.
@@ -513,6 +522,21 @@ dev.off()
 #dev.off()
 
 
+varnames <- names(results$sims.array[1,1,])  # extract the names of the variables 
+# First do the trace plots of logitP
+pdf(file=paste(prefix,"-trace-logitP.pdf",sep=""))
+parm.names <- varnames[grep("^logitP", varnames)]
+trace_plot(title=title, results=results, 
+    parms_to_plot=parm.names, panels=c(3,2))
+dev.off()
+
+# now for the traceplots of logU (etaU), Utot, and Ntot
+pdf(file=paste(prefix,"-trace-logU.pdf",sep=""))
+parm.names <- varnames[c(grep("Utot",varnames), grep("Ntot",varnames), grep("^etaU", varnames))]
+trace_plot(title=title, results=results, 
+    parms_to_plot=parm.names, panels=c(3,2))
+dev.off()
+
 sink(results.filename, append=TRUE)
 
 # Global summary of results
@@ -551,7 +575,8 @@ sink()
 
 # add some of the raw data to the bugs object for simplicity in referencing it later
 results$data <- list( time=time, n1=n1, m2=m2, u2=u2, sampfrac=sampfrac, 
-                      jump.after=jump.after, bad.n1=bad.n1, bad.m2=bad.m2, bad.u2=bad.u2, logitP.cov=logitP.cov)
+                      jump.after=jump.after, bad.n1=bad.n1, bad.m2=bad.m2, bad.u2=bad.u2, logitP.cov=logitP.cov,
+                      version=version, date_run=date())
 
 return(results)
 } # end of function

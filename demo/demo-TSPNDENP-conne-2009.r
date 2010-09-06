@@ -44,7 +44,7 @@ demo.proceed <- TRUE
 demo.ans <- " "
 while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
   cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
-  cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPDENP' \n")
+  cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPNDENP' \n")
   demo.ans <- readline(prompt="Do you want to proceed? (yes/no): ")
 }
 if(demo.ans %in% c("no","NO","n","N")){demo.proceed <- FALSE }
@@ -52,7 +52,7 @@ if(demo.ans %in% c("no","NO","n","N")){demo.proceed <- FALSE }
 # Create a directory to store the results Test and then create the
 # directory
 if(file.access("demo-TSPNDENP")!=0){
-  demo.proceed <- demo.proceed & dir.create("demo-TSPNDE", showWarnings=TRUE)
+  demo.proceed <- demo.proceed & dir.create("demo-TSPNDENP", showWarnings=TRUE)
 }  
 setwd("demo-TSPNDENP")
 
@@ -172,9 +172,37 @@ file.rename("inits3.txt",     paste(demo.prefix,".inits3.txt",sep=""))
  
 save(list=c("demo.cr.2009.as.tspndenp"), file="demo.cr-2009-as-tspndenp-saved.Rdata")  # save the results from this run
 
+# Extract the total abundance over time, and extract the time needed to reach a target value
+
+# Extract the parts of the sims.matrix as needed
+demo.U <- demo.cr.2009.as.tspndenp$sims.list$U   # extract the posterior values of U
+
+demo.target.value <- 30000  # what is the target value, i.e. when are 30,000 fish reached?
+demo.index <- rep(0,nrow(U))  #array to save times to reach the target value
+
+for(i in 1:nrow(demo.U)){
+   demo.cumU <- cumsum(demo.U[i,])
+   demo.T <- approx( demo.cumU, 1:ncol(demo.U), xout=demo.target.value)  # find when the target value is reached
+   demo.index[i] <- demo.T$y
+}
+
+# Generate the density plot and give the relevant statistics as well
+pdf(file=paste(demo.prefix,"-target.pdf",sep=""))
+plot(density(demo.index), 
+    main=paste("Posterior distribution of time needed to reach ",demo.target.value),
+    xlab="Time since start of experiment")
+    
+text(min(demo.index),0.40, label=paste("Mean  : ",round(mean(demo.index),1), sep=""), pos=4)
+text(min(demo.index),0.35, label=paste("SD    : ",round(sd  (demo.index),1), sep=""), pos=4)
+text(min(demo.index),0.30, label=paste("95% CI: ",
+     round(quantile(demo.index,prob=c(0.025)),1),
+     round(quantile(demo.index,prob=c(0.975)),1)),pos=4)
+dev.off()
+
 cat("\n\n\n ***** FILES and GRAPHS saved in \n    ", getwd(), "\n\n\n")
 print(dir())
 
 # move up the directory
+setwd("..")
 
 cat("\n\n\n ***** End of Demonstration *****\n\n\n")

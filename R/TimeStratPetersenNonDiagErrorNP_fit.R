@@ -1,3 +1,6 @@
+## 2010-09-06 CJS forced input vectors to be vectors
+## 2010-08-06 CJS create trace plots of logitP and logU
+## 2010-08-04 CJS added version/date to final result
 ## 2010-03-21 Added notification of Delta.max value.
 ## 2010-03-12 CJS added n.chains etc to argument list; added optional call for debugging purposes
 ## 2010-03-03 SJB Created File
@@ -23,7 +26,7 @@ TimeStratPetersenNonDiagErrorNP_fit<- function( title="TSPNDENP", prefix="TSPNDE
   ## strata later. Transisions of marked fish are modelled non-parametrically.
   ##
   
-  version <- '2010-03-12'
+  version <- '2010-09-06'
   
   ## Input parameters are
   ##    title  - title for the analysis (character string)
@@ -71,6 +74,12 @@ TimeStratPetersenNonDiagErrorNP_fit<- function( title="TSPNDENP", prefix="TSPNDE
   ##    debug  - if TRUE, then this is a test run with very small MCMC chains run to test out the data
   ##             and WINBUGS will run and stop waiting for your to exit and complete
   ##    openbugs - if TRUE, then openbugs is called; else WInbugs is called
+
+# force input vectors to be vectors. Note that m2 is NOT a vector
+time     <- as.vector(time)
+n1       <- as.vector(n1)
+u2       <- as.vector(u2)
+sampfrac <- as.vector(sampfrac)
   
   ##  Do some basic error checking
   ##  1. Check that length of n1, m2, u2, sampfrac, time are consistent with each other.
@@ -493,6 +502,22 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
   
   ## Bayesian P-values
   ## Not yet implemented
+
+   varnames <- names(results$sims.array[1,1,])  # extract the names of the variables 
+   # First do the trace plots of logitP
+   pdf(file=paste(prefix,"-trace-logitP.pdf",sep=""))
+   parm.names <- varnames[grep("^logitP", varnames)]
+   trace_plot(title=title, results=results, 
+       parms_to_plot=parm.names, panels=c(3,2))
+   dev.off()
+
+   # now for the traceplots of logU (etaU), Utot, and Ntot
+   pdf(file=paste(prefix,"-trace-logU.pdf",sep=""))
+   parm.names <- varnames[c(grep("Utot",varnames), grep("Ntot",varnames), grep("^etaU", varnames))]
+   trace_plot(title=title, results=results, 
+       parms_to_plot=parm.names, panels=c(3,2))
+   dev.off()
+
   
   sink(results.filename, append=TRUE)
   
@@ -532,7 +557,8 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
   
   ## add some of the raw data to the bugs object for simplicity in referencing it later
   results$data <- list( time=time, n1=n1, m2=m2, u2=u2, sampfrac=sampfrac, 
-                       jump.after=jump.after, bad.n1=bad.n1, bad.m2=bad.m2, bad.u2=bad.u2, logitP.cov=logitP.cov)
+                       jump.after=jump.after, bad.n1=bad.n1, bad.m2=bad.m2, bad.u2=bad.u2, logitP.cov=logitP.cov,
+                       version=version, date_run=date())
   
   return(results)
 } ## end of function
