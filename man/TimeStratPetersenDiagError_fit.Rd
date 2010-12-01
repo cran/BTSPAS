@@ -1,3 +1,4 @@
+% 2010-11-25 CJS added bad.u2 argument
 % 2010-03-12 CJS Updated argument list on _fit
 % 2010-02-06 CJS Added alias to function
 % 2009-12-01 CJS Documentation added.
@@ -18,7 +19,7 @@ recaptures take place outside the stratum of release.}
 
 \usage{
 TimeStratPetersenDiagError_fit(title, prefix, time, n1, m2, u2, sampfrac, 
-    jump.after = NULL, bad.m2 = c(), logitP.cov = rep(1, length(n1)), 
+    jump.after = NULL, bad.n1=c(), bad.m2 = c(), bad.u2=c(), logitP.cov = rep(1, length(n1)), 
     n.chains = 3, n.iter = 2e+05, n.burnin = 1e+05, n.sims = 2000, 
     tauU.alpha = 1, tauU.beta = 0.05, taueU.alpha = 1, taueU.beta = 0.05, 
     mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)),  
@@ -52,9 +53,14 @@ TimeStratPetersenDiagError(title, prefix, time, n1, m2, u2, jump.after = NULL, l
   \item{jump.after}{A numeric vector with elements belonging to \code{time}.
       In some cases, the spline fitting the population numbers should be allowed to jump. For example, the population size
       could take a jump when hatchery released fish suddenly arrive at the trap. The jumps occur AFTER the strata listed in this argument.}
+  \item{bad.n1}{A numeric vector with elements belonging to \code{time}. In some cases, something goes wrong in the stratum, and the
+      number of marked fish released should be ignored.  The values of \code{m2} for this stratum will also be set to NA for these strata.}
   \item{bad.m2}{A numeric vector with elements belonging to \code{time}. In some cases, something goes wrong in the stratum, and the
       number of recovered fish should be ignored. For example, poor handling is suspected to induce handling induced mortality in the
       marked fish and so only very few are recovered. The values of \code{m2} will be set to NA for these strata.}
+  \item{bad.u2}{A numeric vector with elements belonging to \code{time}. In some cases, something goes wrong in the stratum, and the
+      number of unmarked fish should be ignored. For example, the trap didn't work properly in this stratum.
+      The values of \code{u2} will be set to NA for these strata.}
   \item{logitP.cov}{A numeric matrix for covariates to fit the logit(catchability). Default is a single intercept, i.e. all strata
       have the same mean logit(catchability). } \cr \cr
 

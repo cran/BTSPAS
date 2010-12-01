@@ -5,6 +5,7 @@
 #    - fix plot of logitP vs time to "drop" the fixed values or plot with a different symbol?
 #    - bayesian predictive posterior plots (the Bayesian p-values)
 
+# 2010-11-25 CJS pretty printing of final population estimates
 # 2010-09-06 CJS forced input vectors to be vectors
 # 2010-08-06 CJS produced traceplot
 # 2010-08-04 CJS added version/date to final result
@@ -35,7 +36,8 @@ TimeStratPetersenNonDiagError_fit<- function( title="TSPNDE", prefix="TSPNDE-",
 # This is the classical stratified Petersen model where the recoveries can take place for this and multiple
 # strata later
 #
-   version <- '2010-09-08'
+   version <- '2010-11-25'
+   options(width=200)
 
 # Input parameters are
 #    title  - title for the analysis (character string)
@@ -552,14 +554,24 @@ dic <- deviance["mean"]+p.D
 cat("    D-bar: ", deviance["mean"],";  var(dev): ", deviance["sd"]^2,
     "; p.D: ", p.D, "; DIC: ", dic)
 
-# Summary of population sizes
-cat("\n\n*** Summary of Unmarked Population Size ***\n")
-print(round(results$summary[ grep("Utot", rownames(results$summary)),]))
+# Summary of population sizes. Add pretty printing of results.
+cat("\n\n\n\n*** Summary of Unmarked Population Size ***\n")
+temp<- results$summary[ grep("Utot", rownames(results$summary)),]
+old.Rhat <- temp["Rhat"]
+temp<- formatC(temp, big.mark=",", format="d")
+temp["Rhat"] <- formatC(old.Rhat,digits=2,format="f",flag="#")
+print(temp, quote=FALSE)
 
 cat("\n\n*** Summary of Total Population Size *** \n")
-print(round(results$summary[ grep("Ntot", rownames(results$summary)),]))
+temp<- results$summary[ grep("Ntot", rownames(results$summary)),]
+old.Rhat <- temp["Rhat"]
+temp<- formatC(temp, big.mark=",", format="d")
+temp["Rhat"] <- formatC(old.Rhat,digits=2,format="f",flag="#")
+print(temp, quote=FALSE)
 
-cat("\n\n*** Summary of Quantiles of Run Timing *** \n")
+
+
+cat("\n\n\n\n*** Summary of Quantiles of Run Timing *** \n")
 cat(    "    This is based on the sample weeks provided and the U[i] values \n") 
 q <- RunTime(time=time, U=results$sims.list$U, prob=run.prob)
 temp <- rbind(apply(q,2,mean), apply(q,2,sd))

@@ -19,8 +19,8 @@ Full details are available at
 \details{
 \tabular{ll}{
 Package: \tab BTSPAS\cr
-Version: \tab 2010.04\cr
-Date: \tab 2010-04-25\cr
+Version: \tab 2010.12\cr
+Date: \tab 2010-12-01\cr
 Depends: \tab R2WinBUGS, coda, splines, actuar, BRugs\cr
 License: \tab GPL (>=2)\cr
 URL: \tab http://www.r-project.org\cr

@@ -1,3 +1,6 @@
+# 2010-11-29 CJS added code for bad.n1 to the call.
+# 2010-11-25 CJS added code for bad.u2 to the call. Simplified the two pooled and simple Petersen estimates
+# 2010-11-25 CJS pretty printing for estimates of Utot, Ntot
 # 2010-09-06 CJS forced time, n1, m2, u2, sampfrac to be vectors
 # 2010-08-04 CJS added traceplots of logitP, logU, Utot, and Ntot to help diagnose non-mixing
 # 2010-08-04 CJS added version/date to results data structure
@@ -5,7 +8,8 @@
 # 2009-12-01 CJS Added some basic error checking; added OPENBUGS/WINBUGS to argument list
 
 TimeStratPetersenDiagError_fit<- function( title="TSDPE", prefix="TSPDE-", 
-                                 time, n1, m2, u2, sampfrac, jump.after=NULL, bad.m2=c(),
+                                 time, n1, m2, u2, sampfrac, jump.after=NULL, 
+                                 bad.n1=c(), bad.m2=c(), bad.u2=c(),
                                  logitP.cov=rep(1,length(n1)),
                                  n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
                                  tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05, 
@@ -20,7 +24,8 @@ TimeStratPetersenDiagError_fit<- function( title="TSDPE", prefix="TSPDE-",
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2010-09-06'
+   version <- '2010-11-29'
+   options(width=200)
 
 # Input parameters are
 #    title - title for the analysis
@@ -41,9 +46,16 @@ TimeStratPetersenDiagError_fit<- function( title="TSDPE", prefix="TSPDE-",
 #                 changes in the run curve. For example, in the Trinity River project, a larger
 #                 hatchery release occurs around stratum 14. This is a vector indicating the
 #                 strata AFTER which the spline curve is allowed to jump.
+#    bad.n1  - list of stratum numbers where the value of n1 is suspect.
+#              Note that if the value of n1 is suspect, the value of m2 is also likely suspect.
+#              These are replaced by the value of (1,0). We need to specify a value of 1 for bad.n1 values
+#              because WinBugs/OpenBugs gets upset with n1=0 or n1=NA.
 #    bad.m2  - list of stratum numbers where the value of m2 is suspect.
 #              For example, the capture rate could be extremely low.
 #              These are set to NA prior to the call to WinBugs/OpenBugs
+#    bad.u2  - list of stratum numbers where the value of u2 is suspect.
+#              For example, the trap may not be operating completely for some strata, or there was miss counting?
+#              These are set to NA prior to the call to WingBugs/OpenBugs
 #    logitP.cov - matrix of covariates for logit(P). If the strata times are "missing" some values, an intercept is assumed
 #               for the first element of the covariance matrix and 0 for the rest of the covariates.
 #               CAUTION - this MAY not be what you want to do. It is likely best to enter ALL strata
@@ -80,9 +92,15 @@ if(length(logitP.cov) %% length(n1) != 0){
 if(any(m2>n1)){
    cat("***** ERROR ***** m2 must be <= n1. The arguments are \n n1:",n1,"\n m2:",m2,"\n")
    return()}
-#  3. Elements of bad.m2 and jump.after must belong to time
+#  3. Elements of bad.n1, bad.m2, bad.u2, and jump.after must belong to time
+if(!all(bad.n1 %in% time)){
+   cat("***** ERROR ***** bad.n1 must be elements of strata identifiers. You entered \n bad.n1:",bad.n1,"\n Strata identifiers are \n time:",time, "\n")
+   return()}
 if(!all(bad.m2 %in% time)){
    cat("***** ERROR ***** bad.m2 must be elements of strata identifiers. You entered \n bad.m2:",bad.m2,"\n Strata identifiers are \n time:",time, "\n")
+   return()}
+if(!all(bad.u2 %in% time)){
+   cat("***** ERROR ***** bad.u2 must be elements of strata identifiers. You entered \n bad.u2:",bad.u2,"\n Strata identifiers are \n time:",time, "\n")
    return()}
 if(!all(jump.after %in% time)){
    cat("***** ERROR ***** jump.after must be elements of strata identifiers. You entered \n jump.after:",jump.after,"\n Strata identifiers are \n time:",time, "\n")
@@ -118,36 +136,34 @@ cat("\n\n")
 cat("Jump point are after strata: ", jump.after)
 if(length(jump.after)==0) cat("none - A single spline is fit")
 
+cat("\n\nValues of bad.n1 are : ", bad.n1, ". The value of n1 will be set to 1 and m2 to NA for these strata")
+if(length(bad.n1)==0) cat("none.")
+cat(  "\nValues of bad.m2 are : ", bad.m2, ". The value of m2 will be set to NA for these strata")
+if(length(bad.m2)==0) cat("none.")
+cat(  "\nValues of bad.u2 are : ", bad.u2, ". The value of u2 will be set to NA for these strata")
+if(length(bad.u2)==0) cat("none.")
 
-# Pooled Petersen estimator over ALL of the data including when no releases take place or bad m2 values.
-cat("\n\n*** Pooled Petersen Estimate based on pooling over ALL strata and adjusting for sampling fraction  ***\n\n")
+
+# Pooled Petersen estimator over ALL of the data including when no releases take place, bad.n1, bad.m2, bad.u2 and missing values.
+cat("\n\n*** Pooled Petersen Estimate based on pooling over ALL strata")
+cat("\nValues of u2 are adjusting for sampling fraction \n\n")
 cat("Total n1=", sum(n1, na.rm=TRUE),";  m2=",sum(m2, na.rm=TRUE),";  u2=",sum(u2/sampfrac, na.rm=TRUE),"\n\n")
 pp <- SimplePetersen(sum(n1, na.rm=TRUE), sum(m2, na.rm=TRUE), sum(u2/sampfrac, na.rm=TRUE))
 cat("Est U(total) ", format(round(pp$est),big.mark=","),"  (SE ", format(round(pp$se), big.mark=","), ")\n\n\n")
 
-# Obtain the Pooled Petersen estimator prior to fixup of bad.m2 values
-select <- (n1>0) & (!is.na(n1)) & (!is.na(m2)) & (!is.na(u2))
-cat("\n\n*** Pooled Petersen Estimate prior to fixing bad m2 values  ***\n\n")
-cat("The following strata are excluded because n1=0 or NA values in m2 or u2 :", time[!select],"\n\n")
 
-temp.n1 <-       n1[select]
-temp.m2 <-       m2[select]
-temp.u2 <-       u2[select]
-temp.sampfrac <- sampfrac[select]
-
-cat("Total n1=", sum(temp.n1),";  m2=",sum(temp.m2),";  u2=",sum(temp.u2/temp.sampfrac),"\n\n")
-pp <- SimplePetersen(sum(temp.n1), sum(temp.m2), sum(temp.u2/temp.sampfrac))
-cat("Est U(total) ", format(round(pp$est),big.mark=","),"  (SE ", format(round(pp$se), big.mark=","), ")\n\n\n")
-
-# Obtain the Pooled Petersen estimator after fixup of bad.m2 values
+# Obtain the Pooled Petersen estimator after EXCLUDING strata with missing data or strata that are flagged as having bad.n1, bad.m2, and bad.u2  values
+temp.n1 <- n1
+temp.n1[match(bad.n1,time)] <- NA
 temp.m2 <- m2
-index.bad.m2 <- as.vector((1:length(time)) %*% outer(time,bad.m2,"=="))
-temp.m2[index.bad.m2] <- NA
-select <- (n1>0) & (!is.na(n1)) & (!is.na(temp.m2)) & (!is.na(u2))
-cat("\n\n*** Pooled Petersen Estimate after fixing bad m2 values adjusting for sampling fraction ***\n\n")
-cat("The following strata had m2 set to missing: ", 
-     if(length(bad.m2)>0){bad.m2} else {" NONE"}, "\n")
-cat("The following strata are excluded because n1=0 or NA values in m2 or u2:", time[!select],"\n\n")
+temp.m2[match(bad.m2,time)] <- NA
+temp.u2 <- u2
+temp.u2[match(bad.u2,time)] <- NA
+
+select <- (n1>0) & (!is.na(temp.n1)) & (!is.na(temp.m2)) & (!is.na(temp.u2))
+cat("\n\n*** Pooled Petersen Estimate after EXCLUDING strata with missing value or flagged as bad.n1, bad.m2 or bad.m2. ")
+cat("\nValues of u2 are adjusted for sampling fraction\n\n")
+cat("The following strata are excluded because n1=0, NA values in m2 or u2, or flagged by bad.n1, bad.m2 or bad.u2:", time[!select],"\n\n")
 
 temp.n1 <-       n1[select]
 temp.m2 <-       m2[select]
@@ -160,8 +176,11 @@ cat("Est U(total) ", format(round(pp$est),big.mark=","),"  (SE ", format(round(p
 
 
 
-# Obtain Petersen estimator for each stratum prior to removing bad m2 values
-cat("*** Stratified Petersen Estimator for each stratum PRIOR to removing bad m2 values adjusting for sampling fraction ***\n\n")
+
+
+# Obtain Petersen estimator for each stratum prior to excluding any strata flagged as bad values
+cat(  "*** Stratified Petersen Estimator for each stratum PRIOR to removing strata with bad.n1, bad.m2, or bad.u2 values.")
+cat("\n    Values of u2 are adjusted for sampling fraction ***\n\n")
 temp.n1 <- n1
 temp.m2 <- m2
 temp.u2 <- u2/sampfrac
@@ -174,12 +193,23 @@ cat("Est U(total) ", format(round(sum(sp$est, na.rm=TRUE)),big.mark=","),
     "  (SE ", format(round(sqrt(sum(sp$se^2, na.rm=TRUE))), big.mark=","), ")\n\n\n")
 
 
-# Obtain Petersen estimator for each stratum after removing bad m2 values
-cat("*** Stratified Petersen Estimator for each stratum AFTER removing bad m2 values ***\n\n")
+# Obtain Petersen estimator for each stratum after excluding strata where n1=0, or flagged by bad.n1,  bad.m2, or bad.u2
+cat(  "*** Stratified Petersen Estimator for each stratum EXCLUDING strata with n1=0, NA values, or flagged by bad.n1, bad.m2, or bad.u2 values ***")
+cat("\n    Values of u2 are adjusted for sampling fraction ***\n\n")
 temp.n1 <- n1
+temp.n1[match(bad.n1,time)] <- NA  # if any value is bad, exclude this entire stratum
+temp.n1[match(bad.m2,time)] <- NA
+temp.n1[match(bad.u2,time)] <- NA
+temp.n1[temp.n1==0]         <- NA  # if n1 is zero, then there is no estimate of capture probability for this stratum
 temp.m2 <- m2
-temp.m2[index.bad.m2] <- NA
-temp.u2 <- u2/sampfrac
+temp.m2[match(bad.n1,time)] <- NA  # if any value is bad, exlude this entire stratum
+temp.m2[match(bad.m2,time)] <- NA
+temp.m2[match(bad.u2,time)] <- NA
+temp.u2 <- u2
+temp.u2[match(bad.n1,time)] <- NA  # if any value is bad, exclude this entire stratum
+temp.u2[match(bad.m2,time)] <- NA
+temp.u2[match(bad.u2,time)] <- NA
+temp.u2 <- temp.u2/sampfrac
 sp <- SimplePetersen(temp.n1, temp.m2, temp.u2)
 temp <- cbind(time, temp.n1, temp.m2, temp.u2, round(sp$est), round(sp$se))
 colnames(temp) <- c('time', 'n1','m2','u2', 'U[i]', 'SE(U[i])')
@@ -191,8 +221,8 @@ cat("Est U(total) ", format(round(sum(sp$est, na.rm=TRUE)),big.mark=","),
 
 
 # Test if pooling can be done
-cat("*** Test if pooled Petersen is allowable. [Check if marked fractions are equal] ***\n\n")
-select <- (n1>0) & (!is.na(n1)) & (!is.na(temp.m2)) 
+cat("*** Test if pooled Petersen is allowable on strata without problems in n1 or m2. [Check if marked fractions are equal] ***\n\n")
+select <- (temp.n1>0) & (!is.na(temp.n1)) & (!is.na(temp.m2)) 
 temp.n1 <- n1[select]
 temp.m2 <- m2[select]
 test <- TestIfPool( temp.n1, temp.m2)
@@ -215,13 +245,13 @@ new.sampfrac   <- rep(0, max(time)-min(time)+1)
 new.logitP.cov <- matrix(NA, nrow=max(time)-min(time)+1, ncol=ncol(as.matrix(logitP.cov)))
 new.time       <- min(time):max(time)
 
-
-new.n1[time-min(time)+1]         <- n1
-new.m2[time-min(time)+1]         <- m2
-new.m2[bad.m2-min(time)+1]       <- NA    # wipe out strata where m2 is known to be bad
-new.u2[time-min(time)+1]         <- u2
-new.sampfrac[time-min(time)+1]   <- sampfrac
-new.logitP.cov[time-min(time)+1,]<- as.matrix(logitP.cov)
+new.n1[time-min(new.time)+1]         <- n1
+new.m2[time-min(new.time)+1]         <- m2
+new.m2[match(bad.m2,new.time)]       <- NA  # wipe out where m2 is flagged as bad
+new.u2[time-min(new.time)+1]         <- u2
+new.u2[match(bad.u2,new.time)]       <- NA  # wipe out where u2 is flassed as bad
+new.sampfrac[time-min(new.time)+1]   <- sampfrac
+new.logitP.cov[time-min(new.time)+1,]<- as.matrix(logitP.cov)
 new.logitP.cov[ is.na(new.logitP.cov[,1]), 1] <- 1  # insert a 1 into first columns where not specified
 new.logitP.cov[ is.na(new.logitP.cov)] <- 0         # other covariates are forced to zero not in column 1
 
@@ -230,6 +260,9 @@ new.logitP.cov[ is.na(new.logitP.cov)] <- 0         # other covariates are force
 # If n1=m2=0, then set n1 to 1, and set m2<-NA
 new.m2[new.n1==0] <- NA
 new.n1[new.n1==0] <- 1
+
+new.n1[match(bad.n1,new.time)] <- 1
+new.m2[match(bad.n1,new.time)] <- NA 
 
 # Adjust data when a stratum has less than 100% sampling fraction to "estimate" the number
 # of unmarked fish that were captured. It is not necessary to adjust the n1 and m2 values 
@@ -490,14 +523,22 @@ dic <- deviance["mean"]+p.D
 cat("    D-bar: ", deviance["mean"],";  var(dev): ", deviance["sd"]^2,
     "; p.D: ", p.D, "; DIC: ", dic)
 
-# Summary of population sizes
-cat("\n\n*** Summary of Unmarked Population Size ***\n")
-print(round(results$summary[ grep("Utot", rownames(results$summary)),]))
+# Summary of population sizes. Extra code rounds results to integers except for Rhat
+cat("\n\n\n\n*** Summary of Unmarked Population Size ***\n")
+temp<- results$summary[ grep("Utot", rownames(results$summary)),]
+old.Rhat <- temp["Rhat"]
+temp<- formatC(temp, big.mark=",", format="d")
+temp["Rhat"] <- formatC(old.Rhat,digits=2,format="f",flag="#")
+print(temp, quote=FALSE)
 
 cat("\n\n*** Summary of Total Population Size *** \n")
-print(round(results$summary[ grep("Ntot", rownames(results$summary)),]))
+temp<- results$summary[ grep("Ntot", rownames(results$summary)),]
+old.Rhat <- temp["Rhat"]
+temp<- formatC(temp, big.mark=",", format="d")
+temp["Rhat"] <- formatC(old.Rhat,digits=2,format="f",flag="#")
+print(temp, quote=FALSE)
 
-cat("\n\n*** Summary of Quantiles of Run Timing *** \n")
+cat("\n\n\n\n*** Summary of Quantiles of Run Timing *** \n")
 cat(    "    This is based on the sample weeks provided and the U[i] values \n") 
 q <- RunTime(time=time, U=results$sims.list$U, prob=run.prob)
 temp <- rbind(apply(q,2,mean), apply(q,2,sd))

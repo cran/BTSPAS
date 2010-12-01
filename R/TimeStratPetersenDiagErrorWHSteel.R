@@ -1,3 +1,4 @@
+# 2010-11-25 CJS output to track progress of burnin and post-burnin phases
 # 2010-04-26 CJS fixed problem with init.logiP that failed when n1=m2 logit=+infinity and lm() failed
 # 2009-12-05 CJS added title to argument list
 # 2009-12-01 CJS added openbugs/winbugs directory to argument list
@@ -244,9 +245,9 @@ u2.W.1  [is.na(u2.W.1)]   <- 1  # in case of missing values
 u2.H.1  [is.na(u2.H.1)]   <- 1  # in case of missing values
 
 avg.P <- sum(m2,na.rm=TRUE)/sum(n1, na.rM=TRUE)
-Uguess.W.YoY <- pmax((u2.W.YoY+1)*(n1+2)/(m2+1), u2.W.YoY/avg.P, na.rm=TRUE)  # try and keep Uguess larger than observed values
-Uguess.W.1   <- pmax((u2.W.1  +1)*(n1+2)/(m2+1), u2.W.1  /avg.P, na.rm=TRUE)  # try and keep Uguess larger than observed values
-Uguess.H.1   <- pmax((u2.H.1  +1)*(n1+2)/(m2+1), u2.H.1  /avg.P, na.rm=TRUE)  # try and keep Uguess larger than observed values
+Uguess.W.YoY <- pmax((u2.W.YoY+1)*(n1+2)/(m2+1), u2.W.YoY/avg.P, 1,na.rm=TRUE)  # try and keep Uguess larger than observed values
+Uguess.W.1   <- pmax((u2.W.1  +1)*(n1+2)/(m2+1), u2.W.1  /avg.P, 1, na.rm=TRUE)  # try and keep Uguess larger than observed values
+Uguess.H.1   <- pmax((u2.H.1  +1)*(n1+2)/(m2+1), u2.H.1  /avg.P, 1, na.rm=TRUE)  # try and keep Uguess larger than observed values
 Uguess.H.1[1:hatch.after] <- 0   # no hatchery fish prior to release from hatchery
 
 # create the B-spline design matrix for wild and hatchery fish
@@ -405,7 +406,11 @@ if(openbugs){
    # now to generate the burnin sample
    cat("Burnin sampling has been started for ", nBurnin, " iterations.... \n")
    flush.console()
-   BRugs::modelUpdate(nBurnin, overRelax = over.relax)
+   for(iter in seq(1,nBurnin,round(nBurnin/20)+1)){  # generate a report about every 5% of the way
+      cat('... Starting burnin iteration', iter,' which is about ',round(iter/nBurnin*100),"% of the burnin phase at ",date(),"\n")
+      flush.console()
+      BRugs::modelUpdate(round(nBurnin/20)+1, overRelax = over.relax)
+   }
    cat("Burnin sampling completed \n")
 
    # generate the non-burnin samples
@@ -417,7 +422,11 @@ if(openbugs){
    cat("Starting sampling after burnin for ", n.chains," chain each with  a further ", 
         nIterPostBurnin, " iterations. \n A thining rate of ", nThin, 
         "will give about ", round(nIterPostBurnin/nThin), " posterior values in each chain... \n")
-   BRugs::modelUpdate(round(nIterPostBurnin/nThin), thin=nThin, overRelax = over.relax) # we do the thining on the fly
+   for(iter in seq(1,nIterPostBurnin,round(nIterPostBurnin/20)+1)){
+      cat('... Starting post-burnin iteration', iter,' which is about ',round(iter/nIterPostBurnin*100),"% of the post-burnin phase at ",date(),"\n")
+      flush.console()
+      BRugs::modelUpdate(round(nIterPostBurnin/nThin/20)+1, thin=nThin, overRelax = over.relax) # we do the thining on the fly
+   }
    cat("Finished sampling after burnin and thining \n")
    FinalSeed <- BRugs::modelGetSeed(i=1)
    cat("Random seed ended with :", FinalSeed, "\n")

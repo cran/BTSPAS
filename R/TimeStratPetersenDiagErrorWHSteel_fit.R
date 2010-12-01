@@ -1,3 +1,4 @@
+# 2010-11-25 CJS pretty printing of final population estimates
 # 2010-09-06 CJS forced input vectors to be vectors
 # 2010-08-06 CJS added trace plots of logitP and logU
 # 2010-08-03 CJS added version/date to final results
@@ -24,7 +25,8 @@ TimeStratPetersenDiagErrorWHSteel_fit<- function( title="TSPDE-WHSteel", prefix=
 # The steelhead are nice because 100% of hatchery fish are adipose fin clipped and no wild fish are adipose fin clipped
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2010-09-06'
+   version <- '2010-11-25'
+   options(width=200)
 
 # Input parameters are
 #    title - title for the analysis
@@ -694,17 +696,32 @@ dic <- deviance["mean"]+p.D
 cat("    D-bar: ", deviance["mean"],";  var(dev): ", deviance["sd"]^2,
     "; p.D: ", p.D, "; DIC: ", dic)
 
-# Summary of population sizes
-cat("\n\n*** Summary of Unmarked Population Size ***\n")
+# Summary of population sizes. Add pretty printing
+cat("\n\n\n\n*** Summary of Unmarked Population Size ***\n")
 cat("W.YoY \n")
-print(round(results$summary[ grep("Utot.W.YoY", rownames(results$summary)),]))
+temp <- results$summary[ grep("Utot.W.YoY", rownames(results$summary)),]
+old.Rhat <- temp["Rhat"]
+temp<- formatC(temp, big.mark=",", format="d")
+temp["Rhat"] <- formatC(old.Rhat,digits=2,format="f",flag="#")
+print(temp, quote=FALSE)
+
 cat("\n\nW.1   \n")
-print(round(results$summary[ grep("Utot.W.1",   rownames(results$summary)),]))
+temp<- results$summary[ grep("Utot.W.1",   rownames(results$summary)),]
+old.Rhat <- temp["Rhat"]
+temp<- formatC(temp, big.mark=",", format="d")
+temp["Rhat"] <- formatC(old.Rhat,digits=2,format="f",flag="#")
+print(temp, quote=FALSE)
+
 cat("\n\nH.1\n")
-print(round(results$summary[ grep("Utot.H.1",   rownames(results$summary)),]))
+temp<- results$summary[ grep("Utot.H.1",   rownames(results$summary)),]
+old.Rhat <- temp["Rhat"]
+temp<- formatC(temp, big.mark=",", format="d")
+temp["Rhat"] <- formatC(old.Rhat,digits=2,format="f",flag="#")
+print(temp, quote=FALSE)
+
 
 #browser()
-cat("\n\n*** Summary of Quantiles of Run Timing.Wild.YoY *** \n")
+cat("\n\n\n\n*** Summary of Quantiles of Run Timing.Wild.YoY *** \n")
 cat(    "    This is based on the sample weeks provided and the U.W.YoY[i] values \n") 
 q <- RunTime(time=time, U=results$sims.list$U.W.YoY, prob=run.prob)
 temp <- rbind(apply(q,2,mean), apply(q,2,sd))

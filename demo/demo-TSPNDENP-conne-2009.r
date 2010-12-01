@@ -1,4 +1,5 @@
 # 2010-03-21 Conne River 2009 analysis.
+# 2010-11-29 Updated demo to show how to estimate time to get target value
 
 # Demonstration of the Time-Stratified Petersen experiment with
 # NON-Diagonal entries, travel times for the marked fish modelled
@@ -178,25 +179,27 @@ save(list=c("demo.cr.2009.as.tspndenp"), file="demo.cr-2009-as-tspndenp-saved.Rd
 demo.U <- demo.cr.2009.as.tspndenp$sims.list$U   # extract the posterior values of U
 
 demo.target.value <- 30000  # what is the target value, i.e. when are 30,000 fish reached?
-demo.index <- rep(0,nrow(U))  #array to save times to reach the target value
+demo.index <- rep(0,nrow(demo.U))  #array to save times to reach the target value
 
 for(i in 1:nrow(demo.U)){
    demo.cumU <- cumsum(demo.U[i,])
-   demo.T <- approx( demo.cumU, 1:ncol(demo.U), xout=demo.target.value)  # find when the target value is reached
+   demo.T <- approx( demo.cumU, 1:ncol(demo.U), xout=demo.target.value, rule=2)  # find when the target value is reached
    demo.index[i] <- demo.T$y
 }
+demo.index <- demo.index + min(demo.cr.2009.as.tspndenp$data$time)-1 # convert to strata time units
+
 
 # Generate the density plot and give the relevant statistics as well
 pdf(file=paste(demo.prefix,"-target.pdf",sep=""))
-plot(density(demo.index), 
+demo.temp<- density(demo.index)
+plot(demo.temp,
     main=paste("Posterior distribution of time needed to reach ",demo.target.value),
-    xlab="Time since start of experiment")
-    
-text(min(demo.index),0.40, label=paste("Mean  : ",round(mean(demo.index),1), sep=""), pos=4)
-text(min(demo.index),0.35, label=paste("SD    : ",round(sd  (demo.index),1), sep=""), pos=4)
-text(min(demo.index),0.30, label=paste("95% CI: ",
-     round(quantile(demo.index,prob=c(0.025)),1),
-     round(quantile(demo.index,prob=c(0.975)),1)),pos=4)
+    xlab="Stratum")
+text(min(demo.index),max(demo.temp$y), 
+     label=paste("Mean  : ",round(mean(demo.index),1), 
+                 ";       SD: ",round(sd  (demo.index),1),
+                 ";       95% CI: ", round(quantile(demo.index,prob=c(0.025)),1), 
+                 round(quantile(demo.index,prob=c(0.975)),1)),pos=4)
 dev.off()
 
 cat("\n\n\n ***** FILES and GRAPHS saved in \n    ", getwd(), "\n\n\n")

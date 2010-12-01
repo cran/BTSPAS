@@ -1,3 +1,4 @@
+# 2010-11-25 CJS output on progress of burnin and post-burnin phases
 # 2010-04-25 CJS fixed problems of init.logitP=+infinity if n1=m2=k which crapped out the lm() call
 # 2010-03-11 Added fixed values of logitP[j] to be provided by user.
 # 2010-03-02 SJB Created file.
@@ -280,7 +281,8 @@ datalist <- list("Nstrata.rel", "Nstrata.cap","Extra.strata.cap",
 ## Generate the initial values for the parameters of the model
 
 ## 1) U and spline coefficients
-Uguess <- (u2+1)/expit(mu_xiP)  # try and keep Uguess larger than observed values
+Uguess <- pmax((u2+1)/expit(mu_xiP),1)  # try and keep Uguess larger than observed values
+Uguess[which(is.na(Uguess))] <- mean(Uguess,na.rm=TRUE)
 
 init.bU   <- lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
 
@@ -431,7 +433,11 @@ if(openbugs){
    # now to generate the burnin sample
    cat("Burnin sampling has been started for ", nBurnin, " iterations.... \n")
    flush.console()
-   BRugs::modelUpdate(nBurnin, overRelax = over.relax)
+   for(iter in seq(1,nBurnin,round(nBurnin/20)+1)){  # generate a report about every 5% of the way
+      cat('... Starting burnin iteration', iter,' which is about ',round(iter/nBurnin*100),"% of the burnin phase at ",date(),"\n")
+      flush.console()
+      BRugs::modelUpdate(round(nBurnin/20)+1, overRelax = over.relax)
+   }
    cat("Burnin sampling completed \n")
 
    # generate the non-burnin samples
@@ -443,7 +449,11 @@ if(openbugs){
    cat("Starting sampling after burnin for ", n.chains," chain each with  a further ", 
         nIterPostBurnin, " iterations. \n A thining rate of ", nThin, 
         "will give about ", round(nIterPostBurnin/nThin), " posterior values in each chain... \n")
-   BRugs::modelUpdate(round(nIterPostBurnin/nThin), thin=nThin, overRelax = over.relax) # we do the thining on the fly
+   for(iter in seq(1,nIterPostBurnin,round(nIterPostBurnin/20)+1)){
+      cat('... Starting post-burnin iteration', iter,' which is about ',round(iter/nIterPostBurnin*100),"% of the post-burnin phase at ",date(),"\n")
+      flush.console()
+      BRugs::modelUpdate(round(nIterPostBurnin/nThin/20)+1, thin=nThin, overRelax = over.relax) # we do the thining on the fly
+   }
    cat("Finished sampling after burnin and thining \n")
    FinalSeed <- BRugs::modelGetSeed(i=1)
    cat("Random seed ended with :", FinalSeed, "\n")

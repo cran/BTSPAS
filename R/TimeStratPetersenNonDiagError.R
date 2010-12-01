@@ -1,3 +1,5 @@
+# 2010-11-20 CJS added code to display progress of sampling during burnin and posterior to the user
+# 2010-11-19 SB  add code to make initial U a minimum of 1 to prevent crashing
 # 2010-04-26 CJS fixed problem with init.logitP when n1=m2=k and you get +infinity which craps out lm()
 # 2010-03-03 CJS allowed some logitP[j] top be fixed at arbitrary values (on the logit scale)
 #                added definition of storage.class(logitP) to deal with no fixed values where the program bombed
@@ -217,8 +219,11 @@ Nstrata.rel <- length(n1)
 Nstrata.cap <- ncol(m2)-1  # remember last column of m2 has the number of fish NOT recovered
 
 
-Uguess <- pmax(c((u2[1:Nstrata.rel]+1)*(n1+2)/(apply(m2[,1:Nstrata.cap],1,sum)+1),rep(0,Nstrata.cap-Nstrata.rel)),
-          (u2+1)/expit(mu_xiP), na.rm=TRUE)  # try and keep Uguess larger than observed values
+Uguess <- pmax(c((u2[1:Nstrata.rel]+1)*(n1+2)/
+                 (apply(m2[,1:Nstrata.cap],1,sum)+1),
+                 rep(1,Nstrata.cap-Nstrata.rel)),
+               (u2+1)/expit(mu_xiP))  # try and keep Uguess larger than observed values
+Uguess[which(is.na(Uguess))] <- mean(Uguess,na.rm=TRUE)
 
 
 # create the B-spline design matrix
@@ -279,8 +284,12 @@ datalist <- list("Nstrata.rel", "Nstrata.cap", "n1", "m2", "u2",
 # get the initial values for the parameters of the model
 
 
-Uguess <- pmax(c((u2[1:Nstrata.rel]+1)*(n1+2)/(apply(m2[,1:Nstrata.cap],1,sum)+1),rep(0,Nstrata.cap-Nstrata.rel)),
-          (u2+1)/expit(mu_xiP), na.rm=TRUE)  # try and keep Uguess larger than observed values
+Uguess <- pmax(c((u2[1:Nstrata.rel]+1)*(n1+2)/
+                 (apply(m2[,1:Nstrata.cap],1,sum)+1),
+                 rep(1,Nstrata.cap-Nstrata.rel)),
+               (u2+1)/expit(mu_xiP), na.rm=TRUE)  # try and keep Uguess larger than observed values
+Uguess[which(is.na(Uguess))] <- mean(Uguess,na.rm=TRUE)
+
 init.bU   <- lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
 if(debug2) {
    cat("compute init.bU \n")
@@ -403,7 +412,11 @@ if(openbugs){
    # now to generate the burnin sample
    cat("Burnin sampling has been started for ", nBurnin, " iterations.... \n")
    flush.console()
-   BRugs::modelUpdate(nBurnin, overRelax = over.relax)
+   for(iter in seq(1,nBurnin,round(nBurnin/20)+1)){  # generate a report about every 5% of the way
+      cat('... Starting burnin iteration', iter,' which is about ',round(iter/nBurnin*100),"% of the burnin phase at ",date(),"\n")
+      flush.console()
+      BRugs::modelUpdate(round(nBurnin/20)+1, overRelax = over.relax)
+   }
    cat("Burnin sampling completed \n")
 
    # generate the non-burnin samples
@@ -415,7 +428,12 @@ if(openbugs){
    cat("Starting sampling after burnin for ", n.chains," chain each with  a further ", 
         nIterPostBurnin, " iterations. \n A thining rate of ", nThin, 
         "will give about ", round(nIterPostBurnin/nThin), " posterior values in each chain... \n")
-   BRugs::modelUpdate(round(nIterPostBurnin/nThin), thin=nThin, overRelax = over.relax) # we do the thining on the fly
+   for(iter in seq(1,nIterPostBurnin,round(nIterPostBurnin/20)+1)){
+      cat('... Starting post-burnin iteration', iter,' which is about ',round(iter/nIterPostBurnin*100),"% of the post-burnin phase at ",date(),"\n")
+      flush.console()
+      BRugs::modelUpdate(round(nIterPostBurnin/nThin/20)+1, thin=nThin, overRelax = over.relax) # we do the thining on the fly
+     BRugs::samplesCoda("*", stem=paste(working.directory,"/",sep=""))  # write out coda files for intermediate results
+   }
    cat("Finished sampling after burnin and thining \n")
    FinalSeed <- BRugs::modelGetSeed(i=1)
    cat("Random seed ended with :", FinalSeed, "\n")

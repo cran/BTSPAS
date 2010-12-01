@@ -1,3 +1,4 @@
+# 2010-11-25 CJS add output to show progress of sampling through burnin and post-burnin phases
 # 2010-04-26 CJS fixed problem in computing logitPguess when m2=n1 and you get infinite logit value
 # 2009-12-05 CJS added title to argument list
 # 2009-12-01 CJS (added WinBugs/OpenBugs directory to the argument list
@@ -153,7 +154,8 @@ sink()  # End of saving the WinBugs program
 
 Nstrata <- length(n1)
 avgP <- sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)
-Uguess <- pmax((u2+1)*(n1+2)/(m2+1), u2/avgP, na.rm=TRUE)  # try and keep Uguess larger than observed values
+Uguess <- pmax((u2+1)*(n1+2)/(m2+1), u2/avgP, 1, na.rm=TRUE)  # try and keep Uguess larger than observed values
+Uguess[which(is.na(Uguess))] <- mean(Uguess,na.rm=TRUE)
 
 
 # create the B-spline design matrix
@@ -205,7 +207,9 @@ datalist <- list("Nstrata", "n1", "m2", "u2", "logitP.cov", "NlogitP.cov",
 # get the initial values for the parameters of the model
   
 avgP <- sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE) 
-Uguess <- pmax((u2+1)*(n1+2)/(m2+1), u2/avgP, 100, na.rm=TRUE)  # try and keep Uguess larger than observed values
+Uguess <- pmax((u2+1)*(n1+2)/(m2+1), u2/avgP, 1, na.rm=TRUE)  # try and keep Uguess larger than observed values
+Uguess[which(is.na(Uguess))] <- mean(Uguess,na.rm=TRUE)
+
 init.bU   <- lm(log(Uguess+1) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
 if(debug2) {
    cat("compute init.bU \n")
@@ -318,8 +322,13 @@ if(openbugs){
    # now to generate the burnin sample
    cat("Burnin sampling has been started for ", nBurnin, " iterations.... \n")
    flush.console()
-   BRugs::modelUpdate(nBurnin, overRelax = over.relax)
+   for(iter in seq(1,nBurnin,round(nBurnin/20)+1)){  # generate a report about every 5% of the way
+      cat('... Starting burnin iteration', iter,' which is about ',round(iter/nBurnin*100),"% of the burnin phase at ",date(),"\n")
+      flush.console()
+      BRugs::modelUpdate(round(nBurnin/20)+1, overRelax = over.relax)
+   }
    cat("Burnin sampling completed \n")
+   flush.console()
 
    # generate the non-burnin samples
    BRugs::dicSet()      # turn on DIC computations
@@ -330,7 +339,11 @@ if(openbugs){
    cat("Starting sampling after burnin for ", n.chains," chain each with  a further ", 
         nIterPostBurnin, " iterations. \n A thining rate of ", nThin, 
         "will give about ", round(nIterPostBurnin/nThin), " posterior values in each chain... \n")
-   BRugs::modelUpdate(round(nIterPostBurnin/nThin), thin=nThin, overRelax = over.relax) # we do the thining on the fly
+   for(iter in seq(1,nIterPostBurnin,round(nIterPostBurnin/20)+1)){
+      cat('... Starting post-burnin iteration', iter,' which is about ',round(iter/nIterPostBurnin*100),"% of the post-burnin phase at ",date(),"\n")
+      flush.console()
+      BRugs::modelUpdate(round(nIterPostBurnin/nThin/20)+1, thin=nThin, overRelax = over.relax) # we do the thining on the fly
+   }
    cat("Finished sampling after burnin and thining \n")
    FinalSeed <- BRugs::modelGetSeed(i=1)
    cat("Random seed ended with :", FinalSeed, "\n")

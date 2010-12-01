@@ -1,3 +1,4 @@
+## 2010-11-25 CJS pretty printing of final population estimates
 ## 2010-09-06 CJS forced input vectors to be vectors
 ## 2010-08-06 CJS create trace plots of logitP and logU
 ## 2010-08-04 CJS added version/date to final result
@@ -26,7 +27,8 @@ TimeStratPetersenNonDiagErrorNP_fit<- function( title="TSPNDENP", prefix="TSPNDE
   ## strata later. Transisions of marked fish are modelled non-parametrically.
   ##
   
-  version <- '2010-09-06'
+  version <- '2010-11-25'
+  options(width=200)
   
   ## Input parameters are
   ##    title  - title for the analysis (character string)
@@ -535,13 +537,23 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
       "; p.D: ", p.D, "; DIC: ", dic)
   
   ## Summary of population sizes
-  cat("\n\n*** Summary of Unmarked Population Size ***\n")
-  print(round(results$summary[ grep("Utot", rownames(results$summary)),]))
+  cat("\n\n\n\n*** Summary of Unmarked Population Size ***\n")
+  temp<- results$summary[ grep("Utot", rownames(results$summary)),]
+  old.Rhat <- temp["Rhat"]
+  temp<- formatC(temp, big.mark=",", format="d")
+  temp["Rhat"] <- formatC(old.Rhat,digits=2,format="f",flag="#")
+  print(temp, quote=FALSE)
   
   cat("\n\n*** Summary of Total Population Size *** \n")
-  print(round(results$summary[ grep("Ntot", rownames(results$summary)),]))
-  
-  cat("\n\n*** Summary of Quantiles of Run Timing *** \n")
+  temp<- results$summary[ grep("Ntot", rownames(results$summary)),]
+  old.Rhat <- temp["Rhat"]
+  temp<- formatC(temp, big.mark=",", format="d")
+  temp["Rhat"] <- formatC(old.Rhat,digits=2,format="f",flag="#")
+  print(temp, quote=FALSE)
+ 
+
+ 
+  cat("\n\n\n\n*** Summary of Quantiles of Run Timing *** \n")
   cat(    "    This is based on the sample weeks provided and the U[i] values \n") 
   q <- RunTime(time=time, U=results$sims.list$U, prob=run.prob)
   temp <- rbind(apply(q,2,mean), apply(q,2,sd))

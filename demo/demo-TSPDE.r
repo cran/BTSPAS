@@ -1,7 +1,9 @@
-# 2009-12-05
+# 2010-11-25
 # This is a demonstration of how to call the Time Stratified Petersen with Diagonal Entries (TSPDE) program
-# It is based on the analysis of California Junction City 2003 Chinook data and is the example used
-# in the Trinity River Project.
+# It is based on the analysis of California Junction City 2003 Chinook data.
+# It is slightly different from the data used in the Trinity River Project because I
+# (arbitrarily) set some bad.n1 and bad.m2 values to test this feature. 
+# If you want to run the Trinity example, remove the bad.m2 and bad.n1 assignment statements.
 #
 # In each julian week j, n1[j] are marked and released above the rotary screw trap.
 # Of these, m2[j] are recaptured. All recaptures take place in the week of release, i.e. the matrix of
@@ -37,6 +39,9 @@
 #  The vector bad.m2 indicates which julian weeks something went wrong. For example, the
 #  number of recoveries in julian week 41 is far below expectations and leads to impossible
 #  Petersen estimate for julian week 41.
+#  
+#  The vector bad.u2 indicates which julian weeks, the number of unmarked fish is suspect.
+#  I arbitrarily chose the third julian week to demonstrate this feature.
 # 
 #  The prefix is used to identify the output files for this run.
 #  The title  is used to title the output.
@@ -100,7 +105,9 @@ demo.sampfrac<-c(3,   8,    6,    7,    7,    7,    7,    7,    7,    7,
 demo.jump.after <- c(22,39)  # julian weeks after which jump occurs
 
 # Which julian weeks have "bad" recapture values. These will be set to missing and estimated.
-demo.bad.m2     <- c(41)   # list julian week with bad m2 values
+demo.bad.m2     <- c(41)   # list julian weeks with bad m2 values. This is used in the Trinity Example
+demo.bad.u2     <- c(11)   # list julian weeks with bad u2 values. [This was arbitrary to demostrate the feature.]
+demo.bad.n1     <- c(38)   # list julian weeks with bad n1 values. [This was arbitrary to demonstrate the feature.]
 
 # The prefix for the output files:
 demo.prefix <- "demo-JC-2003-CH-TSPDE" 
@@ -123,7 +130,9 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagError_fit(
                   u2=demo.u2,
                   sampfrac=demo.sampfrac,
                   jump.after=demo.jump.after,
+                  bad.n1=demo.bad.n1,
                   bad.m2=demo.bad.m2,
+                  bad.u2=demo.bad.u2,
                   openbugs=TRUE,  # change this to FALSE to use WINBUGS
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
