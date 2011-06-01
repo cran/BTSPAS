@@ -10,7 +10,7 @@
 
 # There are two traps on the Conne River.
 # At the first trap, fish are captured and marked with individually numbered tags on a
-# daily basis. They are released, swim downstream, and  may be recaptured at a secondary 
+# daily basis. They are released, swim downstream, and  may be recaptured at a secondary
 # trap. The number of recaptured fish and the number of unmarked fish at the second trap
 # are also recorded on a daily basis.
 #
@@ -21,19 +21,19 @@
 # The vector n1[i] is the number of fish marked and released on day [i] at the first trap.
 #
 # The matrix m2[i,j] is the number of fish released on day [i] and recaptured j-1 days later
-# at the second trap, i.e. the first column are the number of fish recaptured 
+# at the second trap, i.e. the first column are the number of fish recaptured
 # the same day, the second column the number of fish
-# recaptured the day after release etc. 
+# recaptured the day after release etc.
 # All marked fish are assumed to have passed the second trap by day i+(ncol(m2)-1) days later.
 #
 # The vector u2[j] is the number of unmarked fish captured at the second trap on day [j].
-# 
+#
 # As in the diagonal case, "bad" values of n1, m2, and u2 are allowed to be removed.
 # This is tricker for the m2 matrix as only a single entry may be in error.
-# 
+#
 # For more details refer to:
-#   Schwarz, C.J., and Dempson, B.D. (1994). 
-#   Mark-recapture estimation of a salmon smolt population. 
+#   Schwarz, C.J., and Dempson, B.D. (1994).
+#   Mark-recapture estimation of a salmon smolt population.
 #   Biometrics 50: 98-108.
 #
 # In this implementation, the travel times are modelled
@@ -42,7 +42,8 @@
 
 ## Warn user that demo may overwrite existing files
 demo.proceed <- TRUE
-demo.ans <- " "
+if(!exists("demo.ans")) demo.ans <- " "
+
 while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
   cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
   cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPNDENP' \n")
@@ -54,7 +55,7 @@ if(demo.ans %in% c("no","NO","n","N")){demo.proceed <- FALSE }
 # directory
 if(file.access("demo-TSPNDENP")!=0){
   demo.proceed <- demo.proceed & dir.create("demo-TSPNDENP", showWarnings=TRUE)
-}  
+}
 setwd("demo-TSPNDENP")
 
 if(!demo.proceed){stop()}
@@ -145,8 +146,8 @@ demo.cr.2009.as.tspndenp <- TimeStratPetersenNonDiagErrorNP_fit(
                   title=      demo.title,
                   prefix=     demo.prefix,
                   time=       demo.jday,
-                  n1=         demo.n1, 
-                  m2=         demo.m2, 
+                  n1=         demo.n1,
+                  m2=         demo.m2,
                   u2=         demo.u2,
                   sampfrac=   demo.sampfrac,
                   jump.after= demo.jump.after,
@@ -155,11 +156,10 @@ demo.cr.2009.as.tspndenp <- TimeStratPetersenNonDiagErrorNP_fit(
                   bad.u2=     demo.bad.u2,
                   logitP.fixed=demo.logitP.fixed,
                   logitP.fixed.values=demo.logitP.fixed.values,
-                  debug=TRUE, 
-                  openbugs=TRUE
+                  debug=TRUE
                   )
 # Rename files that were created.
-# Note that if WinBugs is used, the files are called coda1, coda2, coda3 
+# Note that if WinBugs is used, the files are called coda1, coda2, coda3
 # rather than CODAchain1 etc and so the code below needs to be modified.
 
 file.rename("data.txt",       paste(demo.prefix,".data.txt",sep=""))
@@ -170,40 +170,19 @@ file.rename("CODAchain3.txt", paste(demo.prefix,".CODAchain3.txt",sep=""))
 file.rename("inits1.txt",     paste(demo.prefix,".inits1.txt",sep=""))
 file.rename("inits2.txt",     paste(demo.prefix,".inits2.txt",sep=""))
 file.rename("inits3.txt",     paste(demo.prefix,".inits3.txt",sep=""))
- 
-save(list=c("demo.cr.2009.as.tspndenp"), file="demo.cr-2009-as-tspndenp-saved.Rdata")  # save the results from this run
 
 # Extract the total abundance over time, and extract the time needed to reach a target value
 
-# Extract the parts of the sims.matrix as needed
-demo.U <- demo.cr.2009.as.tspndenp$sims.list$U   # extract the posterior values of U
-
-demo.target.value <- 30000  # what is the target value, i.e. when are 30,000 fish reached?
-demo.index <- rep(0,nrow(demo.U))  #array to save times to reach the target value
-
-for(i in 1:nrow(demo.U)){
-   demo.cumU <- cumsum(demo.U[i,])
-   demo.T <- approx( demo.cumU, 1:ncol(demo.U), xout=demo.target.value, rule=2)  # find when the target value is reached
-   demo.index[i] <- demo.T$y
-}
-demo.index <- demo.index + min(demo.cr.2009.as.tspndenp$data$time)-1 # convert to strata time units
+demo.cr.2009.as.tspndenp$TimeToTargetRunSize <- TimeToTargetRunSize(
+        U=demo.cr.2009.as.tspndenp$sims.list$U,
+        time=demo.cr.2009.as.tspndenp$data$time,
+        targetU=30000,
+        file_prefix = demo.prefix)
 
 
-# Generate the density plot and give the relevant statistics as well
-pdf(file=paste(demo.prefix,"-target.pdf",sep=""))
-demo.temp<- density(demo.index)
-plot(demo.temp,
-    main=paste("Posterior distribution of time needed to reach ",demo.target.value),
-    xlab="Stratum")
-text(min(demo.index),max(demo.temp$y), 
-     label=paste("Mean  : ",round(mean(demo.index),1), 
-                 ";       SD: ",round(sd  (demo.index),1),
-                 ";       95% CI: ", round(quantile(demo.index,prob=c(0.025)),1), 
-                 round(quantile(demo.index,prob=c(0.975)),1)),pos=4)
-dev.off()
+# Save the information for later retreival if needed
 
-cat("\n\n\n ***** FILES and GRAPHS saved in \n    ", getwd(), "\n\n\n")
-print(dir())
+save(list=c("demo.cr.2009.as.tspndenp"), file="demo.cr-2009-as-tspndenp-saved.Rdata")  # save the results from this run
 
 # move up the directory
 setwd("..")

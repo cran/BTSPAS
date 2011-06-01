@@ -33,13 +33,33 @@
 #    Marking and releasing of steelhead took place in only a few weeks! The hierarchical model
 #    will extrapolate outside these weeks to estimate the capture rate.
 
-# Create a directory to store the results
-dir.create("demo-TSPDE-WHsteel")
-setwd("demo-TSPDE-WHsteel")
+## Warn user that demo may overwrite existing files
+demo.proceed <- TRUE
+if(!exists("demo.ans")) demo.ans <- " "
+
+while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
+  cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
+  cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-demo-TSPDE-WHsteel' \n")
+  demo.ans <- readline(prompt="Do you want to proceed? (yes/no): ")
+}
+if(demo.ans %in% c("no","NO","n","N")){demo.proceed <- FALSE }
+
+# Create a directory to store the results Test and then create the
+# directory
+if(file.access("demo-demo-TSPDE-WHsteel")!=0){
+  demo.proceed <- demo.proceed & dir.create("demo-demo-TSPDE-WHsteel", showWarnings=TRUE)
+}
+setwd("demo-demo-TSPDE-WHsteel")
+
+if(!demo.proceed){stop()}
+
 
 par(ask=FALSE)
-dev.off()  # turn off blank graphic screen
-library("BTSPAS")
+dev.off()  # turn off the blank graphics window
+
+
+## Load BTSPAS library
+library(BTSPAS)
 
 # Get the data. In many cases, this is stored in a *.csv file and read into the program
 # using a read.csv() call. In this demo, the raw data is assigned directly as a vector.
@@ -125,7 +145,6 @@ demo.jc.2003.st.tspde <- TimeStratPetersenDiagErrorWHSteel_fit(
                   bad.u2.W.YoY=demo.bad.u2.W.YoY,
                   bad.u2.W.1  =demo.bad.u2.W.1,
                   bad.u2.H.1  =demo.bad.u2.H.1,
-                  openbugs=TRUE,  # change this to FALSE to use WINBUGS
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 

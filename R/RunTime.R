@@ -11,7 +11,7 @@ RunTime <- function(time, U, prob=seq(0,1,.1)) {
 #     U  - matrix of posterior samples. Each row is a sample from the posterior.
 #          Columns correspond to U[1]...U[nstrata]
 # 
- library("actuar")  # make sure that the quantile function is available
+
  timing <- c(min(time):(1+max(time)))
  q.U <- NULL
  #browser()

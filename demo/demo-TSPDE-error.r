@@ -148,8 +148,7 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagError_fit(
                   sampfrac=demo.sampfrac,
                   jump.after=demo.jump.after,
                   bad.m2=demo.bad.m2,
-                  debug=TRUE,  # this generates only 10,000 iterations of the MCMC chain for checking.
-                  OPENBUGS.directory="xxxx", WINBUGS.directory='xxxx'
+                  debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 
 # check to see if specifying wrong path to openbugs/winbugs works;
@@ -163,8 +162,7 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagError_fit(
                   sampfrac=demo.sampfrac,
                   jump.after=demo.jump.after,
                   bad.m2=demo.bad.m2,
-                  debug=TRUE,  # this generates only 10,000 iterations of the MCMC chain for checking.
-                  openbugs=FALSE, OPENBUGS.directory="xxxx", WINBUGS.directory='xxxx'
+                  debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 
 

@@ -1,20 +1,23 @@
+# 2011-05-15 CJS limited etaU to 20 or less
+# 2011-01-24 SB  added call to run.windows.openbugs and run.windows.winbugs
 # 2010-11-25 CJS output to track progress of burnin and post-burnin phases
 # 2010-04-26 CJS fixed problem with init.logiP that failed when n1=m2 logit=+infinity and lm() failed
 # 2009-12-05 CJS added title to argument list
 # 2009-12-01 CJS added openbugs/winbugs directory to argument list
 
-TimeStratPetersenDiagErrorWHSteel <- function(title, prefix, 
-                     time, n1, m2, u2.W.YoY, u2.W.1, u2.H.1,
-                     hatch.after=NULL, 
-                     logitP.cov,
-                     n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
-                     tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
-                     mu_xiP=logit( sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)), 
-                     tau_xiP=1/var( logit((m2+.5)/(n1+1)),na.rm=TRUE),
-                     tauP.alpha=.001, tauP.beta=.001, 
-                     debug=FALSE, debug2=FALSE, openbugs=TRUE,
-                     InitialSeed,
-                     OPENBUGS.directory, WINBUGS.directory){
+TimeStratPetersenDiagErrorWHSteel <-
+  function(title, prefix,
+           time, n1, m2,
+           u2.W.YoY, u2.W.1, u2.H.1,
+           hatch.after=NULL,
+           logitP.cov,
+           n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
+           tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
+           mu_xiP=logit( sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
+           tau_xiP=1/var( logit((m2+.5)/(n1+1)),na.rm=TRUE),
+           tauP.alpha=.001, tauP.beta=.001,
+           debug=FALSE, debug2=FALSE,
+           InitialSeed){
 
 #
 #  Fit the smoothed time-Stratified Petersen estimator with Diagonal recoveries (i.e. no recoveries
@@ -50,22 +53,27 @@ TimeStratPetersenDiagErrorWHSteel <- function(title, prefix,
 #      logitP.cov - covariates for logit(P)=X beta.logitP
 
 
-#  This routine makes a call to WinBugs to fit the model and then gets back the 
+#  This routine makes a call to WinBugs to fit the model and then gets back the
 #  coda files for the posteriour distribution.
 
-library("R2WinBUGS")  # Make sure that all the packages needed are available
-library("coda")       # used for convergence diagnostics
-library("splines")    # used to compute the Bspline design matrix
+## Set working directory to current directory (we should allow users to select this)
+working.directory <- getwd()
+
+## Define paths for the model, data, and initial value files
+model.file <- file.path(working.directory, "model.txt")
+data.file <- file.path(working.directory,"data.txt")
+init.files <- file.path(working.directory,
+                       paste("inits", 1:n.chains,".txt", sep = ""))
 
 # Save the WinBugs progam to the model.txt file
 #
-sink("model.txt")  # NOTE: NO " allowed in model as this confuses the cat command
+sink(model.file)  # NOTE: NO " allowed in model as this confuses the cat command
 cat("
 model TimeStratPetersenDiagErrorWHSteel{
 # Time Stratified Petersen with Diagonal recapture (no spillover in subsequent weeks or marked fish)
 #    and allowing for error in the smoothed U curve with separation of wild and hatchery fish
 #    for steel head stocks in the Trinity River
-# Each of the populations are fit using a SINGLE spline curve as this should be flexible 
+# Each of the populations are fit using a SINGLE spline curve as this should be flexible
 #    enough to capture the individual behaviours
 
 #  Data input:
@@ -73,8 +81,8 @@ model TimeStratPetersenDiagErrorWHSteel{
 #      n1         - number of marked fish released
 #      m2         - number of marked fish recaptured
 #      u2.W.YoY   - number of wild     YoY fish captured
-#      u2.W.1     - number of wild     1+  fish captured 
-#      u2.H.1     - number of hatchery 1+  fish captured 
+#      u2.W.1     - number of wild     1+  fish captured
+#      u2.H.1     - number of hatchery 1+  fish captured
 #      logitP.cov   - covariates for logitP
 #      NlogitP.cov  - number of logitP covariates
 #      SplineDesign.W.YoY- wild YoY    fish spline design matrix of size [Nstrata, maxelement of n.b.notflat.W.YoY]
@@ -113,31 +121,50 @@ model TimeStratPetersenDiagErrorWHSteel{
 #       etaU.W.YoY[i]  = log(U.W.YoY[i])
 #       etaU.W.1  [i]  = log(U.W.1  [i])
 #       etaU.H.1  [i]  = log(U.H.1  [i])
-#         which comes from spline with parameters bU.*[1... Knots+q] + error term eU.*[i]         
+#         which comes from spline with parameters bU.*[1... Knots+q] + error term eU.*[i]
 
    ##### Fit the spline for W.YoY - this covers the entire experiment ######
    for(i in 1:Nstrata){
-        logUne.W.YoY[i] <- inprod(SplineDesign.W.YoY[i,1:n.bU.W.YoY],bU.W.YoY[1:n.bU.W.YoY])  # spline design matrix * spline coeff 
-        etaU.W.YoY[i] ~ dnorm(logUne.W.YoY[i], taueU)              # add random error
+        logUne.W.YoY[i] <- inprod(SplineDesign.W.YoY[i,1:n.bU.W.YoY],bU.W.YoY[1:n.bU.W.YoY])  # spline design matrix * spline coeff
+        etaU.W.YoY[i] ~ dnorm(logUne.W.YoY[i], taueU)C(,20)          # add random error
         eU.W.YoY[i] <- etaU.W.YoY[i] - logUne.W.YoY[i]
    }
    ##### Fit the spline for W.1 -   this covers the entire experiment ######
    for(i in 1:Nstrata){
-        logUne.W.1[i] <- inprod(SplineDesign.W.1[i,1:n.bU.W.1],bU.W.1[1:n.bU.W.1])  # spline design matrix * spline coeff 
-        etaU.W.1[i] ~ dnorm(logUne.W.1[i], taueU)              # add random error
+        logUne.W.1[i] <- inprod(SplineDesign.W.1[i,1:n.bU.W.1],bU.W.1[1:n.bU.W.1])  # spline design matrix * spline coeff
+        etaU.W.1[i] ~ dnorm(logUne.W.1[i], taueU)C(,20)              # add random error
         eU.W.1[i] <- etaU.W.1[i] - logUne.W.1[i]
    }
    ##### Fit the spline for hatchery fish - these fish only enter AFTER hatch.after ######
    for(i in (hatch.after+1):Nstrata){
-        logUne.H.1[i] <- inprod(SplineDesign.H.1[i,1:n.bU.H.1],bU.H.1[1:n.bU.H.1])  # spline design matrix * spline coeff 
-        etaU.H.1[i] ~ dnorm(logUne.H.1[i], taueU)              # add random error
+        logUne.H.1[i] <- inprod(SplineDesign.H.1[i,1:n.bU.H.1],bU.H.1[1:n.bU.H.1])  # spline design matrix * spline coeff
+        etaU.H.1[i] ~ dnorm(logUne.H.1[i], taueU)C(,20)              # add random error
         eU.H.1[i] <- etaU.H.1[i] - logUne.H.1[i]
    }
 
    ##### Model the capture probabilities #####
-   for(i in 1:Nstrata){
-        mu.logitP[i] <- inprod(logitP.cov[i,1:NlogitP.cov], beta.logitP[1:NlogitP.cov]) 
-        logitP[i] ~ dnorm(mu.logitP[i],tauP)
+   for(i in 1:hatch.after){
+        mu.logitP[i] <- inprod(logitP.cov[i,1:NlogitP.cov], beta.logitP[1:NlogitP.cov])
+        ## logitP[i] ~ dnorm(mu.logitP[i],tauP)
+
+        mu.epsilon[i] <- mu.logitP[i] - log(u2.W.YoY[i] + u2.W.1[i] + 1) +
+                    log(exp(etaU.W.YoY[i]) + exp(etaU.W.1[i]))
+        epsilon[i] ~ dnorm(mu.epsilon[i],tauP)
+
+        logitP[i] <-  log(u2.W.YoY[i] + u2.W.1[i] + 1) -
+                    log(exp(etaU.W.YoY[i]) + exp(etaU.W.1[i])) + epsilon[i]
+   }
+   for(i in (hatch.after+1):Nstrata){
+        mu.logitP[i] <- inprod(logitP.cov[i,1:NlogitP.cov], beta.logitP[1:NlogitP.cov])
+        ## logitP[i] ~ dnorm(mu.logitP[i],tauP)
+
+        mu.epsilon[i] <- mu.logitP[i] - log(u2.W.YoY[i] + u2.W.1[i] + u2.H.1[i] + 1) +
+                    log(exp(etaU.W.YoY[i]) + exp(etaU.W.1[i]) + exp(etaU.H.1[i]))
+
+        epsilon[i] ~ dnorm(mu.epsilon[i],tauP)
+
+        logitP[i] <-  log(u2.W.YoY[i] + u2.W.1[i] + u2.H.1[i] + 1) -
+                    log(exp(etaU.W.YoY[i]) + exp(etaU.W.1[i]) + exp(etaU.H.1[i])) + epsilon[i]
    }
 
 
@@ -188,7 +215,7 @@ model TimeStratPetersenDiagErrorWHSteel{
       m2[i] ~ dbin(p[i],n1[i])     # recovery of marked fish
    }
 
-   ## captures of wild YoY and wild 1+  fish 
+   ## captures of wild YoY and wild 1+  fish
    for(i in 1:Nstrata){
       U.W.YoY[i] <- round(exp(etaU.W.YoY[i]))       # convert from log scale
       U.W.1  [i] <- round(exp(etaU.W.1  [i]))       # convert from log scale
@@ -199,7 +226,7 @@ model TimeStratPetersenDiagErrorWHSteel{
    ## captures of hatchery fish - these can only occur AFTER hatch.after
    for(i in (hatch.after+1):Nstrata){
       U.H.1[i] <- round(exp(etaU.H.1[i]))      # convert from log scale
-      u2.H.1[i] ~ dbin(p[i], U.H.1[i])        
+      u2.H.1[i] ~ dbin(p[i], U.H.1[i])
    }
 
    ##### Derived Parameters #####
@@ -225,8 +252,8 @@ datalist <- list("Nstrata", "n1", "m2", "u2.W.YoY", "u2.W.1", "u2.H.1", "hatch.a
                  "mu_xiP", "tau_xiP", "tauP.alpha", "tauP.beta")
 
 parameters <- c("logitP", "beta.logitP", "tauP", "sigmaP",
-                "bU.W.YoY", "bU.W.1", "bU.H.1", "tauU", "sigmaU", 
-                "eU.W.YoY", "eU.W.1", "eU.H.1", "taueU", "sigmaeU", 
+                "bU.W.YoY", "bU.W.1", "bU.H.1", "tauU", "sigmaU",
+                "eU.W.YoY", "eU.W.1", "eU.H.1", "taueU", "sigmaeU",
                 "Utot.W.YoY", "Utot.W.1", "Utot.H.1", "Utot", "logUne.W.YoY", "logUne.W.1", "logUne.H.1",
                 "etaU.W.YoY", "etaU.W.1", "etaU.H.1", "U.W.YoY", "U.W.1", "U.H.1")
 if( any(is.na(m2))) {parameters <- c(parameters,"m2")} # monitor in case some bad data where missing values present
@@ -251,7 +278,7 @@ Uguess.H.1   <- pmax((u2.H.1  +1)*(n1+2)/(m2+1), u2.H.1  /avg.P, 1, na.rm=TRUE) 
 Uguess.H.1[1:hatch.after] <- 0   # no hatchery fish prior to release from hatchery
 
 # create the B-spline design matrix for wild and hatchery fish
-# The design matrix for hatchery fill will still have rows corresponding to entries PRIOR to 
+# The design matrix for hatchery fill will still have rows corresponding to entries PRIOR to
 #    the hatchery release but these are never used in the winbugs fitting routines
 # There is a separate (single) spline for hatchery and wild fish with NO breakpoints
 # The first two coefficient have a flat prior and the rest of the coefficients are modelled using
@@ -296,183 +323,99 @@ SplineDesign.H.1 <- rbind(matrix(0,nrow=hatch.after, ncol=ncol(SplineDesign.H.1)
 
 #browser()
 
-# get the logitP=logit(P) covariate matrix ready 
+# get the logitP=logit(P) covariate matrix ready
 logitP.cov <- as.matrix(logitP.cov)
 NlogitP.cov <- ncol(as.matrix(logitP.cov))
 
 
 #  initial values for the parameters of the model
-                
-init.vals <- function(){
-   # Initial values for the probability of capture
-   init.logitP <- pmax(-10,pmin(10,logit((m2+1)/(n1+2))))  # initial capture rates based on observed recaptures
-   init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
-   init.beta.logitP <- as.vector(lm( init.logitP ~ logitP.cov-1)$coefficients)
-   init.beta.logitP[init.beta.logitP=NA] <- 0 
-   init.beta.logitP <- c(init.beta.logitP, 0)   # add one extra element so that single beta is still written as a 
-                                             # vector in the init files etc.
-   init.tauP <- 1/var(init.logitP, na.rm=TRUE)     # 1/variance of logit(p)'s (ignoring the covariates for now)
 
-   # inital values for the spline coefficients
-   init.bU.W.YoY   <- lm(log(Uguess.W.YoY+1) ~ SplineDesign.W.YoY-1)$coefficients  # initial values for spline coefficients
-   init.bU.W.1     <- lm(log(Uguess.W.1  +1) ~ SplineDesign.W.1  -1)$coefficients  # initial values for spline coefficients 
-   init.bU.H.1     <- lm(log(Uguess.H.1[(hatch.after+1):Nstrata]+1) ~ SplineDesign.H.1[(hatch.after+1):Nstrata,]-1)$coefficients  # initial values for spline coefficients
+## init.vals <- function(){
+##    # Initial values for the probability of capture
+##    init.logitP <- pmax(-10,pmin(10,logit((m2+1)/(n1+2))))  # initial capture rates based on observed recaptures
+##    init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
+##    init.beta.logitP <- as.vector(lm( init.logitP ~ logitP.cov-1)$coefficients)
+##    init.beta.logitP[init.beta.logitP=NA] <- 0
+##    init.beta.logitP <- c(init.beta.logitP, 0)   # add one extra element so that single beta is still written as a
+##                                              # vector in the init files etc.
+##    init.tauP <- 1/var(init.logitP, na.rm=TRUE)     # 1/variance of logit(p)'s (ignoring the covariates for now)
 
-   init.eU.W.YoY   <- as.vector(log(Uguess.W.YoY+1)-SplineDesign.W.YoY%*%init.bU.W.YoY)  # error terms set as differ between obs and pred
-   init.eU.W.1     <- as.vector(log(Uguess.W.1  +1)-SplineDesign.W.1  %*%init.bU.W.1)  # error terms set as differ between obs and pred
-   init.eU.H.1     <- as.vector(log(Uguess.H.1  +1)-SplineDesign.H.1  %*%init.bU.H.1)  # error terms set as differ between obs and pred
+##    # inital values for the spline coefficients
+##    init.bU.W.YoY   <- lm(log(Uguess.W.YoY+1) ~ SplineDesign.W.YoY-1)$coefficients  # initial values for spline coefficients
+##    init.bU.W.1     <- lm(log(Uguess.W.1  +1) ~ SplineDesign.W.1  -1)$coefficients  # initial values for spline coefficients
+##    init.bU.H.1     <- lm(log(Uguess.H.1[(hatch.after+1):Nstrata]+1) ~ SplineDesign.H.1[(hatch.after+1):Nstrata,]-1)$coefficients  # initial values for spline coefficients
 
-   init.etaU.W.YoY <- log(Uguess.W.YoY+1)
-   init.etaU.W.1   <- log(Uguess.W.1  +1)
-   init.etaU.H.1   <- log(Uguess.H.1  +1)
-   init.etaU.H.1[1:hatch.after] <- NA  # these are never used.
+##    init.eU.W.YoY   <- as.vector(log(Uguess.W.YoY+1)-SplineDesign.W.YoY%*%init.bU.W.YoY)  # error terms set as differ between obs and pred
+##    init.eU.W.1     <- as.vector(log(Uguess.W.1  +1)-SplineDesign.W.1  %*%init.bU.W.1)  # error terms set as differ between obs and pred
+##    init.eU.H.1     <- as.vector(log(Uguess.H.1  +1)-SplineDesign.H.1  %*%init.bU.H.1)  # error terms set as differ between obs and pred
 
-   # variance of spline difference (use only the wild fish to initialize)
-   sigmaU <- sd( init.bU.W.YoY[b.notflat.W.YoY]-2*init.bU.W.YoY[b.notflat.W.YoY-1]+init.bU.W.YoY[b.notflat.W.YoY-2], na.rm=TRUE)
-   init.tauU <- 1/sigmaU^2
+##    init.etaU.W.YoY <- log(Uguess.W.YoY+1)
+##    init.etaU.W.1   <- log(Uguess.W.1  +1)
+##    init.etaU.H.1   <- log(Uguess.H.1  +1)
+##    init.etaU.H.1[1:hatch.after] <- NA  # these are never used.
 
-   # variance of error in the U' over and above the spline fit (use only the wild fish to initialize)
-   sigmaeU <- sd(init.eU.W.YoY, na.rm=TRUE)
-   init.taueU <- 1/sigmaeU^2
+##    # variance of spline difference (use only the wild fish to initialize)
+##    sigmaU <- sd( init.bU.W.YoY[b.notflat.W.YoY]-2*init.bU.W.YoY[b.notflat.W.YoY-1]+init.bU.W.YoY[b.notflat.W.YoY-2], na.rm=TRUE)
+##    init.tauU <- 1/sigmaU^2
 
-   # initialize the u2.* where missing
-   init.u2.W.YoY    <- u2.W.YoY
-   init.u2.W.YoY[ is.na(u2.W.YoY)] <- 100
-   init.u2.W.YoY[!is.na(u2.W.YoY)] <- NA
+##    # variance of error in the U' over and above the spline fit (use only the wild fish to initialize)
+##    sigmaeU <- sd(init.eU.W.YoY, na.rm=TRUE)
+##    init.taueU <- 1/sigmaeU^2
 
-   init.u2.W.1      <- u2.W.1
-   init.u2.W.1  [ is.na(u2.W.1)] <- 100
-   init.u2.W.1  [!is.na(u2.W.1)] <- NA
+##    # initialize the u2.* where missing
+##    init.u2.W.YoY    <- u2.W.YoY
+##    init.u2.W.YoY[ is.na(u2.W.YoY)] <- 100
+##    init.u2.W.YoY[!is.na(u2.W.YoY)] <- NA
 
-   init.u2.H.1      <- u2.H.1
-   init.u2.H.1  [ is.na(u2.H.1)] <- 100
-   init.u2.H.1  [!is.na(u2.H.1)] <- NA
+##    init.u2.W.1      <- u2.W.1
+##    init.u2.W.1  [ is.na(u2.W.1)] <- 100
+##    init.u2.W.1  [!is.na(u2.W.1)] <- NA
 
-   list(logitP=init.logitP, beta.logitP=init.beta.logitP, tauP=init.tauP, 
-        bU.W.YoY=init.bU.W.YoY, 
-        bU.W.1  =init.bU.W.1,
-        bU.H.1  =init.bU.H.1, 
-        tauU=init.tauU, taueU=init.taueU, 
-        etaU.W.YoY=init.etaU.W.YoY, etaU.W.1=init.etaU.W.1, etaU.H.1=init.etaU.H.1)
+##    init.u2.H.1      <- u2.H.1
+##    init.u2.H.1  [ is.na(u2.H.1)] <- 100
+##    init.u2.H.1  [!is.na(u2.H.1)] <- NA
+
+##    list(logitP=init.logitP, beta.logitP=init.beta.logitP, tauP=init.tauP,
+##         bU.W.YoY=init.bU.W.YoY,
+##         bU.W.1  =init.bU.W.1,
+##         bU.H.1  =init.bU.H.1,
+##         tauU=init.tauU, taueU=init.taueU,
+##         etaU.W.YoY=init.etaU.W.YoY, etaU.W.1=init.etaU.W.1, etaU.H.1=init.etaU.H.1)
+## }
+## #browser()
+
+##  initial values for the parameters of the model
+init.vals <- genInitVals(model="TSPDE-WHsteel",
+                         n1=n1,
+                         m2=m2,
+                         u2=list(W.YoY=u2.W.YoY,W.1=u2.W.1,H.1=u2.H.1),
+                         logitP.cov=logitP.cov,
+                         SplineDesign=list(W.YoY=SplineDesign.W.YoY,W.1=SplineDesign.W.1,H.1=SplineDesign.H.1),
+                         hatch.after=hatch.after,
+                         n.chains=n.chains)
+
+## Generate data list
+data.list <- list()
+for(i in 1:length(datalist)){
+  data.list[[length(data.list)+1]] <-get(datalist[[i]])
 }
-#browser()
+names(data.list) <- as.list(datalist)
 
+# Call OpenBUGS
+results <- run.openbugs(modelFile=model.file,
+                        dataFile=data.file,
+                        dataList=data.list,
+                        initFiles=init.files,
+                        initVals=init.vals,
+                        parameters=parameters,
+                        nChains=n.chains,
+                        nIter=n.iter,
+                        nBurnin=n.burnin,
+                        nSims=n.sims,
+                        overRelax=FALSE,
+                        initialSeed=InitialSeed,
+                        working.directory=working.directory,
+                        debug=debug)
 
-# set up for the call to WinBugs or OpenBugs
-
-working.directory <-  getwd()          # store all data and init files in the current directory
-if(openbugs){
-   cat("\n\n*** Start of call to OpenBugs \n")
-   bugs.directory = OPENBUGS.directory 
-   # the following call sequence is mainly based on the "openbugs" function in the R2WinBugs package
-   modelFile <- "model.txt"  # this was written in the current directory earlier
-   numChains <- n.chains
-   nBurnin   <- n.burnin
-   nIterPostBurnin <- n.iter - n.burnin
-   nThin     <- round(nIterPostBurnin/n.sims)  # want certain # of final samples so decide upon the thining rate
-   over.relax <- FALSE
-   parameters.to.save <- c(parameters, "deviance")  # always get the deviance
-   parametersToSave <- parameters.to.save
-
-   cat("OpenBugs files created in:", working.directory, "\n")
-   BRugs::modelCheck(modelFile)    # check the model
-
-   # get the data and write to the data.txt file in the current directory
-   datafileName = file.path(working.directory, "data.txt")
-   data.list <- list()
-   for(i in 1:length(datalist)){
-      data.list[[length(data.list)+1]] <-get(datalist[[i]])
-   }
-   names(data.list) <- as.list(datalist)
-   temp <- BRugs::bugsData(data.list, fileName = datafileName, digits = 5)
-   cat("Data files saved in ", temp, "\n")
-
-   BRugs::modelData(datafileName)
-   cat("Data loaded into model\n")
-   BRugs::modelCompile(numChains)
-
-   # set the random number generator seed
-   BRugs::modelSetSeed(InitialSeed)
-   cat("Random seed initialized with :", InitialSeed, "\n")
-
-   # generate the files to save the initial values
-   initfileNames <- file.path(working.directory, paste("inits", 1:numChains,".txt", sep = ""))
-   inits <- BRugs::bugsInits(inits = init.vals, numChains = numChains, fileName=initfileNames)
-   cat("Initial values generated in ",paste(inits,"\n"), "\n")
-   BRugs::modelInits(inits)
-   BRugs::modelGenInits()     # generate the initial values for any uninitialized variables
-   cat("\nInitial values loaded into model\n")
-
-   # now to generate the burnin sample
-   cat("Burnin sampling has been started for ", nBurnin, " iterations.... \n")
-   flush.console()
-   for(iter in seq(1,nBurnin,round(nBurnin/20)+1)){  # generate a report about every 5% of the way
-      cat('... Starting burnin iteration', iter,' which is about ',round(iter/nBurnin*100),"% of the burnin phase at ",date(),"\n")
-      flush.console()
-      BRugs::modelUpdate(round(nBurnin/20)+1, overRelax = over.relax)
-   }
-   cat("Burnin sampling completed \n")
-
-   # generate the non-burnin samples
-   BRugs::dicSet()      # turn on DIC computations
-   on.exit(BRugs::dicClear(), add = TRUE) 
-   cat("DIC collection set \n")  
-   BRugs::samplesSet(parametersToSave)
-   cat("Nodes to monitor set\n")
-   cat("Starting sampling after burnin for ", n.chains," chain each with  a further ", 
-        nIterPostBurnin, " iterations. \n A thining rate of ", nThin, 
-        "will give about ", round(nIterPostBurnin/nThin), " posterior values in each chain... \n")
-   for(iter in seq(1,nIterPostBurnin,round(nIterPostBurnin/20)+1)){
-      cat('... Starting post-burnin iteration', iter,' which is about ',round(iter/nIterPostBurnin*100),"% of the post-burnin phase at ",date(),"\n")
-      flush.console()
-      BRugs::modelUpdate(round(nIterPostBurnin/nThin/20)+1, thin=nThin, overRelax = over.relax) # we do the thining on the fly
-   }
-   cat("Finished sampling after burnin and thining \n")
-   FinalSeed <- BRugs::modelGetSeed(i=1)
-   cat("Random seed ended with :", FinalSeed, "\n")
-
-
- 
-   # Now to extract the sampled values and create the bugs array
-   cat("Extracting the sampled values\n")
-   params <- BRugs::samplesMonitors("*")
-   samples <- sapply(params, BRugs::samplesSample)
-   n.saved.per.chain <- nrow(samples)/numChains
-   samples.array <- array(samples, c(n.saved.per.chain, numChains, ncol(samples)))    
-   dimnames(samples.array)[[3]] <- dimnames(samples)[[2]]
-   DICOutput <- BRugs::dicStats()
-
-   # save the information. The simulation has already been thinned, so no need to thin again
-   results<- as.bugs.array(sims.array = samples.array, 
-        model.file = modelFile, program = "OpenBUGS", DIC = TRUE, 
-        DICOutput = DICOutput, n.iter = n.iter, n.burnin = n.burnin, 
-        n.thin = nThin)
-   results$Seed.initial <- InitialSeed
-   results$Seed.final   <- FinalSeed
-   cat("Final dimension of saved simulation output is ", dim(results$sims.array), "\n")
-
-   # save the information to the coda files
-   BRugs::samplesCoda("*", stem=paste(working.directory,"/",sep=""))  # write out code files
-   cat("Coda file created \n")
-
-   cat("\n\n*** Finished OpenBugs ***\n\n")
-   results
-   } else {
-   bugs.directory = WINBUGS.directory  
-   results <- bugs( 
-      datalist,   # notice this is a list of external variables 
-      inits=init.vals, # function to generate initial values for each chain
-      parameters,
-      model.file="model.txt",
-      n.chains=n.chains,
-      n.iter=n.iter,    # includes burn in
-      n.burnin=n.burnin,
-      n.sims=n.sims,      # (approx) number of final simulations to save
-      bugs.directory=bugs.directory,
-      working.directory=working.directory, 
-      debug=debug     )
-   results
-   } # end of else clause
-
-
-} # end of TimeStratPetersenDiagError function
+return(results)
+}

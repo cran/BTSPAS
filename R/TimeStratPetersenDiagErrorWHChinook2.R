@@ -1,3 +1,5 @@
+# 2011-05-15 CJS limited etaU to 20 or less
+# 2011-01-24 SB  added call to run.windows.openbugs and run.windows.winbugs
 # 2010-11-25 CJS add output to track progress of sampling through burnin and post-burnin
 # 2010-04-26 CJS fixed problem where init.logitP failed when n1=m2 (logit=infinite) and lm() failed.
 # 2010-03-29 CJS Created first release
@@ -20,9 +22,8 @@ TimeStratPetersenDiagErrorWHChinook2 <-
                 mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)), 
                 tau_xiP=1/var(logit((m2+.5)/(n1+1)), na.rm=TRUE), 
                 tauP.alpha=.001, tauP.beta=.001, 
-                debug=FALSE, debug2=FALSE, openbugs=TRUE,
-                InitialSeed,
-                OPENBUGS.directory, WINBUGS.directory){
+                debug=FALSE, debug2=FALSE,
+                InitialSeed){
 
 #
 #  Fit the smoothed time-Stratified Petersen estimator with Diagonal recoveries (i.e. no recoveries
@@ -71,13 +72,18 @@ TimeStratPetersenDiagErrorWHChinook2 <-
 #  This routine makes a call to WinBugs to fit the model and then gets back the 
 #  coda files for the posteriour distribution.
 
-library("R2WinBUGS")  # Make sure that all the packages needed are available
-library("coda")       # used for convergence diagnostics
-library("splines")    # used to compute the Bspline design matrix
+## Set working directory to current directory (we should allow users to select this)
+working.directory <- getwd()
 
+## Define paths for the model, data, and initial value files
+model.file <- file.path(working.directory, "model.txt")
+data.file <- file.path(working.directory,"data.txt")
+init.files <- file.path(working.directory,
+                       paste("inits", 1:n.chains,".txt", sep = ""))
+  
 # Save the WinBugs progam to the model.txt file
 #
-sink("model.txt")  # NOTE: NO " allowed in model as this confuses the cat command
+sink(model.file)  # NOTE: NO " allowed in model as this confuses the cat command
 cat("
 model TimeStratPetersenDiagErrorWHChinook{
 # Time Stratified Petersen with Diagonal recapture (no spillover in subsequent weeks or marked fish)
@@ -150,25 +156,25 @@ model TimeStratPetersenDiagErrorWHChinook{
    ##### Fit the spline for YoY wildfish - this covers the entire experiment ######
    for(i in 1:Nstrata){
         logUne.W.YoY[i] <- inprod(SplineDesign.W.YoY[i,1:n.bU.W.YoY],bU.W.YoY[1:n.bU.W.YoY])  # spline design matrix * spline coeff 
-        etaU.W.YoY[i] ~ dnorm(logUne.W.YoY[i], taueU)              # add random error
+        etaU.W.YoY[i] ~ dnorm(logUne.W.YoY[i], taueU)C(,20)              # add random error
         eU.W.YoY  [i] <- etaU.W.YoY[i] - logUne.W.YoY[i]
    }
    ##### Fit the spline for YoY hatchery fish - these fish only enter AFTER hatch.after.YoY ######
    for(i in (hatch.after.YoY+1):Nstrata){
         logUne.H.YoY[i] <- inprod(SplineDesign.H.YoY[i,1:n.bU.H.YoY],bU.H.YoY[1:n.bU.H.YoY])  # spline design matrix * spline coeff 
-        etaU.H.YoY[i] ~ dnorm(logUne.H.YoY[i], taueU)              # add random error
+        etaU.H.YoY[i] ~ dnorm(logUne.H.YoY[i], taueU)C(,20)              # add random error
         eU.H.YoY  [i] <- etaU.H.YoY[i] - logUne.H.YoY[i]
    }
    ##### Fit the spline for Age1 wildfish - this covers the entire experiment ######
    for(i in 1:Nstrata){
         logUne.W.1[i] <- inprod(SplineDesign.W.1[i,1:n.bU.W.1],bU.W.1[1:n.bU.W.1])  # spline design matrix * spline coeff 
-        etaU.W.1[i] ~ dnorm(logUne.W.1[i], taueU)              # add random error
+        etaU.W.1[i] ~ dnorm(logUne.W.1[i], taueU)C(,20)              # add random error
         eU.W.1  [i] <- etaU.W.1[i] - logUne.W.1[i]
    }
    ##### Fit the spline for Age1 hatchery fish - this covers the entire experiment because the have residualized from last year
    for(i in 1:Nstrata){
         logUne.H.1[i] <- inprod(SplineDesign.H.1[i,1:n.bU.H.1],bU.H.1[1:n.bU.H.1])  # spline design matrix * spline coeff 
-        etaU.H.1[i] ~ dnorm(logUne.H.1[i], taueU)              # add random error
+        etaU.H.1[i] ~ dnorm(logUne.H.1[i], taueU)C(,20)              # add random error
         eU.H.1  [i] <- etaU.H.1[i] - logUne.H.1[i]
    }
 
@@ -489,121 +495,29 @@ init.vals <- function(){
 #browser()
 
 
-# set up for the call to WinBugs or OpenBugs
+## Generate data list
+data.list <- list()
+for(i in 1:length(datalist)){
+  data.list[[length(data.list)+1]] <-get(datalist[[i]])
+}
+names(data.list) <- as.list(datalist)
+  
+# Call OpenBUGS
 
-working.directory <- getwd()          # store all data and init files in the current directory
-if(openbugs){
-   cat("\n\n*** Start of call to OpenBugs \n")
-   bugs.directory = OPENBUGS.directory 
-   # the following call sequence is mainly based on the "openbugs" function in the R2WinBugs package
-   modelFile <- "model.txt"  # this was written in the current directory earlier
-   numChains <- n.chains
-   nBurnin   <- n.burnin
-   nIterPostBurnin <- n.iter - n.burnin
-   nThin     <- round(nIterPostBurnin/n.sims)  # want certain # of final samples so decide upon the thining rate
-   over.relax <- FALSE
-   parameters.to.save <- c(parameters, "deviance")  # always get the deviance
-   parametersToSave <- parameters.to.save
+results <- run.openbugs(modelFile=model.file,
+                        dataFile=data.file,
+                        dataList=data.list,
+                        initFiles=init.files,
+                        initVals=init.vals,
+                        parameters=parameters,
+                        nChains=n.chains,
+                        nIter=n.iter,
+                        nBurnin=n.burnin,
+                        nSims=n.sims,
+                        overRelax=FALSE,
+                        initialSeed=InitialSeed,
+                        working.directory=working.directory,
+                        debug=debug)
 
-   cat("OpenBugs files created in:", working.directory, "\n")
-   BRugs::modelCheck(modelFile)    # check the model
-
-   # get the data and write to the data.txt file in the current directory
-   datafileName = file.path(working.directory, "data.txt")
-   data.list <- list()
-   for(i in 1:length(datalist)){
-      data.list[[length(data.list)+1]] <-get(datalist[[i]])
-   }
-   names(data.list) <- as.list(datalist)
-   temp <- BRugs::bugsData(data.list, fileName = datafileName, digits = 5)
-   cat("Data files saved in ", temp, "\n")
-
-   BRugs::modelData(datafileName)
-   cat("Data loaded into model\n")
-   BRugs::modelCompile(numChains)
-
-   # set the random number generator seed
-   BRugs::modelSetSeed(InitialSeed)
-   cat("Random seed initialized with :", InitialSeed, "\n")
-
-   # generate the files to save the initial values
-   initfileNames <- file.path(working.directory, paste("inits", 1:numChains,".txt", sep = ""))
-   inits <- BRugs::bugsInits(inits = init.vals, numChains = numChains, fileName=initfileNames)
-   cat("Initial values generated in ",paste(inits,"\n"), "\n")
-   BRugs::modelInits(inits)
-   BRugs::modelGenInits()     # generate the initial values for any uninitialized variables
-   cat("\nInitial values loaded into model\n")
-
-   # now to generate the burnin sample
-   cat("Burnin sampling has been started for ", nBurnin, " iterations.... \n")
-   flush.console()
-   for(iter in seq(1,nBurnin,round(nBurnin/20)+1)){  # generate a report about every 5% of the way
-      cat('... Starting burnin iteration', iter,' which is about ',round(iter/nBurnin*100),"% of the burnin phase at ",date(),"\n")
-      flush.console()
-      BRugs::modelUpdate(round(nBurnin/20)+1, overRelax = over.relax)
-   }
-   cat("Burnin sampling completed \n")
-
-   # generate the non-burnin samples
-   BRugs::dicSet()      # turn on DIC computations
-   on.exit(BRugs::dicClear(), add = TRUE) 
-   cat("DIC collection set \n")  
-   BRugs::samplesSet(parametersToSave)
-   cat("Nodes to monitor set\n")
-   cat("Starting sampling after burnin for ", n.chains," chain each with  a further ", 
-        nIterPostBurnin, " iterations. \n A thining rate of ", nThin, 
-        "will give about ", round(nIterPostBurnin/nThin), " posterior values in each chain... \n")
-   for(iter in seq(1,nIterPostBurnin,round(nIterPostBurnin/20)+1)){
-      cat('... Starting post-burnin iteration', iter,' which is about ',round(iter/nIterPostBurnin*100),"% of the post-burnin phase at ",date(),"\n")
-      flush.console()
-      BRugs::modelUpdate(round(nIterPostBurnin/nThin/20)+1, thin=nThin, overRelax = over.relax) # we do the thining on the fly
-   }
-   cat("Finished sampling after burnin and thining \n")
-   FinalSeed <- BRugs::modelGetSeed(i=1)
-   cat("Random seed ended with :", FinalSeed, "\n")
-
-
- 
-   # Now to extract the sampled values and create the bugs array
-   cat("Extracting the sampled values\n")
-   params <- BRugs::samplesMonitors("*")
-   samples <- sapply(params, BRugs::samplesSample)
-   n.saved.per.chain <- nrow(samples)/numChains
-   samples.array <- array(samples, c(n.saved.per.chain, numChains, ncol(samples)))    
-   dimnames(samples.array)[[3]] <- dimnames(samples)[[2]]
-   DICOutput <- BRugs::dicStats()
-
-   # save the information. The simulation has already been thinned, so no need to thin again
-   results<- as.bugs.array(sims.array = samples.array, 
-        model.file = modelFile, program = "OpenBUGS", DIC = TRUE, 
-        DICOutput = DICOutput, n.iter = n.iter, n.burnin = n.burnin, 
-        n.thin = nThin)
-   results$Seed.initial <- InitialSeed
-   results$Seed.final   <- FinalSeed
-   cat("Final dimension of saved simulation output is ", dim(results$sims.array), "\n")
-
-   # save the information to the coda files
-   BRugs::samplesCoda("*", stem=paste(working.directory,"/",sep=""))  # write out code files
-   cat("Coda file created \n")
-
-   cat("\n\n*** Finished OpenBugs ***\n\n")
-   results
-   } else {
-   bugs.directory = WINBUGS.directory  
-   results <- bugs( 
-      datalist,   # notice this is a list of external variables 
-      inits=init.vals, # function to generate initial values for each chain
-      parameters,
-      model.file="model.txt",
-      n.chains=n.chains,
-      n.iter=n.iter,    # includes burn in
-      n.burnin=n.burnin,
-      n.sims=n.sims,      # (approx) number of final simulations to save
-      bugs.directory=bugs.directory,
-      working.directory=working.directory,
-      debug=debug     )
-   results
-   } # end of else clause
-
-
-} # end of TimeStratPetersenDiagError function
+return(results)
+}

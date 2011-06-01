@@ -1,7 +1,10 @@
-# 2010-03-03 Conne River 2009 analysis.
+# 2010-03-21 Conne River 2009 analysis.
+# 2011-03-10 CJS Add prior specification of movement rates
 
-# Demonstration of the Time-Stratified Petersen experiment with NON-Diagonal entries
-# with some capture probabilities fixed to 0 because no sampling occurred.
+# Demonstration of the Time-Stratified Petersen experiment with
+# NON-Diagonal entries, travel times for the marked fish modelled
+# non-parametrically, and some capture probabilities fixed to 0
+# because no sampling occurred, and some prior specification of movement rates
 
 # Uses the Conne River 2009 data as provided by Brian Dempson (DFO, St. John's) on 2010-02-08.
 
@@ -33,70 +36,76 @@
 #   Mark-recapture estimation of a salmon smolt population. 
 #   Biometrics 50: 98-108.
 #
-# In this implementation, the parameters of the log-normal movement distribution are
-# smoothed over time.
+# In this implementation, the travel times are modelled
+# non-parametrically according to the continuation ratio model for
+# mulutinomial data.
 
+## Warn user that demo may overwrite existing files
 demo.proceed <- TRUE
+
 if(!exists("demo.ans")) demo.ans <- " "
 
 while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
   cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
-  cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPNDE' \n")
+  cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPNDENP' \n")
   demo.ans <- readline(prompt="Do you want to proceed? (yes/no): ")
 }
 if(demo.ans %in% c("no","NO","n","N")){demo.proceed <- FALSE }
 
-# Create a directory to store the results
-if(file.access("demo-TSPNDE")!=0){ demo.proceed <- demo.proceed & dir.create("demo-TSPNDE", showWarnings=TRUE)}  # Test and then create the directory
-setwd("demo-TSPNDE")
+# Create a directory to store the results Test and then create the
+# directory
+if(file.access("demo-TSPNDENP")!=0){
+  demo.proceed <- demo.proceed & dir.create("demo-TSPNDENP", showWarnings=TRUE)
+}  
+setwd("demo-TSPNDENP")
 
 if(!demo.proceed){stop()}
 
 
 par(ask=FALSE)
 dev.off()  # turn off the blank graphics window
-library("BTSPAS")
 
-# Get the raw data and read it in
+## Load BTSPAS library
+library(BTSPAS)
+
+## Define data
 demo.data <- textConnection(
-"Date ,   tagged , 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 ,  Tot-recoveries , Untagged, Dummy1, Dummy2, WaterTemp
-2009-04-29 , 25  , 0 , 0 , 1 , 0 , 0 , 1 , 0 , 0 ,   2              , 0 , 0 ,  , 7.8
-2009-04-30 , 75  , 0 , 2 , 2 , 2 , 2 , 1 , 0 , 0 ,   9              , 133 , 133 ,  , 7.0
-2009-05-01 , 97  , 0 , 0 , 1 , 4 , 1 , 0 , 0 , 1 ,   7              , 158 , 161 ,  , 7.5
-2009-05-02 , 127 , 0 , 2 , 5 , 0 , 0 , 1 , 0 , 0 ,   8              , 128 , 130 ,  , 7.7
-2009-05-03 , 194 , 0 , 6 , 2 , 1 , 0 , 0 , 0 , 0 ,   9              , 197 , 202 ,  , 9.3
-2009-05-04 , 200 , 2 , 22 , 4 , 1 , 0 , 0 , 0 , 0 ,  29             , 522 , 542 ,  , 11.7
-2009-05-05 , 216 , 8 , 12 , 4 , 1 , 1 , 0 , 0 , 0 ,  26             , 859 , 893 ,  , 11.6
-2009-05-06 , 215 , 1 , 26 , 2 , 0 , 1 , 0 , 0 , 1 ,  31             , 427 , 445 ,  , 11.7
-2009-05-07 , 205 , 11 , 13 , 11 , 0 , 0 , 0 , 0 , 0, 35             , 849 , 892 ,  , 11.1
-2009-05-08 , 202 , 3 , 23 , 2 , 0 , 0 , 0 , 0 , 0  , 28             , 488 , 507 ,  , 9.8
-2009-05-09 , 222 , 7 , 1 , 1 , 0 , 0 , 0 , 0 , 0 ,    9             , 1080 , 1123 ,  , 9.5
-2009-05-10 , 158 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,    0             , 350 , 354 ,  , 9.2
-2009-05-11 , 0   , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,    0             , 0 , 0 ,  , 6.6
-2009-05-12 , 0   , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,    0             , 0 , 0 ,  , 7.4
-2009-05-13 , 161 , 0 , 12 , 6 , 2 , 0 , 0 , 0 , 0 ,  20             , 58 , 59 ,  , 9.6
-2009-05-14 , 198 , 3 , 12 , 1 , 0 , 0 , 0 , 1 , 0 ,  17             , 336 , 351 ,  , 11.4
-2009-05-15 , 61  , 0 , 0 , 1 , 0 , 0 , 0 , 0 , 0 ,    1             , 118 , 137 ,  , 11.6
-2009-05-16 , 66  , 0 , 1 , 4 , 1 , 0 , 0 , 0 , 0 ,    6             , 72 , 75 ,  , 12.3
-2009-05-17 , 31  , 0 , 0 , 3 , 0 , 0 , 0 , 0 , 0 ,    3             , 34 , 36 ,  , 12.9
-2009-05-18 , 11  , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,    0             , 26 , 30 ,  , 13.9
-2009-05-19 , 12  , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,    0             , 21 , 25 ,  , 14.4
-2009-05-20 , 5   , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,    0             , 16 , 16 ,  , 13.6
-2009-05-21 , 0   , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,    0             , 22 , 22 ,  , 10.9
-2009-05-22 , 0   , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,    0             , 22 , 22 ,  , 12.2
-2009-05-23 , 0   , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,    0             , 1 , 1 ,  , 14.3
-2009-05-24 , 0   , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,    0             , 1 , 1 ,  , 13.0
-2009-05-25 , 0   , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,    0             , 5 , 6 ,  , 13.9
-2009-05-26 , 0   , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,    0             , 3 , 3 ,  , 13.2     ")
+"Date,tagged,0,1,2,3,4,5,6,7,Tot-recoveries,Untagged,Tot-caught,WaterTemp
+2009-04-29,25,0,0,1,0,0,1,0,0,2,0,0,7.8
+2009-04-30,75,0,2,2,2,2,1,0,0,9,133,133,7.0
+2009-05-01,97,0,0,1,4,1,0,0,1,7,158,161,7.5
+2009-05-02,127,0,2,5,0,0,1,0,0,8,128,130,7.7
+2009-05-03,194,0,6,2,1,0,0,0,0,9,197,202,9.3
+2009-05-04,200,2,22,4,1,0,0,0,0,29,522,542,11.7
+2009-05-05,216,8,12,4,1,1,0,0,0,26,859,893,11.6
+2009-05-06,215,1,26,2,0,1,0,0,1,31,427,445,11.7
+2009-05-07,205,11,13,11,0,0,0,0,0,35,849,892,11.1
+2009-05-08,202,3,23,2,0,0,0,0,0,28,488,507,9.8
+2009-05-09,222,7,1,1,0,0,0,0,0,9,1080,1123,9.5
+2009-05-10,158,0,0,0,0,0,0,0,0,0,350,354,9.2
+2009-05-11,0,0,0,0,0,0,0,0,0,0,0,0,6.6
+2009-05-12,0,0,0,0,0,0,0,0,0,0,0,0,7.4
+2009-05-13,161,0,12,6,2,0,0,0,0,20,58,59,9.6
+2009-05-14,198,3,12,1,0,0,0,1,0,17,336,351,11.4
+2009-05-15,61,0,0,1,0,0,0,0,0,1,118,137,11.6
+2009-05-16,66,0,1,4,1,0,0,0,0,6,72,75,12.3
+2009-05-17,31,0,0,3,0,0,0,0,0,3,34,36,12.9
+2009-05-18,11,0,0,0,0,0,0,0,0,0,26,30,13.9
+2009-05-19,12,0,0,0,0,0,0,0,0,0,21,25,14.4
+2009-05-20,5,0,0,0,0,0,0,0,0,0,16,16,13.6
+2009-05-21,0,0,0,0,0,0,0,0,0,0,22,22,10.9
+2009-05-22,0,0,0,0,0,0,0,0,0,0,22,22,12.2
+2009-05-23,0,0,0,0,0,0,0,0,0,0,1,1,14.3
+2009-05-24,0,0,0,0,0,0,0,0,0,0,1,1,13.0
+2009-05-25,0,0,0,0,0,0,0,0,0,0,5,6,13.9
+2009-05-26,0,0,0,0,0,0,0,0,0,0,3,3,13.2")
 
 demo.Fish <- read.csv(demo.data, header=TRUE)
 
-demo.Fish[1:5,]
-
 # Now to extract the subset of data, do any fancy adjustments, and fit the data.
 
-demo.prefix <- "CR-2009-AS-TSPNDE"
-demo.title  <- "Conne River 2009 Atlantic Salmon "
+demo.prefix <- "CR-2009-AS-TSPNDENP"
+demo.title  <- "Conne River 2009 Atlantic Salmon NP"
 cat("*** Starting ",demo.title, "\n\n")
 
 # We do some fixups because the data entry forces you to enter extra rows of zeros
@@ -108,12 +117,9 @@ demo.n1 <- demo.n1[ 1:(length(demo.n1)-6)]  # last rows have no fish released, b
 # Consequently, we set the number of fish released to 1. This "approximation" will work fine in most
 # real situations.
 demo.n1[c(13,14)] <- 1  # no fish released, or a blow out on recoveries
-
 demo.m2 <- demo.Fish[, paste("X",0:7,sep="")]
 demo.m2 <- as.matrix(demo.m2)
 demo.m2 <- demo.m2[ 1:length(demo.n1),]     # last rows have no fish released
-
-
 
 demo.u2 <- demo.Fish$Untagged
 
@@ -136,14 +142,15 @@ demo.bad.u2     <- c()     # list sample times of bad u2 values
 demo.logitP.fixed <- 119+ c(13,14)
 demo.logitP.fixed.values <- rep(-10,length(demo.logitP.fixed))  # logitP=-10 === p[i]=0
 
-
-demo.cr.2009.as.tspnde <- TimeStratPetersenNonDiagError_fit(
+## Run TSPNDE model
+demo.cr.2009.as.tspndenp <- TimeStratPetersenNonDiagErrorNP_fit(
                   title=      demo.title,
                   prefix=     demo.prefix,
                   time=       demo.jday,
                   n1=         demo.n1, 
                   m2=         demo.m2, 
                   u2=         demo.u2,
+                  prior.muTT=c(10,40,30,5,5,5,5,5),
                   sampfrac=   demo.sampfrac,
                   jump.after= demo.jump.after,
                   bad.n1=     demo.bad.n1,
@@ -151,32 +158,23 @@ demo.cr.2009.as.tspnde <- TimeStratPetersenNonDiagError_fit(
                   bad.u2=     demo.bad.u2,
                   logitP.fixed=demo.logitP.fixed,
                   logitP.fixed.values=demo.logitP.fixed.values,
-                  debug=TRUE)
-
+                  debug=TRUE, 
+                  openbugs=TRUE
+                  )
 # Rename files that were created.
 # Note that if WinBugs is used, the files are called coda1, coda2, coda3 
 # rather than CODAchain1 etc and so the code below needs to be modified.
 
-file.copy("data.txt",       paste(demo.prefix,".data.txt",sep=""),      overwrite=TRUE)
-file.copy("CODAindex.txt",  paste(demo.prefix,".CODAindex.txt",sep=""), overwrite=TRUE)
-file.copy("CODAchain1.txt", paste(demo.prefix,".CODAchain1.txt",sep=""),overwrite=TRUE)
-file.copy("CODAchain2.txt", paste(demo.prefix,".CODAchain2.txt",sep=""),overwrite=TRUE)
-file.copy("CODAchain3.txt", paste(demo.prefix,".CODAchain3.txt",sep=""),overwrite=TRUE)
-file.copy("inits1.txt",     paste(demo.prefix,".inits1.txt",sep=""),    overwrite=TRUE)
-file.copy("inits2.txt",     paste(demo.prefix,".inits2.txt",sep=""),    overwrite=TRUE)
-file.copy("inits3.txt",     paste(demo.prefix,".inits3.txt",sep=""),    overwrite=TRUE)
-
-file.remove("data.txt"       )       
-file.remove("CODAindex.txt"  )
-file.remove("CODAchain1.txt" )
-file.remove("CODAchain2.txt" )
-file.remove("CODAchain3.txt" )
-file.remove("inits1.txt"     )
-file.remove("inits2.txt"     )
-file.remove("inits3.txt"     )
+file.rename("data.txt",       paste(demo.prefix,".data.txt",sep=""))
+file.rename("CODAindex.txt",  paste(demo.prefix,".CODAindex.txt",sep=""))
+file.rename("CODAchain1.txt", paste(demo.prefix,".CODAchain1.txt",sep=""))
+file.rename("CODAchain2.txt", paste(demo.prefix,".CODAchain2.txt",sep=""))
+file.rename("CODAchain3.txt", paste(demo.prefix,".CODAchain3.txt",sep=""))
+file.rename("inits1.txt",     paste(demo.prefix,".inits1.txt",sep=""))
+file.rename("inits2.txt",     paste(demo.prefix,".inits2.txt",sep=""))
+file.rename("inits3.txt",     paste(demo.prefix,".inits3.txt",sep=""))
  
-
-save(list=c("demo.cr.2009.as.tspnde"), file="demo.cr-2009-as-tspnde-saved.Rdata")  # save the results from this run
+save(list=c("demo.cr.2009.as.tspndenp"), file="demo.cr-2009-as-tspndenp-saved.Rdata")  # save the results from this run
 
 cat("\n\n\n ***** FILES and GRAPHS saved in \n    ", getwd(), "\n\n\n")
 print(dir())
@@ -185,4 +183,3 @@ print(dir())
 setwd("..")
 
 cat("\n\n\n ***** End of Demonstration *****\n\n\n")
-

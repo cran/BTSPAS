@@ -38,13 +38,32 @@
 #  The prefix is used to identify the output files for this run.
 #  The title  is used to title the output.
 
-# Create a directory to store the results
-dir.create("demo-TSPDE-WHchinook2")
+## Warn user that demo may overwrite existing files
+demo.proceed <- TRUE
+if(!exists("demo.ans")) demo.ans <- " "
+
+while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
+  cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
+  cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPDE-WHchinook2' \n")
+  demo.ans <- readline(prompt="Do you want to proceed? (yes/no): ")
+}
+if(demo.ans %in% c("no","NO","n","N")){demo.proceed <- FALSE }
+
+# Create a directory to store the results Test and then create the
+# directory
+if(file.access("demo-TSPDE-WHchinook2")!=0){
+  demo.proceed <- demo.proceed & dir.create("demo-TSPDE-WHchinook2", showWarnings=TRUE)
+}
 setwd("demo-TSPDE-WHchinook2")
 
+if(!demo.proceed){stop()}
+
+
 par(ask=FALSE)
-dev.off()  # turn off blank graphic screen
-library("BTSPAS")
+dev.off()  # turn off the blank graphics window
+
+## Load BTSPAS library
+library(BTSPAS)
 
 # Get the data. In many cases, this is stored in a *.csv file and read into the program
 # using a read.csv() call. In this demo, the csv data is stored as a data stream rather than a 
@@ -152,7 +171,6 @@ demo.nf.2009.ch2.tspde <- TimeStratPetersenDiagErrorWHChinook2_fit(
                   bad.m2=demo.bad.m2, 
                   bad.u2.A.YoY=demo.bad.u2.A.YoY, bad.u2.N.YoY=demo.bad.u2.N.YoY,
                   bad.u2.A.1  =demo.bad.u2.A.1  , bad.u2.N.1  =demo.bad.u2.N.1,
-                  openbugs=TRUE,  # change this to FALSE to use WINBUGS
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 

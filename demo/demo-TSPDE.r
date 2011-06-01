@@ -48,7 +48,8 @@
 
 #  See if variables already exist in the directory and if so, warn about overwriting?
 demo.proceed <- TRUE
-demo.ans <- " "
+if(!exists("demo.ans")) demo.ans <- " "
+
 while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
   cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
   cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPDE' \n")
@@ -115,9 +116,6 @@ demo.prefix <- "demo-JC-2003-CH-TSPDE"
 # Title for the analysis
 demo.title <- "Junction City 2003 Chinook "
 
-
-
-
 cat("*** Starting ",demo.title, "\n\n")
 
 # Make the call to fit the model and generate the output files
@@ -133,7 +131,6 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagError_fit(
                   bad.n1=demo.bad.n1,
                   bad.m2=demo.bad.m2,
                   bad.u2=demo.bad.u2,
-                  openbugs=TRUE,  # change this to FALSE to use WINBUGS
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 

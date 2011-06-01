@@ -1,3 +1,6 @@
+% 2011-05-03 CJS Updated with openbugs, openbugs.directory, winbugs.directory
+% 2011-03-10 CJS Updated with changes to arguments for prior on movement rates
+% 2011-02-18 CJS Updated with *NPMarkAvail functions
 % 2010-03-29 CJs Updated with *NP functions and updated argument list
 % 2010-03-12 CJS Updated argument list on _fit
 % 2010-03-03 CJS Add ability to fix some logitP to certain values.
@@ -8,6 +11,8 @@
 \alias{TimeStratPetersenNonDiagError}
 \alias{TimeStratPetersenNonDiagErrorNP_fit}
 \alias{TimeStratPetersenNonDiagErrorNP}
+\alias{TimeStratPetersenNonDiagErrorNPMarkAvail_fit}
+\alias{TimeStratPetersenNonDiagErrorNPMarkAvail}
 \title{Wrapper (*_fit) and function to call the Time Statified Petersen Estimator with NON Diagonal Entries function.}
 \description{Takes the number of marked fish released, the number of recaptures, 
 and the number of unmarked fish and 
@@ -21,7 +26,8 @@ Use the \code{\link{TimeStratPetersenDiagError_fit}} function for cases where
 recaptures take place ONLY in the stratum of release, i.e. the diagonal case.
 
 The non-diagonal case fits a log-normal distribution for the travel time. The *NP functions fit
-a non-parametric distribution for the travel times.
+a non-parametric distribution for the travel times. The *MarkAvail functions extend the *NP functions
+to allow for reductions in mark availability because of fall back, immediate tagging mortality, etc.
 }
 \usage{
 TimeStratPetersenNonDiagError_fit(title="TSPNDE", prefix="TSPNDE-", 
@@ -34,10 +40,8 @@ TimeStratPetersenNonDiagError_fit(title="TSPNDE", prefix="TSPNDE-",
     mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)),  
     tau_xiP = .6666,
     tauP.alpha = 0.001, tauP.beta = 0.001, run.prob = seq(0, 1, 0.1),  
-    debug = FALSE, debug2 = FALSE, openbugs = TRUE,  
-    OPENBUGS.directory = file.path("c:", "Program Files", "OpenBugs"), 
-    WINBUGS.directory = file.path("c:", "Program Files", "WinBUGS14"),
-    InitialSeed = trunc(runif(1, min = 1, max = 1e+09)))
+    debug = FALSE, debug2 = FALSE, 
+    InitialSeed=ceiling(runif(1,min=0, max=14)))
 
 TimeStratPetersenNonDiagError (
     title, prefix, time, n1, m2, u2,
@@ -47,8 +51,7 @@ TimeStratPetersenNonDiagError (
     tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
     mu_xiP=-2, tau_xiP=.6666, 
     tauP.alpha=.001, tauP.beta=.001, 
-    debug=FALSE, debug2=FALSE, openbugs=TRUE, InitialSeed,
-    OPENBUGS.directory, WINBUGS.directory )
+    debug=FALSE, debug2=FALSE, InitialSeed)
 
 TimeStratPetersenNonDiagErrorNP_fit( 
     title="TSPNDENP", prefix="TSPNDENP-", 
@@ -61,12 +64,12 @@ TimeStratPetersenNonDiagErrorNP_fit(
     mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
     tau_xiP=.6666,   # need a better initial value for variation in catchability
     tauP.alpha=.001, tauP.beta=.001,
-    Delta.max=NULL,tauTT.alpha=.1,tauTT.beta=.1,
+    Delta.max=NULL,
+    prior.muTT=NULL,  # prior on movements
+    tauTT.alpha=.1,tauTT.beta=.1,
     run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
-    debug=FALSE, debug2=FALSE, openbugs=TRUE,
-    OPENBUGS.directory=file.path("c:","Program Files","OpenBugs"),
-    WINBUGS.directory=file.path("c:","Program Files","WinBUGS14"),
-    InitialSeed=trunc(runif(1,min=1, max=1000000000))) 
+    debug=FALSE, debug2=FALSE, 
+    InitialSeed=ceiling(runif(1,min=0, max=14)))
 
 TimeStratPetersenNonDiagErrorNP (
      title, prefix, time, n1, m2, u2,
@@ -74,11 +77,41 @@ TimeStratPetersenNonDiagErrorNP (
      logitP.cov=rep(1,length(u2)), logitP.fixed=rep(NA,length(u2)),
      n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
      tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
+     Delta.max,
+     mean.muTT=rep(0,Delta.max),sd.muTT=rep(sqrt(.666),Delta.max),
+     tauTT.alpha=.1, tauTT.beta=.1,
+     mu_xiP=-2, tau_xiP=.6666, 
+     tauP.alpha=.001, tauP.beta=.001, 
+     debug=FALSE, debug2=FALSE, InitialSeed)
+
+TimeStratPetersenNonDiagErrorNPMarkAvail_fit( 
+    title="TSPNDENP", prefix="TSPNDENP-", 
+    time, n1, m2, u2, sampfrac, jump.after=NULL,
+    bad.n1=c(), bad.m2=c(), bad.u2=c(),
+    logitP.cov=rep(1,length(u2)),
+    logitP.fixed=NULL, logitP.fixed.values=NULL, 
+    marked_available_n, marked_available_x,
+    n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
+    tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05, 
+    mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
+    tau_xiP=.6666,   # need a better initial value for variation in catchability
+    tauP.alpha=.001, tauP.beta=.001,
+    Delta.max=NULL,tauTT.alpha=.1,tauTT.beta=.1,
+    run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
+    debug=FALSE, debug2=FALSE,
+    InitialSeed=ceiling(runif(1,min=0, max=14)))
+
+TimeStratPetersenNonDiagErrorNPMarkAvail (
+     title, prefix, time, n1, m2, u2,
+     jump.after=NULL,
+     logitP.cov=rep(1,length(u2)), logitP.fixed=rep(NA,length(u2)),
+     ma.p.alpha, ma.p.beta,
+     n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
+     tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
      Delta.max,tauTT.alpha=.1, tauTT.beta=.1,
      mu_xiP=-2, tau_xiP=.6666, 
      tauP.alpha=.001, tauP.beta=.001, 
-     debug=FALSE, debug2=FALSE, openbugs=TRUE, InitialSeed,
-     OPENBUGS.directory, WINBUGS.directory )
+     debug=FALSE, debug2=FALSE, InitialSeed)
 #
 }
 %- maybe also 'usage' for other objects documented here.
@@ -130,6 +163,10 @@ TimeStratPetersenNonDiagErrorNP (
       certain strata have a 0 capture rate and the fixed value is set to -10  which
       on the logit scale gives p[i] essentially 0. Don't specify values such as -50
       because numerical problems could occur in WinBugs/OpenBugs.} \cr \cr
+  \item{marked_available_n}{Information, usually from prior studies, on the fraction of marks that will
+      be available. The *_n and *_x are used to create a "binomial" distribution for information on the 
+      marked availability. For example, if *_n=66 and *_x=40, then you estimate that about 40/66=61\%.}
+  \item{marked_available_x}{See marked_available_n}
 
 
    \bold{The following parameters are usually not set by the user.} \cr
@@ -139,6 +176,10 @@ TimeStratPetersenNonDiagErrorNP (
   \item{n.burnin}{Number of burn-in iterations.}
   \item{n.sims}{Number of simulated values to keeps for posterior distribution.} \cr
 
+  \item{prior.muTT}{Information on prior movement. For example c(1,4,3,2) would have a prior of .1, .4, .3, and .2. A prior
+       of c(10,40,30,20) would have same values but stronger information.}
+  \item{mean.muTT}{The values of prior.muTT are converted into the mean of muTT using the make.muTT.prior function.}
+  \item{sd.muTT}{The values of prior.muTT are converted into the sd of muTT using the make.muTT.prior function.}
   \item{tauU.alpha}{One of the parameters along with \code{tauU.beta} for the prior for the variance of the random noise for the smoothing spline.}
   \item{tauU.beta}{One of the parameters along with \code{tauU.alpha} for the prior for the variance of the random noise for the smoothing spline.}
   \item{taueU.alpha}{One of the parameters along with \code{taueU.beta} for the prior for the variance of noise around the spline.}
@@ -149,6 +190,8 @@ TimeStratPetersenNonDiagErrorNP (
   \item{tauTT.beta}{One of the parameters along with \code{tauTT.alpha} for the prior on 1/var of logit continuation
                     ratio for travel times}
   \item{mu_xiP}{One of the parameters for the prior for the mean of the logit(catchability) across strata}
+  \item{ma.p.alpha}{One of the parameters for the prior for the marked_availability = beta(ma.p.alpha, ma.p.beta)}
+  \item{ma.p.beta}{One of the parameters for the prior for the marked_availability = beta(ma.p.alpha, ma.p.beta)}
   \item{tau_xiP}{One of the parameter for the prior for the mean of the logit(catchability) across strata}
   \item{tauP.alpha}{One of the parameters for the prior for the variance in logit(catchability) among strata}
   \item{tauP.beta}{One of the parameters for the prior for the variance in logit(catchability) among strata}
@@ -157,9 +200,6 @@ TimeStratPetersenNonDiagErrorNP (
        is reduced considerably for a quick turn around. }
   \item{debug2}{Logical flag indicated if additional debugging information is produced. Normally the functions will halt at \code{browser()}
        calls to allow the user to peek into the internal variables. Not useful except to package developers.}
-  \item{openbugs}{Logical flag indicating if OpenBugs (TRUE) or WinBUGS (FALSE) should be used for the MCMC portion.}
-  \item{OPENBUGS.directory}{File path indicating where OpenBugs is installed.}
-  \item{WINBUGS.directory}{File path indicating where WinBugs is installed.}
   \item{InitialSeed}{Numeric value used to initialize the random numbers used in the MCMC iterations.}
 }
 \details{

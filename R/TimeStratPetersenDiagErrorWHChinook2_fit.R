@@ -18,15 +18,13 @@ TimeStratPetersenDiagErrorWHChinook2_fit<-
                  tau_xiP=1/var(logit((m2+.5)/(n1+1)), na.rm=TRUE), 
                  tauP.alpha=.001, tauP.beta=.001,
                  run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
-                 debug=FALSE, debug2=FALSE, openbugs=TRUE,
-                 OPENBUGS.directory=file.path("c:","Program Files","OpenBugs"),
-                 WINBUGS.directory=file.path("c:","Program Files","WinBUGS14"),
-                 InitialSeed=trunc(runif(1,min=1, max=1000000000))) {
+                 debug=FALSE, debug2=FALSE,
+                 InitialSeed=ceiling(runif(1,min=0, max=14))) {
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error,
 # covariates for the the capture probabilities, and separating the YoY and Age1 wild vs hatchery fish
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2010-11-25'
+   version <- '2011-01-24'
    options(width=200)
 
 # Input parameters are
@@ -62,15 +60,15 @@ TimeStratPetersenDiagErrorWHChinook2_fit<-
 #    hatch.after - julian week AFTER which hatchery fish are released 
 #    bad.m2  - list of julian numbers where the value of m2 is suspect.
 #              For example, the capture rate could be extremely low.
-#              These are set to NA prior to the call to WinBugs/OpenBugs
+#              These are set to NA prior to the call to OpenBugs
 #    bad.u2.A.YoY - list of julian weeks where the value of u2.A.YoY is suspect. 
-#               These are set to NA prior to the call to WinBugs/OpenBugs
+#               These are set to NA prior to the call to OpenBugs
 #    bad.u2.N.YoY - list of julian weeks where the value of u2.N.YoY is suspect.
-#               These are set to NA prior to the call to WinBugs/OpenBugs
+#               These are set to NA prior to the call to OpenBugs
 #    bad.u2.A.1   - list of julian weeks where the value of u2.A.1 is suspect. 
-#               These are set to NA prior to the call to WinBugs/OpenBugs
+#               These are set to NA prior to the call to OpenBugs
 #    bad.u2.N.1   - list of julian weeks where the value of u2.N.1 is suspect.
-#               These are set to NA prior to the call to WinBugs/OpenBugs
+#               These are set to NA prior to the call to OpenBugs
 #    logitP.cov - matrix of covariates for logit(P). If the strata times are "missing" some values, an intercept is assumed
 #               for the first element of the covariance matrix and 0 for the rest of the covariates.
 #               CAUTION - this MAY not be what you want to do. It is likely best to enter ALL strata
@@ -82,8 +80,7 @@ TimeStratPetersenDiagErrorWHChinook2_fit<-
 #    tauP.alpha, tauP.beta   - parameters for the prior on 1/var of residual error in logit(P)'s
 #    run.prob  - percentiles of run timing wanted 
 #    debug  - if TRUE, then this is a test run with very small MCMC chains run to test out the data
-#             and WINBUGS will run and stop waiting for your to exit and complete
-#    openbugs - if TRUE, then openbugs is called; else WInbugs is called
+#             and OpenBUGS will run and stop waiting for your to exit and complete
 
 # force the input vectors to be vectors
 time     <- as.vector(time)
@@ -135,17 +132,8 @@ if(!all(hatch.after.YoY %in% time)){
    cat("***** ERROR ***** hatch.after.YoY must be elements of strata identifiers. You entered \n hatch.after.YoY:",
    hatch.after.YoY,"\n Strata identifiers are \n time:",time, "\n")
    return()}
-#  4. Check for existence of the openbugs/winbugs directories. This is not a guarantee that openbugs/wingbugs exists, but it is a start 
-if(openbugs){ # user wants to use OpenBUGS
-   if(file.access(OPENBUGS.directory) != 0){
-      cat("***** ERROR ***** Can't find OPENBUGS directory. You entered", OPENBUGS.directory, "\n")
-      return() }
-} else {  # user wants to use WinBUGS
-  if(file.access(WINBUGS.directory) != 0){
-      cat("***** ERROR ***** Can't find WINBUGS directory. You entered", WINBUGS.directory, "\n")
-      return() }
-}
-#  5. check that strata numbers are contiguous between smallest and largest value of the strata numbers
+
+#  4. check that strata numbers are contiguous between smallest and largest value of the strata numbers
 if( any(seq(min(time),max(time),1) != time)){
    cat("***** ERROR ***** Strata numbers must be contiguous. \n You entered :", time, "\n")
    return()
@@ -477,6 +465,8 @@ cat("   Parameters for prior on tauP (residual variance of logit(P) after adjust
     " which corresponds to a mean/std dev of 1/var of:",
     round(tauP.alpha/tauP.beta,2),round(sqrt(tauP.alpha/tauP.beta^2),2),"\n")
 
+cat("\n\nInitial seed for this run is: ",InitialSeed, "\n")
+
 sink()
 
 if (debug2) {
@@ -492,10 +482,9 @@ if (debug)
             hatch.after.YoY=hatch.after.YoY-min(time)+1, 
             clip.frac.H.YoY=clip.frac.H.YoY, clip.frac.H.1=clip.frac.H.1,
             logitP.cov=new.logitP.cov,
-            n.chains=3, n.iter=2000, n.burnin=300, n.sims=300,  # set to low values for debugging only
+            n.chains=3, n.iter=10000, n.burnin=5000, n.sims=500,  # set to low values for debugging only
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
-            debug=debug,  openbugs=openbugs, InitialSeed=InitialSeed ,
-            OPENBUGS.directory=OPENBUGS.directory, WINBUGS.directory=WINBUGS.directory)
+            debug=debug,  InitialSeed=InitialSeed)
    } else #notice R syntax requires { before the else
    {results <- TimeStratPetersenDiagErrorWHChinook2(title=title, prefix=prefix, 
             time=new.time, n1=new.n1, m2=new.m2, 
@@ -504,9 +493,7 @@ if (debug)
             clip.frac.H.YoY=clip.frac.H.YoY, clip.frac.H.1=clip.frac.H.1,
             logitP.cov=new.logitP.cov,
             n.chains=n.chains, n.iter=n.iter, n.burnin=n.burnin, n.sims=n.sims,
-            tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
-            openbugs=openbugs, InitialSeed=InitialSeed,
-            OPENBUGS.directory=OPENBUGS.directory, WINBUGS.directory=WINBUGS.directory)
+            tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta, InitialSeed=InitialSeed)
    }
 
 # Now to create the various summary tables of the results
@@ -898,7 +885,7 @@ results$data <- list( time=time, n1=n1, m2=m2,
                       bad.u2.A.YoY=bad.u2.A.YoY, bad.u2.N.YoY=bad.u2.N.YoY, 
                       bad.u2.A.1=bad.u2.A.1, bad.u2.N.1=bad.u2.N.1, 
                       logitP.cov=logitP.cov,
-                      version=version, date_run=date())
+                      version=version, date_run=date(), title=title)
 
 return(results)
 } # end of function

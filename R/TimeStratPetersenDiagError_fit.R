@@ -7,24 +7,24 @@
 # 2009-12005 CJS added title to argument list
 # 2009-12-01 CJS Added some basic error checking; added OPENBUGS/WINBUGS to argument list
 
-TimeStratPetersenDiagError_fit<- function( title="TSDPE", prefix="TSPDE-", 
-                                 time, n1, m2, u2, sampfrac, jump.after=NULL, 
-                                 bad.n1=c(), bad.m2=c(), bad.u2=c(),
-                                 logitP.cov=rep(1,length(n1)),
-                                 n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
-                                 tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05, 
-                                 mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
-                                 tau_xiP=1/var(logit((m2+.5)/(n1+1)),na.rm=TRUE), 
-                                 tauP.alpha=.001, tauP.beta=.001,
-                                 run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
-                                 debug=FALSE, debug2=FALSE, openbugs=TRUE,
-                                 OPENBUGS.directory=file.path("c:","Program Files","OpenBugs"),
-                                 WINBUGS.directory=file.path("c:","Program Files","WinBUGS14"),
-                                 InitialSeed=trunc(runif(1,min=1, max=1000000000))) {
+TimeStratPetersenDiagError_fit <-
+  function( title="TSDPE", prefix="TSPDE-", 
+           time, n1, m2, u2, sampfrac, jump.after=NULL, 
+           bad.n1=c(), bad.m2=c(), bad.u2=c(),
+           logitP.cov=rep(1,length(n1)),
+           n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
+           tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05, 
+           mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
+           tau_xiP=1/var(logit((m2+.5)/(n1+1)),na.rm=TRUE), 
+           tauP.alpha=.001, tauP.beta=.001,
+           run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
+           debug=FALSE, debug2=FALSE,
+           InitialSeed=ceiling(runif(1,min=0, max=14))) {
+    
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2010-11-29'
+   version <- '2011-01-24'
    options(width=200)
 
 # Input parameters are
@@ -49,13 +49,13 @@ TimeStratPetersenDiagError_fit<- function( title="TSDPE", prefix="TSPDE-",
 #    bad.n1  - list of stratum numbers where the value of n1 is suspect.
 #              Note that if the value of n1 is suspect, the value of m2 is also likely suspect.
 #              These are replaced by the value of (1,0). We need to specify a value of 1 for bad.n1 values
-#              because WinBugs/OpenBugs gets upset with n1=0 or n1=NA.
+#              because OpenBugs gets upset with n1=0 or n1=NA.
 #    bad.m2  - list of stratum numbers where the value of m2 is suspect.
 #              For example, the capture rate could be extremely low.
-#              These are set to NA prior to the call to WinBugs/OpenBugs
+#              These are set to NA prior to the call to OpenBugs
 #    bad.u2  - list of stratum numbers where the value of u2 is suspect.
 #              For example, the trap may not be operating completely for some strata, or there was miss counting?
-#              These are set to NA prior to the call to WingBugs/OpenBugs
+#              These are set to NA prior to the call to OpenBugs
 #    logitP.cov - matrix of covariates for logit(P). If the strata times are "missing" some values, an intercept is assumed
 #               for the first element of the covariance matrix and 0 for the rest of the covariates.
 #               CAUTION - this MAY not be what you want to do. It is likely best to enter ALL strata
@@ -67,8 +67,7 @@ TimeStratPetersenDiagError_fit<- function( title="TSDPE", prefix="TSPDE-",
 #    tauP.alpha, tauP.beta   - parameters for the prior on 1/var of residual error in logit(P)'s
 #    run.prob  - percentiles of run timing wanted 
 #    debug  - if TRUE, then this is a test run with very small MCMC chains run to test out the data
-#             and WINBUGS will run and stop waiting for your to exit and complete
-#    openbugs - if TRUE, then openbugs is called; else WInbugs is called
+#             and OpenBUGS will run and stop waiting for your to exit and complete
 
 # force input parameters to be vectors
 time     <- as.vector(time)
@@ -105,22 +104,10 @@ if(!all(bad.u2 %in% time)){
 if(!all(jump.after %in% time)){
    cat("***** ERROR ***** jump.after must be elements of strata identifiers. You entered \n jump.after:",jump.after,"\n Strata identifiers are \n time:",time, "\n")
    return()}
-#  4. Check for existence of the openbugs/winbugs directories. This is not a guarantee that openbugs/wingbugs exists, but it is a start 
-if(openbugs){ # user wants to use OpenBUGS
-   if(file.access(OPENBUGS.directory) != 0){
-      cat("***** ERROR ***** Can't find OPENBUGS directory. You entered", OPENBUGS.directory, "\n")
-      return() }
-} else {  # user wants to use WinBUGS
-  if(file.access(WINBUGS.directory) != 0){
-      cat("***** ERROR ***** Can't find WINBUGS directory. You entered", WINBUGS.directory, "\n")
-      return() }
-}
-
-
 
 results.filename <- paste(prefix,"-results.txt",sep="")   
 
-
+   
 sink(results.filename)
 cat(paste("Time Stratified Petersen with Diagonal recaptures and error in smoothed U - ", date()))
 cat("\nVersion:", version, "\n\n")
@@ -142,7 +129,6 @@ cat(  "\nValues of bad.m2 are : ", bad.m2, ". The value of m2 will be set to NA 
 if(length(bad.m2)==0) cat("none.")
 cat(  "\nValues of bad.u2 are : ", bad.u2, ". The value of u2 will be set to NA for these strata")
 if(length(bad.u2)==0) cat("none.")
-
 
 # Pooled Petersen estimator over ALL of the data including when no releases take place, bad.n1, bad.m2, bad.u2 and missing values.
 cat("\n\n*** Pooled Petersen Estimate based on pooling over ALL strata")
@@ -174,10 +160,7 @@ cat("Total n1=", sum(temp.n1),";  m2=",sum(temp.m2),";  u2=",sum(temp.u2/temp.sa
 pp <- SimplePetersen(sum(temp.n1), sum(temp.m2), sum(temp.u2/temp.sampfrac))
 cat("Est U(total) ", format(round(pp$est),big.mark=","),"  (SE ", format(round(pp$se), big.mark=","), ")\n\n\n")
 
-
-
-
-
+   
 # Obtain Petersen estimator for each stratum prior to excluding any strata flagged as bad values
 cat(  "*** Stratified Petersen Estimator for each stratum PRIOR to removing strata with bad.n1, bad.m2, or bad.u2 values.")
 cat("\n    Values of u2 are adjusted for sampling fraction ***\n\n")
@@ -217,8 +200,6 @@ print(temp)
 cat("\n")
 cat("Est U(total) ", format(round(sum(sp$est, na.rm=TRUE)),big.mark=","),
     "  (SE ", format(round(sqrt(sum(sp$se^2, na.rm=TRUE))), big.mark=","), ")\n\n\n")
-
-
 
 # Test if pooling can be done
 cat("*** Test if pooled Petersen is allowable on strata without problems in n1 or m2. [Check if marked fractions are equal] ***\n\n")
@@ -301,6 +282,8 @@ cat("   Parameters for prior on tauP (residual variance of logit(P) after adjust
     " which corresponds to a mean/std dev of 1/var of:",
     round(tauP.alpha/tauP.beta,2),round(sqrt(tauP.alpha/tauP.beta^2),2),"\n")
 
+cat("\n\nInitial seed for this run is: ",InitialSeed, "\n")
+
 sink()
 
 if (debug2) {
@@ -313,18 +296,16 @@ if (debug)
             time=new.time, n1=new.n1, m2=new.m2, u2=new.u2,
             jump.after=jump.after-min(time)+1,
             logitP.cov=new.logitP.cov,
-            n.chains=3, n.iter=2000, n.burnin=300, n.sims=300,  # set to low values for debugging purposes only
+            n.chains=3, n.iter=10000, n.burnin=5000, n.sims=500,  # set to low values for debugging purposes only
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
-            debug=debug, debug2=debug2, openbugs=openbugs, InitialSeed=InitialSeed ,
-            OPENBUGS.directory=OPENBUGS.directory, WINBUGS.directory=WINBUGS.directory)
+            debug=debug, debug2=debug2, InitialSeed=InitialSeed)
    } else #notice R syntax requires { before the else
    {results <- TimeStratPetersenDiagError(title=title, prefix=prefix, 
             time=new.time, n1=new.n1, m2=new.m2, u2=new.u2, 
             jump.after=jump.after-min(time)+1, logitP.cov=new.logitP.cov,
             n.chains=n.chains, n.iter=n.iter, n.burnin=n.burnin, n.sims=n.sims,
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
-            debug=debug, debug2=debug2, openbugs=openbugs, InitialSeed=InitialSeed,
-            OPENBUGS.directory=OPENBUGS.directory, WINBUGS.directory=WINBUGS.directory)
+            debug=debug, debug2=debug2,InitialSeed=InitialSeed)
    }
 
 # Now to create the various summary tables of the results
@@ -554,7 +535,10 @@ sink()
 
 # add some of the raw data to the bugs object for simplicity in referencing it later
 results$data <- list( time=time, n1=n1, m2=m2, u2=u2, sampfrac=sampfrac, 
-                      jump.after=jump.after, bad.m2=bad.m2, logitP.cov=logitP.cov, version=version, date_run=date())
+                      jump.after=jump.after, 
+                      bad.n1=bad.n1, bad.m2=bad.m2, bad.u2=bad.u2, 
+                      logitP.cov=logitP.cov, version=version, date_run=date(),
+                      title=title)
 
 return(results)
 } # end of function

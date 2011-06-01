@@ -1,3 +1,5 @@
+% 2011-05-03 CJS fixed documentation to match latest release (drop openbugs etc)
+%                openbugs/winbugs directory
 % 2010-11-25 CJS added bad.u2 argument
 % 2010-03-12 CJS Updated argument list on _fit
 % 2010-02-06 CJS Added alias to function
@@ -25,10 +27,8 @@ TimeStratPetersenDiagError_fit(title, prefix, time, n1, m2, u2, sampfrac,
     mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)),  
     tau_xiP = 1/var(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE),  
     tauP.alpha = 0.001, tauP.beta = 0.001, run.prob = seq(0, 1, 0.1),  
-    debug = FALSE, debug2 = FALSE, openbugs = TRUE,  
-    OPENBUGS.directory = file.path("c:", "Program Files", "OpenBugs"), 
-    WINBUGS.directory = file.path("c:", "Program Files", "WinBUGS14"),
-    InitialSeed = trunc(runif(1, min = 1, max = 1e+09)))
+    debug = FALSE, debug2 = FALSE, 
+    InitialSeed=ceiling(runif(1,min=0, max=14)))
 
 TimeStratPetersenDiagError(title, prefix, time, n1, m2, u2, jump.after = NULL, logitP.cov, 
      n.chains = 3, n.iter = 2e+05, n.burnin = 1e+05, n.sims = 2000, 
@@ -36,7 +36,7 @@ TimeStratPetersenDiagError(title, prefix, time, n1, m2, u2, jump.after = NULL, l
      mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)), 
      tau_xiP = 1/var(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE), 
      tauP.alpha = 0.001, tauP.beta = 0.001, debug = FALSE, debug2 = FALSE, 
-     openbugs = TRUE, InitialSeed, OPENBUGS.directory, WINBUGS.directory)
+     InitialSeed )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -83,9 +83,6 @@ TimeStratPetersenDiagError(title, prefix, time, n1, m2, u2, jump.after = NULL, l
        is reduced considerably for a quick turn around. }
   \item{debug2}{Logical flag indicated if additional debugging information is produced. Normally the functions will halt at \code{browser()}
        calls to allow the user to peek into the internal variables. Not useful except to package developers.}
-  \item{openbugs}{Logical flag indicating if OpenBugs (TRUE) or WinBUGS (FALSE) should be used for the MCMC portion.}
-  \item{OPENBUGS.directory}{File path indicating where OpenBugs is installed.}
-  \item{WINBUGS.directory}{File path indicating where WinBugs is installed.}
   \item{InitialSeed}{Numeric value used to initialize the random numbers used in the MCMC iterations.}
 }
 \details{

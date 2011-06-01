@@ -12,7 +12,7 @@
 # The n1[j] and m2[j] establish the capture efficiency of the trap.
 #
 # At the same time, u2[j] unmarked fish are captured at the screw trap.
-# These fish are a mixture of wild and hatchery raised chinook salmon. 
+# These fish are a mixture of wild and hatchery raised chinook salmon.
 # A portion (clip.rate) of the hatchery raised fish are adipose fin clipped and can be recognized as hatchery raised.
 # The unclipped fish are a mixture of wild and hatchery fish which must be separated.
 # Hence the u2[j] are separated into u2.A[j] (adipose clipped fish known to be hatchery), and
@@ -24,17 +24,17 @@
 #
 #
 # Notes:
-#    - the number of recaptures in sample week 33 (julian week 41) is far too low. 
-#      This leads to an estimate of almost 13 million fish from the simple stratified Petersen. 
+#    - the number of recaptures in sample week 33 (julian week 41) is far too low.
+#      This leads to an estimate of almost 13 million fish from the simple stratified Petersen.
 #      Consequently, the recaptures for this
 #      week are set to missing and the program will interpolate the number of fish for this week
 #
-#    - the number of days operating is 8 in sample weeks 2 (julian week 10) and 
+#    - the number of days operating is 8 in sample weeks 2 (julian week 10) and
 #      6 in sample week 3 (julian week 11). The 8 days in sample week 2 is "real" as
-#      the code used on the marked fish was used for 8 days. The program will automatically 
-#      "reduce" the number of unmarked fish captured in this week to a "7" day week 
-#      and will increase the number of unmarked fish captured in week 3 to "7" days as well. 
-# 
+#      the code used on the marked fish was used for 8 days. The program will automatically
+#      "reduce" the number of unmarked fish captured in this week to a "7" day week
+#      and will increase the number of unmarked fish captured in week 3 to "7" days as well.
+#
 #  The program tries to fit a single spline to the entire dataset. However, in julian weeks
 #  23 and 40, hatchery released fish started to arrive at the trap resulting in sudden jump
 #  in abundance. The jump.after vector gives the julian weeks just BEFORE the sudden jump,
@@ -43,17 +43,36 @@
 #  The vector bad.m2 indicates which julian weeks something went wrong. For example, the
 #  number of recoveries in julian week 41 is far below expectations and leads to impossible
 #  Petersen estimate for julian week 41.
-# 
+#
 #  The prefix is used to identify the output files for this run.
 #  The title  is used to title the output.
 
-# Create a directory to store the results
-dir.create("demo-TSPDE-WHchinook")
+## Warn user that demo may overwrite existing files
+demo.proceed <- TRUE
+if(!exists("demo.ans")) demo.ans <- " "
+
+while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
+  cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
+  cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPDE-WHchinook' \n")
+  demo.ans <- readline(prompt="Do you want to proceed? (yes/no): ")
+}
+if(demo.ans %in% c("no","NO","n","N")){demo.proceed <- FALSE }
+
+# Create a directory to store the results Test and then create the
+# directory
+if(file.access("demo-TSPDE-WHchinook")!=0){
+  demo.proceed <- demo.proceed & dir.create("demo-TSPDE-WHchinook", showWarnings=TRUE)
+}
 setwd("demo-TSPDE-WHchinook")
 
+if(!demo.proceed){stop()}
+
+
 par(ask=FALSE)
-dev.off()  # turn off blank graphic screen
-library("BTSPAS")
+dev.off()  # turn off the blank graphics window
+
+## Load BTSPAS library
+library(BTSPAS)
 
 # Get the data. In many cases, this is stored in a *.csv file and read into the program
 # using a read.csv() call. In this demo, the raw data is assigned directly as a vector.
@@ -61,7 +80,7 @@ library("BTSPAS")
 
 # Indicator for the week.
 demo.jweek <- c(9,   10,   11,   12,   13,   14,   15,   16,   17,   18,
-          19,   20,   21,   22,   23,   24,   25,   26,   27,   28, 
+          19,   20,   21,   22,   23,   24,   25,   26,   27,   28,
           29,   30,   31,   32,   33,   34,   35,   36,   37,   38,
           39,   40,   41,   42,   43,   44,   45,   46)
 
@@ -74,16 +93,16 @@ demo.n1 <- c(   0, 1465, 1106,  229,   20,  177,  702,  633, 1370,  283,
 # Number of marked fish recaptured in the week of release. No marked fish
 # are recaptured outside the week of release.
 demo.m2 <- c(   0,   51,  121,   25,    0,   17,   74,   94,   62,   10,
-          32,   11,   13,   15,  242,   55,  115,  198,   80,   71, 
+          32,   11,   13,   15,  242,   55,  115,  198,   80,   71,
          153,  156,  275,  101,   66,   44,   33,    7,    9,    3,
            1,  188,    8,   81,   27,   30,   14,    4)
 
 # Number of unmarked fish captured at the trap in each week separated by adipose and wild clips.
 demo.u2.A <- c( 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
-           0,    0,    0,    0, 9427, 4243, 1646, 1366,  619,  258,  
+           0,    0,    0,    0, 9427, 4243, 1646, 1366,  619,  258,
          637,  753,  412,  173,   91,   38,   22,    8,    2,    4,
            1, 8412, 7703, 3651,  966,  468,  160,   24)
-demo.u2.N <-c(4135,10452,2199,  655,  308,  719,  973,  972, 2386,  469, 
+demo.u2.N <-c(4135,10452,2199,  655,  308,  719,  973,  972, 2386,  469,
           897,  426, 407,  526,30542,13337, 6282, 5552, 2959, 1455,
          3575, 4284,2903, 1127,  898,  406,  317,   99,   77,   37,
            22,26706,26831,11309,2677, 1343,  519,  130)
@@ -108,7 +127,7 @@ demo.clip.frac.H <- .25    # what fraction of the hatchery fish are adipose fin 
 
 
 # The prefix for the output files:
-demo.prefix <- "demo-JC-2003-CH-TSPDE-WHC" 
+demo.prefix <- "demo-JC-2003-CH-TSPDE-WHC"
 
 # Title for the analysis
 demo.title <- "Junction City 2003 Chinook - Separation of Wild and Hatchery YoY Chinook"
@@ -128,20 +147,19 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagErrorWHChinook_fit(
                   title=demo.title,
                   prefix=demo.prefix,
                   time=demo.jweek       [demo.YoY.select],
-                  n1=demo.n1            [demo.YoY.select], 
-                  m2=demo.m2            [demo.YoY.select], 
+                  n1=demo.n1            [demo.YoY.select],
+                  m2=demo.m2            [demo.YoY.select],
                   u2.A=demo.u2.A        [demo.YoY.select],
                   u2.N=demo.u2.N        [demo.YoY.select],
                   sampfrac=demo.sampfrac[demo.YoY.select],
                   clip.frac.H= demo.clip.frac.H,
                   hatch.after=demo.hatch.after,
                   bad.m2=demo.bad.m2, bad.u2.A=demo.bad.u2.A, bad.u2.N=demo.bad.u2.N,
-                  openbugs=TRUE,  # change this to FALSE to use WINBUGS
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 
 # Rename files that were created.
-# Note that if WinBugs is used, the files are called coda1, coda2, coda3 
+# Note that if WinBugs is used, the files are called coda1, coda2, coda3
 # rather than CODAchain1 etc and so the code below needs to be modified.
 
 file.copy("data.txt",       paste(demo.prefix,".data.txt",sep=""),      overwrite=TRUE)
@@ -153,7 +171,7 @@ file.copy("inits1.txt",     paste(demo.prefix,".inits1.txt",sep=""),    overwrit
 file.copy("inits2.txt",     paste(demo.prefix,".inits2.txt",sep=""),    overwrite=TRUE)
 file.copy("inits3.txt",     paste(demo.prefix,".inits3.txt",sep=""),    overwrite=TRUE)
 
-file.remove("data.txt"       )       
+file.remove("data.txt"       )
 file.remove("CODAindex.txt"  )
 file.remove("CODAchain1.txt" )
 file.remove("CODAchain2.txt" )
@@ -161,7 +179,7 @@ file.remove("CODAchain3.txt" )
 file.remove("inits1.txt"     )
 file.remove("inits2.txt"     )
 file.remove("inits3.txt"     )
- 
+
 # save the results in a data dump that can be read in later using the load() command.
 # Contact Carl Schwarz (cschwarz@stat.sfu.ca) for details.
 save(list=c("demo.jc.2003.ch.tspde"), file="demo-jc-2003-ch-tspde-saved.Rdata")  # save the results from this run

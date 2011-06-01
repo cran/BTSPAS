@@ -47,7 +47,8 @@
 
 #  See if variables already exist in the directory and if so, warn about overwriting?
 demo.proceed <- TRUE
-demo.ans <- " "
+if(!exists("demo.ans")) demo.ans <- " "
+
 while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
   cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
   cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPDE-spline-in-logitP' \n")
@@ -130,7 +131,6 @@ demo.jc.2003.ch.tspde.sp.logitP <- TimeStratPetersenDiagError_fit(
                   sampfrac=demo.sampfrac,
                   jump.after=demo.jump.after,
                   bad.m2=demo.bad.m2,
-                  openbugs=TRUE,  # change this to FALSE to use WINBUGS
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 

@@ -46,13 +46,32 @@
 #  The prefix is used to identify the output files for this run.
 #  The title  is used to title the output.
 
-# Create a directory to store the results
-dir.create("demo-TSPDE-cov")
+## Warn user that demo may overwrite existing files
+demo.proceed <- TRUE
+if(!exists("demo.ans")) demo.ans <- " "
+
+while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
+  cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
+  cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPDE-cov' \n")
+  demo.ans <- readline(prompt="Do you want to proceed? (yes/no): ")
+}
+if(demo.ans %in% c("no","NO","n","N")){demo.proceed <- FALSE }
+
+# Create a directory to store the results Test and then create the
+# directory
+if(file.access("demo-TSPDE-cov")!=0){
+  demo.proceed <- demo.proceed & dir.create("demo-TSPDE-cov", showWarnings=TRUE)
+}
 setwd("demo-TSPDE-cov")
 
+if(!demo.proceed){stop()}
+
+
 par(ask=FALSE)
-dev.off()  # turn off blank graphics page
-library("BTSPAS")
+dev.off()  # turn off the blank graphics window
+
+## Load BTSPAS library
+library(BTSPAS)
 
 # Get the data. In many cases, this is stored in a *.csv file and read into the program
 # using a read.csv() call. In this demo, the raw data is assigned directly as a vector.
@@ -131,7 +150,6 @@ demo.jc.2003.ch.tspde.flow <- TimeStratPetersenDiagError_fit(
                   sampfrac=demo.sampfrac,
                   jump.after=demo.jump.after,
                   bad.m2=demo.bad.m2,
-                  openbugs=TRUE,  # change this to FALSE to use WINBUGS
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 

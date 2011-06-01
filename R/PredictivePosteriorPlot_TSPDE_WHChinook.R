@@ -17,13 +17,24 @@ for(i in 1:4){
   screen(i)
   par(cex=.5)
   par(mai=c(.40,.40,.40,.40)) # margins of plot relative to plotting position
-  plot(discrep[,(2*i-1):(2*i)], ylab="Observed", xlab="Simulated", main=titles[i], cex.main=1.5)
+
+  lims <- range(discrep[,(2*i):(2*i-1)])
+
+  plot(discrep[,(2*i):(2*i-1)],
+       xlab="Simulated", ylab="Observed", 
+       main=titles[i], cex.main=1.5)
   abline(a=0, b=1)
+
+  ## Compute Bayesian p-value
   p.value <- sum(discrep[,2*i-1]<discrep[,2*i])/nrow(discrep)
-  # locate where to plot
-  x.loc <- min(discrep[,2*i-1])+.10*(max(discrep[,2*i-1])-min(discrep[,2*i-1]))
-  y.loc <- max(discrep[,2*i  ])-.10*(max(discrep[,2*i  ])-min(discrep[,2*i  ]))
-  text(x.loc, y.loc, labels=paste("Bayesian GOF P:",formatC(p.value, digits=2, format="f")), cex=1.5, adj=c(0,0))  
+  
+  ## Add p-value to plot
+  x.loc <- mean(lims)
+  y.loc <- min(lims)
+  
+  text(x.loc, y.loc,
+       labels=paste("Bayesian GOF P:",formatC(p.value, digits=2, format="f")),
+       cex=1.5, adj=c(0,0))  
 }
 close.screen(all=TRUE)     # exit from plots  
 }

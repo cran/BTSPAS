@@ -31,7 +31,8 @@
 # smoothed over time.
 
 demo.proceed <- TRUE
-demo.ans <- " "
+if(!exists("demo.ans")) demo.ans <- " "
+
 while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
   cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
   cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPDE' \n")
@@ -47,7 +48,7 @@ if(!demo.proceed){stop()}
 
 par(ask=FALSE)
 dev.off()  # turn off the blank graphics window
-#library("BTSPAS")
+library("BTSPAS")
 
 # Get the raw data and read it in
 demo.data <- textConnection(
@@ -147,8 +148,7 @@ demo.cr.1987.as.tspnde <- TimeStratPetersenNonDiagError_fit(
                   bad.n1=     demo.bad.n1,
                   bad.m2=     demo.bad.m2,
                   bad.u2=     demo.bad.u2,
-                  debug=TRUE,
-                  openbugs=TRUE
+                  debug=TRUE
                   )
 
 # Rename files that were created.
