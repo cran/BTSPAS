@@ -1,3 +1,4 @@
+# 2011-06-13 CJS added p-values to results
 # 2010-11-25 CJS pretty printing of final population estimates
 # 2010-09-06 CJS forced input vectors to be vectors
 # 2010-08-06 CJS added trace plots of logitP and logU
@@ -24,7 +25,7 @@ TimeStratPetersenDiagErrorWHSteel_fit <-
 # The steelhead are nice because 100% of hatchery fish are adipose fin clipped and no wild fish are adipose fin clipped
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2011-01-24'
+   version <- '2011-06-13'
    options(width=200)
 
 # Input parameters are
@@ -644,7 +645,7 @@ discrep <-PredictivePosterior.TSPDE.WHSteel (time, new.n1, new.m2, new.u2.W.YoY,
           round(results$sims.list$U.W.1), 
           cbind(matrix(0,nrow=nrow(results$sims.list$U.H.1),ncol=(hatch.after-min(time)+1)),
                 round(results$sims.list$U.H.1)), hatch.after) #don't forget that hatchery fish is 0 until hatch.after
-PredictivePosteriorPlot.TSPDE.WHSteel(discrep)
+gof <- PredictivePosteriorPlot.TSPDE.WHSteel(discrep)
 dev.off()
 
 
@@ -744,6 +745,7 @@ results$data <- list( time=time, n1=n1, m2=m2, u2.W.YoY=u2.W.YoY, u2.W.1=u2.W.1,
                       bad.m2=bad.m2, bad.u2.W.YoY=bad.u2.W.YoY, bad.u2.W.1=bad.u2.W.1, bad.u2.H.1=bad.u2.H.1, 
                       logitP.cov=logitP.cov,
                       version=version, date_run=date(),title=title)
+results$gof <- gof
 
 return(results)
 } # end of function

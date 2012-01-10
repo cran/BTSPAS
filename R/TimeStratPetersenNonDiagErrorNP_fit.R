@@ -1,3 +1,4 @@
+## 2011-06-13 CJS added bayesian p-values to results
 ## 2011-03-15 CJS fixed code to do error checking
 ## 2011-03-09 CJS added priors for movement parameters (muTT)
 ## 2010-11-21 CJS fixed some code in expanded.m2 where used u2 rather than new.u2
@@ -30,7 +31,7 @@ TimeStratPetersenNonDiagErrorNP_fit<- function( title="TSPNDENP", prefix="TSPNDE
   ## strata later. Transisions of marked fish are modelled non-parametrically.
   ##
 
-  version <- '2011-03-10'
+  version <- '2011-06-13'
   options(width=200)
 
   ## Input parameters are
@@ -557,7 +558,7 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
                                          round(results$sims.list$U),
                                          results$sims.list$Theta,
                                          Delta.max)
-  PredictivePosteriorPlot.TSPNDE (discrep)
+  gof <- PredictivePosteriorPlot.TSPNDE (discrep)
   dev.off()
 
    varnames <- names(results$sims.array[1,1,])  # extract the names of the variables
@@ -628,6 +629,7 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
                        bad.n1=bad.n1, bad.m2=bad.m2, bad.u2=bad.u2,
                        logitP.cov=logitP.cov,
                        version=version, date_run=date(),title=title)
+  results$gof <- gof
 
   return(results)
 } ## end of function

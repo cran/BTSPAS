@@ -1,3 +1,5 @@
+## Yet to do - add bayesian p-value plots/ add p-values to results
+
 ## 2011-02-21 CJS changed u2 to new.u2 in code for expanded.m2
 ## 2011-02-19 CJS First development
 
@@ -26,7 +28,7 @@ TimeStratPetersenNonDiagErrorNPMarkAvail_fit<- function( title="TSPNDENP", prefi
   ## strata later. Transisions of marked fish are modelled non-parametrically.
   ##
   
-  version <- '2011-02-28'
+  version <- '2011-06-13'
   options(width=200)
   
   ## Input parameters are
@@ -524,6 +526,7 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
   
   ## Bayesian P-values
   ## Not yet implemented
+  ## gof <- ...
 
    varnames <- names(results$sims.array[1,1,])  # extract the names of the variables 
    # First do the trace plots of logitP
@@ -593,6 +596,7 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
                        bad.n1=bad.n1, bad.m2=bad.m2, bad.u2=bad.u2, 
                        logitP.cov=logitP.cov,
                        version=version, date_run=date(),title=title)
+  ## results$gof <- gof
   
   return(results)
 } ## end of function

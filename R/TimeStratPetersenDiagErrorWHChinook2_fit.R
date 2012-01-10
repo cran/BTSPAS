@@ -1,3 +1,4 @@
+# 2011-06-13 CJS added p-values to results
 # 2010-11-25 CJS pretty printing of final estimates of population sizes
 # 2010-09-06 CJS forced input vectors to be vectors
 # 2010-08-06 CJS added creation of traceplots
@@ -24,7 +25,7 @@ TimeStratPetersenDiagErrorWHChinook2_fit<-
 # covariates for the the capture probabilities, and separating the YoY and Age1 wild vs hatchery fish
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2011-01-24'
+   version <- '2011-06-13'
    options(width=200)
 
 # Input parameters are
@@ -761,7 +762,7 @@ discrep <-PredictivePosterior.TSPDE.WHCH2 (time, new.n1, new.m2,   # get the dis
           round(results$sims.list$U.W.1), 
           round(results$sims.list$U.H.1), 
           hatch.after.YoY) #don't forget that hatchery fish is 0 until hatch.after
-PredictivePosteriorPlot.TSPDE.WHCH2 (discrep)
+gof <- PredictivePosteriorPlot.TSPDE.WHCH2 (discrep)
 dev.off()
 
 varnames <- names(results$sims.array[1,1,])  # extract the names of the variables 
@@ -886,6 +887,7 @@ results$data <- list( time=time, n1=n1, m2=m2,
                       bad.u2.A.1=bad.u2.A.1, bad.u2.N.1=bad.u2.N.1, 
                       logitP.cov=logitP.cov,
                       version=version, date_run=date(), title=title)
+results$gof <- gof
 
 return(results)
 } # end of function

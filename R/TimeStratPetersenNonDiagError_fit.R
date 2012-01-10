@@ -5,6 +5,7 @@
 #    - fix plot of logitP vs time to "drop" the fixed values or plot with a different symbol?
 #    - bayesian predictive posterior plots (the Bayesian p-values)
 
+# 2011-06-13 CJS added p-values to results
 # 2010-02-21 CJS changed u2 to new.u2 in expanded.m2 section
 # 2010-11-25 CJS pretty printing of final population estimates
 # 2010-09-06 CJS forced input vectors to be vectors
@@ -41,7 +42,7 @@ TimeStratPetersenNonDiagError_fit <-
 # This is the classical stratified Petersen model where the recoveries can take place for this and multiple
 # strata later
 #
-    version <- '2011-01-24'
+    version <- '2011-06-13'
     options(width=200)
 
 # Input parameters are
@@ -519,7 +520,7 @@ discrep <-PredictivePosterior.TSPNDE (new.n1, expanded.m2, new.u2,
                                       results$sims.list$muLogTT,
                                       results$sims.list$sdLogTT)
 
-PredictivePosteriorPlot.TSPNDE (discrep)
+gof <- PredictivePosteriorPlot.TSPNDE (discrep)
 
 dev.off()
 
@@ -590,6 +591,7 @@ results$data <- list( time=time, n1=n1, m2=m2, u2=u2, sampfrac=sampfrac,
                       bad.n1=bad.n1, bad.m2=bad.m2, bad.u2=bad.u2,
                       logitP.cov=logitP.cov,
                       version=version, date_run=date(),title=title)
+results$gof <- gof
 
 return(results)
 } # end of function

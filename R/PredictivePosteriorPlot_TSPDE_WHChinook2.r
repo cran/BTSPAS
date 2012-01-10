@@ -1,3 +1,4 @@
+# 2011-06-13 CJS returned p-values
 # 2010-03-29 CJS First creation of routine
 
 PredictivePosteriorPlot.TSPDE.WHCH2 <- function( discrep  ) {
@@ -21,6 +22,7 @@ titles <- c("Freeman-Tukey for m2",
             "Freeman-Tukey for YoY",
             "Freeman-Tukey for Age 1",
             "Total Freeman-Tukey")
+saved_p_values <- rep(NA, length(titles))
 
 for(page in 1:2){
    split.screen(figs=c(2,2))  # 4 rows and 2 columns
@@ -40,6 +42,7 @@ for(page in 1:2){
 
      ## Compute Bayesian p-value
      p.value <- sum(discrep[,(page-1)*4+2*i-1]<discrep[,(page-1)*4+2*i])/nrow(discrep)
+     saved_p_values[i] <- p.value
      
   ## Add p-value to plot
   x.loc <- mean(lims)
@@ -50,5 +53,7 @@ for(page in 1:2){
        cex=1.5, adj=c(0,0))  
    }
    close.screen(all=TRUE)     # exit from plots for this page
+   gof <- data.frame(statistic=titles, p.value=saved_p_values)
+   gof
  }
 }

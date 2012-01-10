@@ -1,3 +1,5 @@
+# 2011-06-13 CJS returned bayesian p-values
+
 PredictivePosteriorPlot.TSPDE <- function( discrep  ) {
 #   Given the discrepancy measures, creates a set of panel plots.
 #   It is assumed that the bp has 12 columns
@@ -16,6 +18,7 @@ titles <- c("Freeman-Tukey for m2",
             "Total Freeman-Tukey",
             "Total deviance")
 
+saved_p_values <- rep(NA, length(titles))
 for(i in 1:6){
   screen(i)
   par(cex=.5)
@@ -33,6 +36,7 @@ for(i in 1:6){
   
   ## Compute Bayesian p-value
   p.value <- sum(discrep[,2*i-1]<discrep[,2*i])/nrow(discrep)
+  saved_p_values[i] <- p.value
   
   ## Add p-value to plot
   x.loc <- mean(lims)
@@ -42,5 +46,7 @@ for(i in 1:6){
        labels=paste("Bayesian GOF P:",formatC(p.value, digits=2, format="f")),
        cex=1.5, adj=c(0,0))  
 }
-close.screen(all=TRUE)     # exit from plots  
+close.screen(all=TRUE)     # exit from plots
+gof <- data.frame(statistic=titles, p.value=saved_p_values)  # return the gof statistics
+gof  
 }

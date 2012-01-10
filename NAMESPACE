@@ -1,0 +1,32 @@
+# 2012-01-10 CJS Created the initial namespace
+
+# Export all names
+#exportPattern(".")
+
+# Import all packages listed as Imports or Depends
+import(
+  coda,
+  splines,
+  actuar,
+  BRugs,
+  R2OpenBUGS
+)
+
+export(  # List functions to be visible from outside the package
+   "TimeStratPetersenDiagError"                  ,
+   "TimeStratPetersenDiagError_fit"              ,
+   "TimeStratPetersenDiagErrorWHChinook"         ,
+   "TimeStratPetersenDiagErrorWHChinook_fit"     ,
+   "TimeStratPetersenDiagErrorWHChinook2"        ,
+   "TimeStratPetersenDiagErrorWHChinook2_fit"    ,
+   "TimeStratPetersenDiagErrorWHSteel"           ,
+   "TimeStratPetersenDiagErrorWHSteel_fit"       ,
+   "TimeStratPetersenNonDiagError"               ,
+   "TimeStratPetersenNonDiagError_fit"           ,
+   "TimeStratPetersenNonDiagErrorNP"             ,
+   "TimeStratPetersenNonDiagErrorNP_fit"         ,
+   "TimeStratPetersenNonDiagErrorNPMarkAvail"    ,
+   "TimeStratPetersenNonDiagErrorNPMarkAvail_fit",
+   "SimplePetersen" ,
+   "logit",
+   "expit")

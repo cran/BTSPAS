@@ -1,3 +1,4 @@
+# 2011-11-11 CJS Changed call from modelSetSeed to modelSetRN
 # 2011-02-17 CJS InitialSeed in argument list changed to initial.seed
 # 2011-02-17 CJS Removed reference to OpenBugs and WINBugs directory
 
@@ -46,8 +47,8 @@ run.openbugs <-
   cat("Model compiled\n")
 
   ## Set seed
-  ## BRugs::modelSetRN(initialSeed)  ## Need to look into this
-  BRugs::modelSetSeed(initialSeed)  ## BRugs 0.5-3.1
+  BRugs::modelSetRN(initialSeed)       ## BRUGS 0.7.1 which calls OPENBUS 3.2.1 Need to look into this
+  ## BRugs::modelSetSeed(initialSeed)  ## BRugs 0.5-3.1
   cat("Initial state set to:", initialSeed, "\n")
 
   ## Format initial values and write to file

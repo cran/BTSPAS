@@ -86,6 +86,8 @@ genInitValsChain <-
              hatch.after=NULL,            # Data of release for hatchery fish in model with two splines
              pScale=1){
 
+        #browser()
+
         ## Generate initial values for a single chain
         Nstrata.rel <- length(n1)
         Nstrata.cap <- length(u2)
@@ -379,15 +381,22 @@ genInitVals <-
              n.chains=3,
              pStep=5){                   # Relative change in p between chains
 
-        ## Generate initial values for n.chains
 
-        lapply(1:n.chains,function(i){
-            pScale <- pStep ^(-(n.chains-1)/2 + (i-1))
+      ## Determine maximum scaling factor in order to avoid tauP=Inf
+      pScaleMax <- 1/(1.1*sum(m2)/sum(n1))
+      
+      ## Generate initial values for n.chains
+      inits <- lapply(1:n.chains,function(i){
+        ## Compute scaling factor for ith chain
+        pScale <- min(pStep ^(-(n.chains-1)/2 + (i-1)),pScaleMax)
 
-            genInitValsChain(model,
-                             n1,m2,u2,Delta.max,
-                             logitP.cov,logitP.fixed,
-                             SplineDesign,hatch.after,
-                             pScale)
-        })
+        ## Generate initial values
+        genInitValsChain(model,
+                         n1,m2,u2,Delta.max,
+                         logitP.cov,logitP.fixed,
+                         SplineDesign,hatch.after,
+                         pScale)
+      })
+      
+      return(inits)
     }

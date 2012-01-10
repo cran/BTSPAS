@@ -1,3 +1,4 @@
+# 2011-06-13 CJS add p-values to results
 # 2010-11-25 CJS pretty printing of final population estimates
 # 2010-09-06 CJS forced input vectors to be vectors
 # 2010-08-06 CJS added creation of trace plots to output
@@ -644,7 +645,7 @@ discrep <-PredictivePosterior.TSPDE.WHCH (time, new.n1, new.m2, new.u2.A, new.u2
           expit(results$sims.list$logitP), round(results$sims.list$U.W), 
           cbind(matrix(0,nrow=nrow(results$sims.list$U.H),ncol=(hatch.after-min(time)+1)),
                 round(results$sims.list$U.H)), hatch.after) #don't forget that hatchery fish is 0 until hatch.after
-PredictivePosteriorPlot.TSPDE.WHCH (discrep)
+gof <- PredictivePosteriorPlot.TSPDE.WHCH (discrep)
 dev.off()
 
 varnames <- names(results$sims.array[1,1,])  # extract the names of the variables 
@@ -738,6 +739,7 @@ results$data <- list( time=time, n1=n1, m2=m2, u2.A=u2.A, u2.N=u2.N, clip.frac.H
                       logitP.cov=logitP.cov,
                       version=version, date_run=date(),
                       title=title)
+results$gof <- gof
 
 return(results)
 } # end of function

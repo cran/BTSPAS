@@ -1,3 +1,5 @@
+# 2011-06-13 CJS returned bayesian p-values
+
 PredictivePosteriorPlot.TSPDE.WHSteel <- function( discrep  ) {
 #   Given the discrepancy measures, creates a set of panel plots.
 #   It is assumed that the bp has 12 columns
@@ -14,6 +16,7 @@ titles <- c("Freeman-Tukey for m2",
             "Freeman-Tukey for u2.W.1",
             "Freeman-Tukey for u2.H.1", 
             "Total Freeman-Tukey")
+saved_p_values <- rep(NA, length(titles))
 
 for(i in 1:5){
   screen(i)
@@ -31,6 +34,7 @@ for(i in 1:5){
 
   ## Compute Bayesian p-values
   p.value <- sum(discrep[,2*i-1]<discrep[,2*i])/nrow(discrep)
+  saved_p_values[i] <- p.value
   
   ## Add p-value to plot
   x.loc <- mean(lims)
@@ -41,4 +45,6 @@ for(i in 1:5){
        cex=1.5, adj=c(0,0))  
 }
 close.screen(all=TRUE)     # exit from plots  
+gof <- data.frame(statistic=titles, p.value=saved_p_values)
+gof
 }

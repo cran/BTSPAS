@@ -1,3 +1,4 @@
+# 2011-06-13 CJS inserted the bayesian p-values in the results 
 # 2010-11-29 CJS added code for bad.n1 to the call.
 # 2010-11-25 CJS added code for bad.u2 to the call. Simplified the two pooled and simple Petersen estimates
 # 2010-11-25 CJS pretty printing for estimates of Utot, Ntot
@@ -24,7 +25,7 @@ TimeStratPetersenDiagError_fit <-
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2011-01-24'
+   version <- '2011-06-13'
    options(width=200)
 
 # Input parameters are
@@ -463,7 +464,7 @@ dev.off()
 pdf(file=paste(prefix,"-GOF.pdf",sep=""))
 #browser()
 discrep <-PredictivePosterior.TSPDE (new.n1, new.m2, new.u2, expit(results$sims.list$logitP), round(results$sims.list$U))
-PredictivePosteriorPlot.TSPDE (discrep)
+gof <- PredictivePosteriorPlot.TSPDE (discrep)  # get the bayesian p-values
 dev.off()
 
 # create traceplots of logU, U, and logitP (along with R value) to look for non-convergence
@@ -539,6 +540,7 @@ results$data <- list( time=time, n1=n1, m2=m2, u2=u2, sampfrac=sampfrac,
                       bad.n1=bad.n1, bad.m2=bad.m2, bad.u2=bad.u2, 
                       logitP.cov=logitP.cov, version=version, date_run=date(),
                       title=title)
+results$gof  <- gof
 
 return(results)
 } # end of function
