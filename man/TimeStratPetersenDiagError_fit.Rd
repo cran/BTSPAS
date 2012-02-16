@@ -1,3 +1,4 @@
+% 2012-01-13 CJS commented out the \details, \note, \seealso sections to avoid R CMD check warnings
 % 2011-05-03 CJS fixed documentation to match latest release (drop openbugs etc)
 %                openbugs/winbugs directory
 % 2010-11-25 CJS added bad.u2 argument
@@ -85,9 +86,9 @@ TimeStratPetersenDiagError(title, prefix, time, n1, m2, u2, jump.after = NULL, l
        calls to allow the user to peek into the internal variables. Not useful except to package developers.}
   \item{InitialSeed}{Numeric value used to initialize the random numbers used in the MCMC iterations.}
 }
-\details{
+%\details{
 %%  ~~ If necessary, more details than the description above ~~
-}
+%}
 \value{ An MCMC object with samples from the posterior distribution. A series of graphs and text file are also created in the
 working directory.}
 \references{ Refer to the Trinity River Restoration Project report by Schwarz, C.J. et al. (2009)
@@ -97,15 +98,15 @@ contact \email{cschwarz@stat.sfu.ca} for more details.
 }
 \author{Bonner, S.J. \email{s.bonner@stat.ubc.ca} and Schwarz, C. J. 
 \email{cschwarz@stat.sfu.ca}}
-\note{
+%\note{
 %%  ~~further notes~~
-}
+%}
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
-\seealso{
+%\seealso{
 %% ~~objects to See Also as \code{\link{help}}, ~~~
-}
+%}
 \examples{ 
 ##---- See the demo files for examples of how to use this package
 ##

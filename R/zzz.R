@@ -7,7 +7,7 @@
 #.First.lib <- function(libname,pkgname){
 .onLoad <- function(libname,pkgname){
 
-  packageStartupMessage("***** BTSPAS: Bayesian Time Stratified Petersen Analysis System - Version 2011.11 (2011-11-12) ***** \n\n",
+  packageStartupMessage("***** BTSPAS: Bayesian Time Stratified Petersen Analysis System - Version 2012.0215 (2012-02-15) ***** \n\n",
         "      Help available with  help(package='BTSPAS')  or  \n",
         "                           help(BTSPAS)                \n\n",
         '      List of demonstrations available with demo(package="BTSPAS") \n',

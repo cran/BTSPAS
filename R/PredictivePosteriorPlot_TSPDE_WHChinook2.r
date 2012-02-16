@@ -1,3 +1,4 @@
+# 2012-01-22 CJS Made X/Y axis limits the same so that Bayesian p-value prints properly
 # 2011-06-13 CJS returned p-values
 # 2010-03-29 CJS First creation of routine
 
@@ -37,7 +38,7 @@ for(page in 1:2){
      ## Plot observed vs simulated discrepancies
      plot(discrep[,((page-1)*4+(2*i)):((page-1)*4+(2*i-1))],
           xlab="Simulated", ylab="Observed", 
-         main=titles[(page-1)*4+i], cex.main=1.5)
+         main=titles[(page-1)*4+i], cex.main=1.5, xlim=lims, ylim=lims)
      abline(a=0, b=1)
 
      ## Compute Bayesian p-value
@@ -52,7 +53,7 @@ for(page in 1:2){
        labels=paste("Bayesian GOF P:",formatC(p.value, digits=2, format="f")),
        cex=1.5, adj=c(0,0))  
    }
-   close.screen(all=TRUE)     # exit from plots for this page
+   close.screen(all.screens=TRUE)     # exit from plots for this page
    gof <- data.frame(statistic=titles, p.value=saved_p_values)
    gof
  }

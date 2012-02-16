@@ -362,7 +362,7 @@ plot_logU <- function(title, time, n1, m2, u2, logitP.cov, results){
         main=paste(title,"\nFitted spline curve to raw U[i] with 95% credible intervals"),
         sub='Open/closed circles - initial and final estimates',
         ylab='log(U[i])',
-        xlab='Stratum')  # initial points on log scale.
+        xlab='Stratum',xlim=c(min(time),max(time)))  # initial points on log scale.
 
 
    # which rows contain the etaU[xx] ?

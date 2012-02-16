@@ -1,3 +1,4 @@
+% 2012-01-10 CJS commented out the \details to avoid warnings on build
 % 2009-12-01 CJS
 \name{logit}
 \alias{logit}
@@ -12,7 +13,7 @@ expit(theta)
   \item{p}{probability between 0 and 1.}
   \item{theta}{logit between -infinity and +infinity}
 }
-\details{ }
+%\details{ }
  \value{Computed logit or anti-logit}
 \author{C.J.Schwarz \email{cschwarz@stat.sfu.ca}}
 \examples{

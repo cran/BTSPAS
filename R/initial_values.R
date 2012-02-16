@@ -1,3 +1,4 @@
+## 2012-02-01 CJS added na.rm=TRUE in computation of pScale to avoid passing NA
 ## 2011-05-15 CJS limited the etaU=log(U) to a maximum of 15 which corresponds to around 400,000,000 fish. 
 ## 2011-05-09 CJS subtle bug with initial values of epsilon where if fixed values for logitP at the end of the
 ##                experiment, then the initial values for epsilon must be truncated
@@ -86,6 +87,7 @@ genInitValsChain <-
              hatch.after=NULL,            # Data of release for hatchery fish in model with two splines
              pScale=1){
 
+        #cat("\n** genInitValsChain \n")
         #browser()
 
         ## Generate initial values for a single chain
@@ -383,12 +385,14 @@ genInitVals <-
 
 
       ## Determine maximum scaling factor in order to avoid tauP=Inf
-      pScaleMax <- 1/(1.1*sum(m2)/sum(n1))
+      pScaleMax <- 1/(1.1*sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE))
       
       ## Generate initial values for n.chains
       inits <- lapply(1:n.chains,function(i){
         ## Compute scaling factor for ith chain
-        pScale <- min(pStep ^(-(n.chains-1)/2 + (i-1)),pScaleMax)
+        #cat("\n*** gen init values ***\n")
+        #browser()
+        pScale <- min(pStep ^(-(n.chains-1)/2 + (i-1)),pScaleMax,1,na.rm=TRUE)
 
         ## Generate initial values
         genInitValsChain(model,

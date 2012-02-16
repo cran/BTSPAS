@@ -1,3 +1,4 @@
+% 2012-01-10 CJS commented out the \details, \note, \seealso section to avoid warnings on package build
 % 2011-05-03 CJS Updated with openbugs, openbugs.directory, winbugs.directory
 % 2011-03-10 CJS Updated with changes to arguments for prior on movement rates
 % 2011-02-18 CJS Updated with *NPMarkAvail functions
@@ -202,9 +203,9 @@ TimeStratPetersenNonDiagErrorNPMarkAvail (
        calls to allow the user to peek into the internal variables. Not useful except to package developers.}
   \item{InitialSeed}{Numeric value used to initialize the random numbers used in the MCMC iterations.}
 }
-\details{
+%\details{
 %%  ~~ If necessary, more details than the description above ~~
-}
+%}
 \value{ An MCMC object with samples from the posterior distribution. A series of graphs and text file are also created in the
 working directory.}
 \references{ Refer to the Trinity River Restoration Project report by Schwarz, C.J. et al. (2009)
@@ -214,15 +215,15 @@ contact \email{cschwarz@stat.sfu.ca} for more details.
 }
 \author{Bonner, S.J. \email{s.bonner@stat.ubc.ca} and Schwarz, C. J. 
 \email{cschwarz@stat.sfu.ca}}
-\note{
+%\note{
 %%  ~~further notes~~
-}
+%}
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
-\seealso{
+%\seealso{
 %% ~~objects to See Also as \code{\link{help}}, ~~~
-}
+%}
 \examples{ 
 ##---- See the demo files for examples of how to use this package
 ##

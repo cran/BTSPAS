@@ -1,3 +1,5 @@
+% 2012-10-01 CJS Comment out the \details, \note, \references, \seealso sections to avoid
+%                warnings when a build is done.
 % 2011-02-16 CJS Add documentation about computing TimeToTargetRunSize
 \name{TimeToTargetRunSize}
 \alias{TimeToTargetRunSize}
@@ -18,24 +20,24 @@ TimeToTargetRunSize( U, time, targetU, file_prefix, ci_prob=0.95)
         of the posterior in the filename paste(file_prefix,"-target.pdf",sep="")).}
   \item{ci_prob}{What size of credible interval should be computed?}
 }
-\details{
+%\details{
 %%  ~~ If necessary, more details than the description above ~~
-}
+%}
 \value{A list with a sample of the posterior (index), quantiles (quantiles), mean (mean), median(median), and 
        standard deviation (sd), and target value (targetU)}
-\references{ 
-}
+%\references{ 
+%}
 \author{Bonner, S.J. \email{s.bonner@stat.ubc.ca} and Schwarz, C. J. 
 \email{cschwarz@stat.sfu.ca}}
-\note{
+%\note{
 %%  ~~further notes~~
-}
+%}
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
-\seealso{
+%\seealso{
 %% ~~objects to See Also as \code{\link{help}}, ~~~
-}
+%}
 \examples{ 
 \dontrun{
 # Compute the posterior of time to reach 10,000 fish. Results contains the MCMC object

@@ -33,9 +33,16 @@ for(i in seq(1,length(index),plots_per_page)){  # plot potentially multiple plot
               ylab='Estimate')
       text(x=1, y=max(results$sims.array[,,index[j]]), 
           label=varnames[index[j]], adj=c(0,1), cex=if(prod(panels)>1){2} else {1})
-      text(x=dim(results$sims.array)[1]  ,y=max(results$sims.array[,,index[j]]), 
+      if(results$n.chains >1){   # Only print Rhat if number of chains is >1
+         text(x=dim(results$sims.array)[1]  ,y=max(results$sims.array[,,index[j]]), 
           label=paste("Rhat=",round(results$summary[index[j],"Rhat"],1)), adj=c(1,1), 
           cex=if(prod(panels)>1){2} else {1})
+      }
+      if(results$n.chains == 1){
+         text(x=dim(results$sims.array)[1]  ,y=max(results$sims.array[,,index[j]]), 
+          label="No RHat avail", adj=c(1,1), 
+          cex=if(prod(panels)>1){2} else {1})
+      }
    }
    close.screen(all.screens=TRUE)
 }

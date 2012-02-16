@@ -27,6 +27,7 @@ export(  # List functions to be visible from outside the package
    "TimeStratPetersenNonDiagErrorNP_fit"         ,
    "TimeStratPetersenNonDiagErrorNPMarkAvail"    ,
    "TimeStratPetersenNonDiagErrorNPMarkAvail_fit",
+   "TimeToTargetRunSize",
    "SimplePetersen" ,
    "logit",
    "expit")

@@ -1,3 +1,5 @@
+% 2012-01-10 CJS commented out \details, \note, \references, \seealso to avoid
+%                warnings during build
 % 2010-08-06 CJS Add documentation about trace_plot
 \name{trace_plot}
 \alias{trace_plot}
@@ -22,23 +24,23 @@ trace_plot(title=" ", results=NULL, parms_to_plot=NULL, panels=c(1,1),
   \item{mai}{Margins (inches) from the 4 borders. See par().}
   \item{cex}{Character expansion factor. See par() for more details.}
 }
-\details{
+%\details{
 %%  ~~ If necessary, more details than the description above ~~
-}
+%}
 \value{ Nothing returned. Creates the plots}
-\references{ 
-}
+%\references{ 
+%}
 \author{Bonner, S.J. \email{s.bonner@stat.ubc.ca} and Schwarz, C. J. 
 \email{cschwarz@stat.sfu.ca}}
-\note{
+%\note{
 %%  ~~further notes~~
-}
+%}
 
 %% ~Make other sections like Warning with \section{Warning }{....} ~
 
-\seealso{
+%\seealso{
 %% ~~objects to See Also as \code{\link{help}}, ~~~
-}
+%}
 \examples{ 
 \dontrun{
 # Create trace plots of the logitP parameters

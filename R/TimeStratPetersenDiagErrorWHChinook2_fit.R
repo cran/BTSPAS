@@ -710,7 +710,7 @@ screen(4)
 par(cex=.5)
 par(mai=c(.40,.40,.40,.40))
 acf(results$sims.matrix[,"Utot.H.1"], main=paste(title,"\nACF function for U total.H.1"))
-close.screen(all.screen=TRUE)
+close.screen(all.screens=TRUE)
 dev.off()
 
 # Look at the shape of the posterior distribution
@@ -745,7 +745,7 @@ plot( x=density(as.vector(results$sims.array[,,"Utot.H.1"])),
     main=paste(title,'\nPosterior of U-total.H.1'),
     sub ="Vertical lines mark 2.5th and 97.5th percentile")
 abline(v=results$summary["Utot.H.1",c("2.5%","97.5%")])  # add vertical reference lines
-close.screen(all.screen=TRUE)
+close.screen(all.screens=TRUE)
 dev.off()
 
 

@@ -408,7 +408,7 @@ sampfrac <- as.vector(sampfrac)
          main=paste(title,"\nFitted spline curve to raw U[i] with 95% credible intervals"),
          sub='Open/closed circles - initial and final estimates',
          ylab='log(U[i])',
-         xlab='Time Index')  ## initial points on log scale.
+         xlab='Time Index',xlim=c(min(time),max(time)))  ## initial points on log scale.
     
     
     ## which rows contain the etaU[xx] ?

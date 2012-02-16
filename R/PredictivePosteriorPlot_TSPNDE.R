@@ -1,3 +1,4 @@
+# 2012-01-22 CJS made X/Y axis limits the same so p-value prints properly
 # 2011-06-13 CJS returned bayesian p-values
 
 PredictivePosteriorPlot.TSPNDE <- function( discrep  ) {
@@ -29,9 +30,8 @@ for(i in 1:6){
   
   ## Plot observed vs simulated discrepancies
   plot(discrep[,(2*i):(2*i-1)],
-       xlim=lims,ylim=lims,
        xlab="Simulated", ylab="Observed", 
-       main=titles[i], cex.main=1.5)
+       main=titles[i], cex.main=1.5, xlim=lims, ylim=lims)
   abline(a=0, b=1)
 
   ## Compute Bayesian p-value
@@ -46,7 +46,7 @@ for(i in 1:6){
        labels=paste("Bayesian GOF P:",formatC(p.value, digits=2, format="f")),
        cex=1.5, adj=c(0,0))  
 }
-close.screen(all=TRUE)     # exit from plots  
+close.screen(all.screens=TRUE)     # exit from plots  
 gof <- data.frame(statistic=titles, p.value=saved_p_values)
 gof
 }

@@ -1,3 +1,4 @@
+## 2012-02-15 CJS fixed plotting limits on log(U) plot
 ## 2011-06-13 CJS added bayesian p-values to results
 ## 2011-03-15 CJS fixed code to do error checking
 ## 2011-03-09 CJS added priors for movement parameters (muTT)
@@ -434,7 +435,7 @@ sampfrac <- as.vector(sampfrac)
          main=paste(title,"\nFitted spline curve to raw U[i] with 95% credible intervals"),
          sub='Open/closed circles - initial and final estimates',
          ylab='log(U[i])',
-         xlab='Time Index')  ## initial points on log scale.
+         xlab='Time Index', xlim=c(min(time),max(time)))  ## initial points on log scale.
 
 
     ## which rows contain the etaU[xx] ?

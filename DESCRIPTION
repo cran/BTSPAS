@@ -1,6 +1,6 @@
 Package: BTSPAS
-Version: 2012.01
-Date: 2012-01-10
+Version: 2012.0216
+Date: 2012-02-16
 Title: Bayesian Time-Strat. Population Analysis
 Author: Carl J Schwarz <cschwarz@stat.sfu.ca> and Simon J Bonner
         <simon.bonner@uky.edu>
@@ -15,6 +15,6 @@ URL: http://www.stat.sfu.ca/~cschwarz/Consulting/Trinity/Phase2
 License: GPL (>= 2)
 Repository: CRAN
 Repository/R-Forge/Project: btspas
-Repository/R-Forge/Revision: 96
-Date/Publication: 2012-01-12 21:05:08
-Packaged: 2012-01-11 21:42:55 UTC; rforge
+Repository/R-Forge/Revision: 104
+Packaged: 2012-02-19 03:15:15 UTC; rforge
+Date/Publication: 2012-02-20 06:31:04
