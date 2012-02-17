@@ -5,6 +5,7 @@
 #    - fix plot of logitP vs time to "drop" the fixed values or plot with a different symbol?
 #    - bayesian predictive posterior plots (the Bayesian p-values)
 
+# 2012-08-30 CJS fixed NAs problem in any() and all() in error checking
 # 2011-06-13 CJS added p-values to results
 # 2010-02-21 CJS changed u2 to new.u2 in expanded.m2 section
 # 2010-11-25 CJS pretty printing of final population estimates
@@ -118,21 +119,21 @@ if(any(apply(m2,1,sum, na.rm=TRUE)>n1)){
    cat("***** ERROR ***** m2[i,+] must be <= n1[i]. The arguments are \n n1:",n1,"\n m2:",m2,"\n")
    return()}
 #  3. Elements of bad.m2 and jump.after must belong to time
-if(!all(bad.n1 %in% time)){
+if(!all(bad.n1 %in% time,na.rm=TRUE)){
    cat("***** ERROR ***** bad.n1 must be elements of strata identifiers. You entered \n bad.n1:",bad.n1,"\n Strata identifiers are \n time:",time, "\n")
    return()}
-if(!all(bad.m2 %in% time)){
+if(!all(bad.m2 %in% time,na.rm=TRUE)){
    cat("***** ERROR ***** bad.m2 must be elements of strata identifiers. You entered \n bad.m2:",bad.m2,"\n Strata identifiers are \n time:",time, "\n")
    return()}
-if(!all(bad.u2 %in% time)){
+if(!all(bad.u2 %in% time,na.rm=TRUE)){
    cat("***** ERROR ***** bad.u2 must be elements of strata identifiers. You entered \n bad.u2:",bad.u2,"\n Strata identifiers are \n time:",time, "\n")
    return()}
-if(!all(jump.after %in% time)){
+if(!all(jump.after %in% time,na.rm=TRUE)){
    cat("***** ERROR ***** jump.after must be elements of strata identifiers. You entered \n jump.after:",jump.after,"\n Strata identifiers are \n time:",time, "\n")
    return()}
 
 #  4. check that index of logitP.fixed belong to time
-if(!all(logitP.fixed %in% time)){
+if(!all(logitP.fixed %in% time,na.rm=TRUE)){
    cat("***** ERROR ***** logitP.fixed must be elements of strata identifiers. You entered \n logitP.fixed:",logitP.fixed,"\n Strata identifiers are \n time:",time, "\n")
    return()}
 if(length(logitP.fixed)!=length(logitP.fixed.values)){

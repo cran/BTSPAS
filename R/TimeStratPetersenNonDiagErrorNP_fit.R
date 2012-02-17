@@ -1,3 +1,4 @@
+## 2012-08-30 CJS fixed errors with any() and all() with NAs in error checking
 ## 2012-02-15 CJS fixed plotting limits on log(U) plot
 ## 2011-06-13 CJS added bayesian p-values to results
 ## 2011-03-15 CJS fixed code to do error checking
@@ -123,29 +124,29 @@ sampfrac <- as.vector(sampfrac)
     return()}
 
   ##  3. Elements of bad.m2 and jump.after must belong to time
-  if(!all(bad.n1 %in% time)){
+  if(!all(bad.n1 %in% time,na.rm=TRUE)){
     cat("***** ERROR ***** bad.n1 must be elements of strata identifiers. You entered \n bad.n1:",bad.n1,
          "\n Strata identifiers are \n time:",paste(time,collapse=","), "\n")
     return()}
 
-  if(!all(bad.m2 %in% time)){
+  if(!all(bad.m2 %in% time,na.rm=TRUE)){
     cat("***** ERROR ***** bad.m2 must be elements of strata identifiers. You entered \n bad.m2:",bad.m2,
          "\n Strata identifiers are \n time:",paste(time,collapse=","), "\n")
     return()}
 
-  if(!all(bad.u2 %in% time)){
+  if(!all(bad.u2 %in% time,na.rm=TRUE)){
     cat("***** ERROR ***** bad.u2 must be elements of strata identifiers. You entered \n bad.u2:",bad.u2,
          "\n Strata identifiers are \n time:",paste(time,collapse=","), "\n")
     return()}
 
-  if(!all(jump.after %in% time)){
+  if(!all(jump.after %in% time,na.rm=TRUE)){
     cat("***** ERROR ***** jump.after must be elements of strata identifiers. You entered \n jump.after:",jump.after,
          "\n Strata identifiers are \n time:",paste(time,collapse=","), "\n")
     return()}
 
 
   #  5. check that index of logitP.fixed belong to time
-  if(!all(logitP.fixed %in% time)){
+  if(!all(logitP.fixed %in% time,na.rm=TRUE)){
     cat("***** ERROR ***** logitP.fixed must be elements of strata identifiers. You entered \n logitP.fixed:",logitP.fixed,
         "\n Strata identifiers are \n time:",paste(time,collapse=","), "\n")
     return()}

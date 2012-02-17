@@ -159,8 +159,6 @@ demo.cr.2009.as.tspndenp <- TimeStratPetersenNonDiagErrorNP_fit(
                   debug=TRUE
                   )
 # Rename files that were created.
-# Note that if WinBugs is used, the files are called coda1, coda2, coda3
-# rather than CODAchain1 etc and so the code below needs to be modified.
 
 file.rename("data.txt",       paste(demo.prefix,".data.txt",sep=""))
 file.rename("CODAindex.txt",  paste(demo.prefix,".CODAindex.txt",sep=""))

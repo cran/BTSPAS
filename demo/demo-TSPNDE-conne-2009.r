@@ -104,7 +104,7 @@ cat("*** Starting ",demo.title, "\n\n")
 demo.n1 <- demo.Fish$tagged
 demo.n1 <- demo.n1[ 1:(length(demo.n1)-6)]  # last rows have no fish released, but have fish recaptured
 
-# Notice that OpenBugs/WinBugs has problems with binomial/multinomial distributions with an index of 0.
+# Notice that OpenBugs has problems with binomial/multinomial distributions with an index of 0.
 # Consequently, we set the number of fish released to 1. This "approximation" will work fine in most
 # real situations.
 demo.n1[c(13,14)] <- 1  # no fish released, or a blow out on recoveries
@@ -154,8 +154,6 @@ demo.cr.2009.as.tspnde <- TimeStratPetersenNonDiagError_fit(
                   debug=TRUE)
 
 # Rename files that were created.
-# Note that if WinBugs is used, the files are called coda1, coda2, coda3 
-# rather than CODAchain1 etc and so the code below needs to be modified.
 
 file.copy("data.txt",       paste(demo.prefix,".data.txt",sep=""),      overwrite=TRUE)
 file.copy("CODAindex.txt",  paste(demo.prefix,".CODAindex.txt",sep=""), overwrite=TRUE)

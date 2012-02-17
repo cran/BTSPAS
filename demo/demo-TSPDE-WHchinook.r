@@ -159,8 +159,6 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagErrorWHChinook_fit(
                   )
 
 # Rename files that were created.
-# Note that if WinBugs is used, the files are called coda1, coda2, coda3
-# rather than CODAchain1 etc and so the code below needs to be modified.
 
 file.copy("data.txt",       paste(demo.prefix,".data.txt",sep=""),      overwrite=TRUE)
 file.copy("CODAindex.txt",  paste(demo.prefix,".CODAindex.txt",sep=""), overwrite=TRUE)

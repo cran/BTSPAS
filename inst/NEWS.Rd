@@ -2,6 +2,34 @@
 \title{BTSPAS News}
 \encoding{UTF-8}
 
+%\section{CHANGES IN VERSION 2012.xxxx}{
+%  \subsection{USER-VISIBLE CHANGES}{
+%    \itemize{
+%       \item None.
+%    }
+%  }
+%   \subsection{BUG FIX}{
+%     \itemize{
+%       \item Add na.rm=TRUE to any() and all() function calls in data checking.
+%     }
+%   }
+%}
+
+\section{CHANGES IN VERSION 2012.0217}{
+  \subsection{USER-VISIBLE CHANGES}{
+    \itemize{
+       \item Minor changes to package file structures to meet R package conventions. No change in 
+             functionality.
+    }
+  }
+   \subsection{BUG FIX}{
+     \itemize{
+       \item None.
+     }
+   }
+}
+
+
 \section{CHANGES IN VERSION 2012.0215 and 2012.0216}{
   \subsection{USER-VISIBLE CHANGES}{
     \itemize{
@@ -57,6 +85,10 @@
              OpenBugs in place of WinBugs. No other change in functionality.
     }
   }
-  \subsection{BUG FIX}{}
+  \subsection{BUG FIX}{
+    \itemize{
+      \item NONE.
+    }
+  }
 }
 

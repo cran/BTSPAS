@@ -1,3 +1,4 @@
+# 2012-08-30 CJS fixed problem in any() and all() in error checking with NAs
 # 2011-06-13 CJS add p-values to results
 # 2010-11-25 CJS pretty printing of final population estimates
 # 2010-09-06 CJS forced input vectors to be vectors
@@ -91,20 +92,20 @@ if(length(logitP.cov) %% length(n1) != 0){
         length(n1),length(logitP.cov),dim(logitP.cov),"\n")
    return()}
 #  2. Check that m2<= n1
-if(any(m2>n1)){
+if(any(m2>n1, na.rm=TRUE)){
    cat("***** ERROR ***** m2 must be <= n1. The arguments are \n n1:",n1,"\n m2:",m2,"\n")
    return()}
 #  3. Elements of bad.m2, bad.u2.A, and bad.u2.N, and hatch.after must belong to time
-if(!all(bad.m2 %in% time)){
+if(!all(bad.m2 %in% time, na.rm=TRUE)){
    cat("***** ERROR ***** bad.m2 must be elements of strata identifiers. You entered \n bad.m2:",bad.m2,"\n Strata identifiers are \n time:",time, "\n")
    return()}
-if(!all(bad.u2.A %in% time)){
+if(!all(bad.u2.A %in% time, na.rm=TRUE)){
    cat("***** ERROR ***** bad.u2.A must be elements of strata identifiers. You entered \n bad.u2.A:",bad.u2.A,"\n Strata identifiers are \n time:",time, "\n")
    return()}
-if(!all(bad.u2.N %in% time)){
+if(!all(bad.u2.N %in% time, na.rm=TRUE)){
    cat("***** ERROR ***** bad.u2.N must be elements of strata identifiers. You entered \n bad.u2.N:",bad.u2.N,"\n Strata identifiers are \n time:",time, "\n")
    return()}
-if(!all(hatch.after %in% time)){
+if(!all(hatch.after %in% time, na.rm=TRUE)){
    cat("***** ERROR ***** hatch.after must be elements of strata identifiers. You entered \n hatch.after:",hatch.after,"\n Strata identifiers are \n time:",time, "\n")
    return()}
 

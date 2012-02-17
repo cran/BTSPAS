@@ -1,3 +1,4 @@
+# 2012-08-30 CJS fixed problem in error checking in any() function that includes missing values
 # 2011-06-13 CJS inserted the bayesian p-values in the results 
 # 2010-11-29 CJS added code for bad.n1 to the call.
 # 2010-11-25 CJS added code for bad.u2 to the call. Simplified the two pooled and simple Petersen estimates
@@ -89,20 +90,20 @@ if(length(logitP.cov) %% length(n1) != 0){
         length(n1),length(logitP.cov),dim(logitP.cov),"\n")
    return()}
 #  2. Check that m2<= n1
-if(any(m2>n1)){
+if(any(m2>n1, na.rm=TRUE)){
    cat("***** ERROR ***** m2 must be <= n1. The arguments are \n n1:",n1,"\n m2:",m2,"\n")
    return()}
 #  3. Elements of bad.n1, bad.m2, bad.u2, and jump.after must belong to time
-if(!all(bad.n1 %in% time)){
+if(!all(bad.n1 %in% time, na.rm=TRUE)){
    cat("***** ERROR ***** bad.n1 must be elements of strata identifiers. You entered \n bad.n1:",bad.n1,"\n Strata identifiers are \n time:",time, "\n")
    return()}
-if(!all(bad.m2 %in% time)){
+if(!all(bad.m2 %in% time, na.rm=TRUE)){
    cat("***** ERROR ***** bad.m2 must be elements of strata identifiers. You entered \n bad.m2:",bad.m2,"\n Strata identifiers are \n time:",time, "\n")
    return()}
-if(!all(bad.u2 %in% time)){
+if(!all(bad.u2 %in% time, na.rm=TRUE)){
    cat("***** ERROR ***** bad.u2 must be elements of strata identifiers. You entered \n bad.u2:",bad.u2,"\n Strata identifiers are \n time:",time, "\n")
    return()}
-if(!all(jump.after %in% time)){
+if(!all(jump.after %in% time, na.rm=TRUE)){
    cat("***** ERROR ***** jump.after must be elements of strata identifiers. You entered \n jump.after:",jump.after,"\n Strata identifiers are \n time:",time, "\n")
    return()}
 
