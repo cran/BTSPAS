@@ -1,3 +1,4 @@
+% 2013-05-13 CJS fixed all \usage lines more than 90 characters long to avoid R CMD check warnings
 % 2012-01-13 CJS commented out the \details, \note, \seealso sections to avoid R CMD check warnings
 % 2011-05-03 CJS fixed documentation to match latest release (drop openbugs etc)
 %                openbugs/winbugs directory
@@ -22,7 +23,8 @@ recaptures take place outside the stratum of release.}
 
 \usage{
 TimeStratPetersenDiagError_fit(title, prefix, time, n1, m2, u2, sampfrac, 
-    jump.after = NULL, bad.n1=c(), bad.m2 = c(), bad.u2=c(), logitP.cov = rep(1, length(n1)), 
+    jump.after = NULL, bad.n1=c(), bad.m2 = c(), bad.u2=c(),
+    logitP.cov = rep(1, length(n1)), 
     n.chains = 3, n.iter = 2e+05, n.burnin = 1e+05, n.sims = 2000, 
     tauU.alpha = 1, tauU.beta = 0.05, taueU.alpha = 1, taueU.beta = 0.05, 
     mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)),  
@@ -31,7 +33,8 @@ TimeStratPetersenDiagError_fit(title, prefix, time, n1, m2, u2, sampfrac,
     debug = FALSE, debug2 = FALSE, 
     InitialSeed=ceiling(runif(1,min=0, max=14)))
 
-TimeStratPetersenDiagError(title, prefix, time, n1, m2, u2, jump.after = NULL, logitP.cov, 
+TimeStratPetersenDiagError(title, prefix, time, n1, m2, u2, jump.after = NULL,
+     logitP.cov, 
      n.chains = 3, n.iter = 2e+05, n.burnin = 1e+05, n.sims = 2000, 
      tauU.alpha = 1, tauU.beta = 0.05, taueU.alpha = 1, taueU.beta = 0.05, 
      mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)), 

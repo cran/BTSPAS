@@ -1,5 +1,4 @@
-3bed7c14f4d0ca158609d58d667a24b4 *DESCRIPTION
-d41d8cd98f00b204e9800998ecf8427e *LICENCE
+b3163eef1fee104c6a19fe342a546293 *DESCRIPTION
 cd04e8d0308bbb3048d9f17ca58ef261 *NAMESPACE
 4a00ac89fddae50672efab2bb6cdec3f *R/PredictivePosteriorPlot_TSPDE.R
 1ce84101edcc76f7be1d68689415b867 *R/PredictivePosteriorPlot_TSPDE_WHChinook.R
@@ -49,14 +48,14 @@ bdc5fb9c1815a7c0db84c650301ba40f *demo/demo-TSPNDE.r
 32b07387fd54c2b07c23fc6648c52ffd *demo/demo-TSPNDENP-conne-2009-prior-movement.r
 2db374dc24aeb8d29fe86c6ff80b4d9d *demo/demo-TSPNDENP-conne-2009.r
 ce948e583719ecd3fbfcac579f21f101 *demo/demo-TSPNDENP-error.r
-a32af41f13a20a2c101fe26b1c69a77d *inst/CITATION
+d63e338cdc9d1deb6c32abedd99a997d *inst/CITATION
 d93467ac5bd3fb53a7d04c02e61727bb *inst/NEWS.Rd
 4fe8379b8763aca8e6f4890a9cc2293c *man/BTSPAS-internal.Rd
 e58e7d1703c71a8967b4a49d1b327d5b *man/BTSPAS-package.Rd
-150a1a5f0efffc3fafd8ff9fa3335377 *man/TimeStratPetersenDiagErrorWHChinook_fit.Rd
+a657bc17fc93091fcd373ec5d3842d64 *man/TimeStratPetersenDiagErrorWHChinook_fit.Rd
 dc64c1e14d7f7e00202c0f9c330da450 *man/TimeStratPetersenDiagErrorWHSteel.rd
-0df3eaeb6a605d0704b523914547e847 *man/TimeStratPetersenDiagError_fit.Rd
+94ec51d6cc6e2bc9ccf6d7cc5c060a1b *man/TimeStratPetersenDiagError_fit.Rd
 156724f25bf0e2e4531699e62e50afbc *man/TimeStratPetersenNonDiagError_fit.Rd
 7d568b48e1f8a009eecc3787c214442c *man/TimeToTargetRunSize.Rd
 903e9727e4e7465cd9943b6b3bfae868 *man/logit.Rd
-6cf8693b35f1a8f5e83bc33f655b3eb2 *man/trace_plot.Rd
+1d4c3d065174a09196156587edb6792f *man/trace_plot.Rd

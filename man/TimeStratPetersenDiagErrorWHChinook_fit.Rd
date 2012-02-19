@@ -22,7 +22,8 @@ Normally use the *_fit to pass the data to the fitting function.
 }
  
 \usage{
-TimeStratPetersenDiagErrorWHChinook_fit(title="TSPDE-WHChinook", prefix="TSPDE-WHChinook-", 
+TimeStratPetersenDiagErrorWHChinook_fit(title="TSPDE-WHChinook",
+    prefix="TSPDE-WHChinook-", 
     time, n1, m2, u2.A, u2.N, clip.frac.H, sampfrac, hatch.after = NULL, 
     bad.m2 = c(), bad.u2.A=c(), bad.u2.N=c(),
     logitP.cov = rep(1, length(n1)), 

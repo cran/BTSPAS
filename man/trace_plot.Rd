@@ -45,8 +45,10 @@ trace_plot(title=" ", results=NULL, parms_to_plot=NULL, panels=c(1,1),
 \dontrun{
 # Create trace plots of the logitP parameters
 # 
-varnames <- names(results$sims.array[1,1,])  # extract the names of the variables from the MCMC object
-parm.names <- varnames[grep("^logitP", varnames)] # get the parms that start with logitP
+# extract the names of the variables from the MCMC object
+varnames <- names(results$sims.array[1,1,]) 
+# get the parms that start with logitP
+parm.names <- varnames[grep("^logitP", varnames)] 
 # create a pdf file of the plots
 pdf(file="trace-logitP.pdf",sep=""))
 trace_plot(title=title, results=results, 

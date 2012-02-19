@@ -6,8 +6,8 @@ vers <- paste("R package version", meta$Version)
 citEntry(entry="Manual",
          title = "BTSPAS: Bayesian Time Stratified Petersen Analysis System.",
          author = personList(as.person("Simon J. Bonner"),
-                             as.person("Carl J. Schwarzs"),
-                            ),
+                             as.person("Carl J. Schwarz")
+                  ),
          year = year,
          note = vers,
 
