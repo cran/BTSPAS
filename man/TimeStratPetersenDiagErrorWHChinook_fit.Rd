@@ -1,3 +1,4 @@
+% 2013-12-31 CJS updated with jags engine argument
 % 2010-05-04 CJS updated documentatin to drop openbugs, openbugs.directory, winbugs.directory
 % 2010-03-29 CJS updated with alternate Chinook program to separate YoY and Age1 Chinook
 % 2010-03-12 CJS Updated argument list on _fit
@@ -33,7 +34,8 @@ TimeStratPetersenDiagErrorWHChinook_fit(title="TSPDE-WHChinook",
     tau_xiP = 1/var(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE),  
     tauP.alpha = 0.001, tauP.beta = 0.001, run.prob = seq(0, 1, 0.1),  
     debug = FALSE, debug2 = FALSE, 
-    InitialSeed=ceiling(runif(1,min=0, max=14)))
+    engine=c('jags',"openbugs")[1],
+    InitialSeed=ceiling(runif(1,min=0, max=if(engine=="jags"){1000000}else{14})))
 
 TimeStratPetersenDiagErrorWHChinook( 
     title, prefix, time, n1, m2, u2.A, u2.N,
@@ -45,6 +47,7 @@ TimeStratPetersenDiagErrorWHChinook(
     tau_xiP=1/var(logit((m2+.5)/(n1+1)), na.rm=TRUE), 
     tauP.alpha=.001, tauP.beta=.001, 
     debug=FALSE, debug2=FALSE, 
+    engine=c('jags',"openbugs")[1],
     InitialSeed)
 
 TimeStratPetersenDiagErrorWHChinook2_fit(
@@ -62,7 +65,8 @@ TimeStratPetersenDiagErrorWHChinook2_fit(
     tauP.alpha=.001, tauP.beta=.001,
     run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
     debug=FALSE, debug2=FALSE, 
-    InitialSeed=ceiling(runif(1,min=0, max=14)))
+    engine=c('jags',"openbugs")[1],
+    InitialSeed=ceiling(runif(1,min=0, max=if(engine=="jags"){1000000}else{14})))
 
 TimeStratPetersenDiagErrorWHChinook2 (
     title, prefix, time, n1, m2, 
@@ -76,6 +80,7 @@ TimeStratPetersenDiagErrorWHChinook2 (
     tau_xiP=1/var(logit((m2+.5)/(n1+1)), na.rm=TRUE), 
     tauP.alpha=.001, tauP.beta=.001, 
     debug=FALSE, debug2=FALSE, 
+    engine=c('jags',"openbugs")[1],
     InitialSeed)
 }
 %- maybe also 'usage' for other objects documented here.
@@ -151,6 +156,7 @@ TimeStratPetersenDiagErrorWHChinook2 (
        is reduced considerably for a quick turn around. }
   \item{debug2}{Logical flag indicated if additional debugging information is produced. Normally the functions will halt at \code{browser()}
        calls to allow the user to peek into the internal variables. Not useful except to package developers.}
+  \item{engine}{Which MCMC sampler should be used. JAGS=default, OpenBugs=alternate. Case not relevant.}
   \item{InitialSeed}{Numeric value used to initialize the random numbers used in the MCMC iterations.}
 }
 \value{ An MCMC object with samples from the posterior distribution. A series of graphs and text file are also created in the

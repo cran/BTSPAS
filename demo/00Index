@@ -10,3 +10,6 @@ demo-TSPNDE-conne-2009    Time Stratified Petersen with Non-Diagonal Entries, lo
 demo-TSPNDENP-conne-2009    Time Stratified Petersen with Non-Diagonal Entries, Non-Parametric model of the travel times, and some p(j) fixed to zero
 demo-TSPDE-WHchinook2     Time Stratified Petersen with Non-Diagonal Entries, YoY and Age1 Chinook Fish
 demo-TSPNDENP-conne-2009-prior-movement   Time Stratified Petersen with Non-Diagonal Entries, Non-parametric model of travl times, some p(j) fixed to zero, and prior specification on movement.
+demo-TSPNDENP-fall-back     Time Stratified Petersen with Non-Diagonal Entries, Non-parametric model of travl times, some p(j) fixed to zero, and prior specification on movement; adjustment for estimated fall back allowed after release.
+demo-TSPNDENP-small	Time Stratified Petersen with Non-Diagonal Entries, Non-parameteric model. Small model for quick testing.
+demo-TSPNDENP-small-prior-movement	Time Stratified Petersen with Non-Diagonal Entries, Non-parameteric model with prior info on movement. Small model for quick testing.

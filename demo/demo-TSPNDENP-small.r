@@ -7,100 +7,54 @@
 # non-parametrically, and some capture probabilities fixed to 0
 # because no sampling occurred.
 
-# Uses the Conne River 2009 data as provided by Brian Dempson (DFO, St. John's) on 2010-02-08.
-
-# There are two traps on the Conne River.
-# At the first trap, fish are captured and marked with individually numbered tags on a
-# daily basis. They are released, swim downstream, and  may be recaptured at a secondary
-# trap. The number of recaptured fish and the number of unmarked fish at the second trap
-# are also recorded on a daily basis.
-#
-# In days 13 and 14, the water levels were too high so no fish could be released
-# nor unmarked fish captured. Consequently, the logitP is set to -10 (corresponding to p[i]=0) for these days
-
-#
-# The vector n1[i] is the number of fish marked and released on day [i] at the first trap.
-#
-# The matrix m2[i,j] is the number of fish released on day [i] and recaptured j-1 days later
-# at the second trap, i.e. the first column are the number of fish recaptured
-# the same day, the second column the number of fish
-# recaptured the day after release etc.
-# All marked fish are assumed to have passed the second trap by day i+(ncol(m2)-1) days later.
-#
-# The vector u2[j] is the number of unmarked fish captured at the second trap on day [j].
-#
-# As in the diagonal case, "bad" values of n1, m2, and u2 are allowed to be removed.
-# This is tricker for the m2 matrix as only a single entry may be in error.
-#
-# For more details refer to:
-#   Schwarz, C.J., and Dempson, B.D. (1994).
-#   Mark-recapture estimation of a salmon smolt population.
-#   Biometrics 50: 98-108.
-#
-# In this implementation, the travel times are modelled
-# non-parametrically according to the continuation ratio model for
-# mulutinomial data.
 
 # Create a directory to store the results Test and then create the
 # directory
-if(file.access("demo-TSPNDENP")!=0){
-  dir.create("demo-TSPNDENP", showWarnings=TRUE)
+if(file.access("demo-TSPNDENP-small")!=0){
+  dir.create("demo-TSPNDENP-small", showWarnings=TRUE)
 }
-setwd("demo-TSPNDENP")
+setwd("demo-TSPNDENP-small")
 
 ## Load BTSPAS library
 library(BTSPAS)
 
 ## Define data
 demo.data <- textConnection(
-"Date,tagged,0,1,2,3,4,5,6,7,Tot-recoveries,Untagged,Tot-caught,WaterTemp
-2009-04-29,25,0,0,1,0,0,1,0,0,2,0,0,7.8
-2009-04-30,75,0,2,2,2,2,1,0,0,9,133,133,7.0
-2009-05-01,97,0,0,1,4,1,0,0,1,7,158,161,7.5
-2009-05-02,127,0,2,5,0,0,1,0,0,8,128,130,7.7
-2009-05-03,194,0,6,2,1,0,0,0,0,9,197,202,9.3
-2009-05-04,200,2,22,4,1,0,0,0,0,29,522,542,11.7
-2009-05-05,216,8,12,4,1,1,0,0,0,26,859,893,11.6
-2009-05-06,215,1,26,2,0,1,0,0,1,31,427,445,11.7
-2009-05-07,205,11,13,11,0,0,0,0,0,35,849,892,11.1
-2009-05-08,202,3,23,2,0,0,0,0,0,28,488,507,9.8
-2009-05-09,222,7,1,1,0,0,0,0,0,9,1080,1123,9.5
-2009-05-10,158,0,0,0,0,0,0,0,0,0,350,354,9.2
-2009-05-11,0,0,0,0,0,0,0,0,0,0,0,0,6.6
-2009-05-12,0,0,0,0,0,0,0,0,0,0,0,0,7.4
-2009-05-13,161,0,12,6,2,0,0,0,0,20,58,59,9.6
-2009-05-14,198,3,12,1,0,0,0,1,0,17,336,351,11.4
-2009-05-15,61,0,0,1,0,0,0,0,0,1,118,137,11.6
-2009-05-16,66,0,1,4,1,0,0,0,0,6,72,75,12.3
-2009-05-17,31,0,0,3,0,0,0,0,0,3,34,36,12.9
-2009-05-18,11,0,0,0,0,0,0,0,0,0,26,30,13.9
-2009-05-19,12,0,0,0,0,0,0,0,0,0,21,25,14.4
-2009-05-20,5,0,0,0,0,0,0,0,0,0,16,16,13.6
-2009-05-21,0,0,0,0,0,0,0,0,0,0,22,22,10.9
-2009-05-22,0,0,0,0,0,0,0,0,0,0,22,22,12.2
-2009-05-23,0,0,0,0,0,0,0,0,0,0,1,1,14.3
-2009-05-24,0,0,0,0,0,0,0,0,0,0,1,1,13.0
-2009-05-25,0,0,0,0,0,0,0,0,0,0,5,6,13.9
-2009-05-26,0,0,0,0,0,0,0,0,0,0,3,3,13.2")
+"Date,tagged,   0, 1, 2, 3,   Tot-recoveries,Untagged,Tot-caught,WaterTemp
+2009-04-29, 25, 1, 2, 1, 0,     4,   0,   0,   7.8
+2009-04-30, 75, 3, 8, 0, 0,    19, 133, 133,   7.0
+2009-05-01, 97, 4,16, 0, 0,    20, 158, 161,   7.5
+2009-05-02,127, 6, 0, 0, 3,    9,  128, 130,   7.7
+2009-05-03,  0, 0, 0, 0, 0,     0,   0,   0,   9.3
+2009-05-04,  0, 0, 0, 0, 0,     0,   0,   0,  11.7
+2009-05-05,216, 8,12, 4, 1,    25,  859, 893,  11.6
+2009-05-06,215, 1,26, 2, 0,    29,  427, 445,  11.7
+2009-05-07,205,11,13,11, 0,    35,  849, 892,  11.1
+2009-05-08,202, 3,23, 2, 0,    28,  488, 507,   9.8
+2009-05-09  ,0, 0, 0, 0, 0,     0,   22,  22,  10.9
+2009-05-10,  0, 0, 0, 0, 0,     0,   22,  22,  12.2
+2009-05-11,  0, 0, 0, 0, 0,     0,    1,   1, 14.3")
 
-demo.Fish <- read.csv(demo.data, header=TRUE)
+demo.Fish <- read.csv(demo.data, header=TRUE, as.is=TRUE, strip.white=TRUE)
 
 # Now to extract the subset of data, do any fancy adjustments, and fit the data.
 
-demo.prefix <- "CR-2009-AS-TSPNDENP"
-demo.title  <- "Conne River 2009 Atlantic Salmon NP"
+demo.prefix <- "Small-TSPNDENP"
+demo.title  <- "Small NP"
 cat("*** Starting ",demo.title, "\n\n")
 
 # We do some fixups because the data entry forces you to enter extra rows of zeros
 # at the end because the u2 vector can be longer than the n1 vector.
 demo.n1 <- demo.Fish$tagged
-demo.n1 <- demo.n1[ 1:(length(demo.n1)-6)]  # last rows have no fish released, but have fish recaptured
+demo.n1 <- demo.n1[ 1:(length(demo.n1)-3)]  # last rows have no fish released, but have fish recaptured
 
 # Notice that OpenBugs/WinBugs has problems with binomial/multinomial distributions with an index of 0.
 # Consequently, we set the number of fish released to 1. This "approximation" will work fine in most
 # real situations.
-demo.n1[c(13,14)] <- 1  # no fish released, or a blow out on recoveries
-demo.m2 <- demo.Fish[, paste("X",0:7,sep="")]
+demo.n1[c(5,6)] <- 1  # no fish released, or a blow out on recoveries
+
+
+demo.m2 <- demo.Fish[, paste("X",0:3,sep="")]
 demo.m2 <- as.matrix(demo.m2)
 demo.m2 <- demo.m2[ 1:length(demo.n1),]     # last rows have no fish released
 
@@ -122,7 +76,7 @@ demo.bad.u2     <- c()     # list sample times of bad u2 values
 
 # are there any days where the capture probability is fixed in advance?
 # On days 13 and 14 the second trap could not operate because of high water levels.
-demo.logitP.fixed <- 119+ c(13,14)
+demo.logitP.fixed <- 119+ c(5,6)
 demo.logitP.fixed.values <- rep(-10,length(demo.logitP.fixed))  # logitP=-10 === p[i]=0
 
 ## Run TSPNDE model
@@ -140,9 +94,8 @@ demo.cr.2009.as.tspndenp <- TimeStratPetersenNonDiagErrorNP_fit(
                   bad.u2=     demo.bad.u2,
                   logitP.fixed=demo.logitP.fixed,
                   logitP.fixed.values=demo.logitP.fixed.values,
-		              engine="openbugs",
-                  n.iter=5000, n.burnin=1000, nsims=300,
-                  debug=FALSE
+		              #engine="openbugs",
+                  debug=TRUE
                   )
 # Rename files that were created.
 
@@ -166,7 +119,7 @@ demo.cr.2009.as.tspndenp$TimeToTargetRunSize <- TimeToTargetRunSize(
 
 # Save the information for later retreival if needed
 
-save(list=c("demo.cr.2009.as.tspndenp"), file="demo.cr-2009-as-tspndenp-saved.Rdata")  # save the results from this run
+save(list=c("demo.cr.2009.as.tspndenp"), file="Small-tspndenp-saved.Rdata")  # save the results from this run
 
 # move up the directory
 setwd("..")

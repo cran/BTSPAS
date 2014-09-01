@@ -1,3 +1,4 @@
+# 2013-12-30 CJS Updated for JAGS
 # 2013-01-25 CJS Changed messages from .onLoad to .onAttach in accordance with R policies
 # 2012-01-10 CJS Change name of .First.lib to  .onLoad with changes for R2.14+
 # 2011-06-01 SB  remove usage of winbugs; change initial seed; speed up mixing
@@ -7,7 +8,7 @@
 
 .onAttach <- function(libname,pkgname){
 
-  packageStartupMessage("***** BTSPAS: Bayesian Time Stratified Petersen Analysis System - Version 2012.0215 (2012-02-15) ***** \n\n",
+  packageStartupMessage("***** BTSPAS: Bayesian Time Stratified Petersen Analysis System - Version 2014.0901 (2014-09-01) ***** \n\n",
         "      Help available with  help(package='BTSPAS')  or  \n",
         "                           help(BTSPAS)                \n\n",
         '      List of demonstrations available with demo(package="BTSPAS") \n',

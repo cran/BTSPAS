@@ -1,3 +1,9 @@
+# 2014-09-01 CJS conversion to JAGS
+#                - no model name
+#                - C(,20) -> T(,20)
+#                - dflat() to dnorm(0, 1E-6)
+#                - created u2copy to improve mixing
+#                - added .000001 to Pmarked for JAGS????? Need to check this out to see what is the problems
 # 2011-05-15 CJS limited etaU to 20 or less
 # 2011-01-24 SB  added call to run.windows.openbugs and run.windows.winbugs
 # 2010-11-20 CJS added code to display progress of sampling during burnin and posterior to the user
@@ -32,16 +38,14 @@ TimeStratPetersenNonDiagError <- function(title,
                                           tauP.beta=.001,
                                           debug=FALSE,
                                           debug2=FALSE,
+					  engine=c("jags","openbugs")[1],
                                           InitialSeed){
+
+set.seed(InitialSeed)  # set prior to initial value computations
+
 #
 #  Fit the smoothed time-Stratified Petersen estimator with NON-Diagonal recoveries
 #  This model allows recoveries outside the stratum of release and error in the smoothed U curve
-#
-#  Packages Required - must be installed BEFORE calling this functin
-#
-#    R2WinBugs  - needed to call WinBugs to fit the model
-#    coda
-#    splines
 #
 #  This routine assumes that the strata are time (e.g. weeks).
 #  In each stratum n1 fish are released (with marks). These are ususally
@@ -69,7 +73,7 @@ TimeStratPetersenNonDiagError <- function(title,
 #                    otherwise specify the logitP value.
 
 
-#  This routine makes a call to WinBugs to fit the model and then gets back the
+#  This routine makes a call to the MCMC sampler to fit the model and then gets back the
 #  coda files for the posteriour distribution.
 
 ## Set working directory to current directory (we should allow users to select this)
@@ -81,11 +85,11 @@ data.file <- file.path(working.directory,"data.txt")
 init.files <- file.path(working.directory,
                        paste("inits", 1:n.chains,".txt", sep = ""))
 
-# Save the WinBugs progam to the model.txt file
+# Save the Bugs progam to the model.txt file
 #
 sink(model.file)  # NOTE: NO " allowed in model as this confuses the cat command
 cat("
-model TimeStratPetersenNonDiagError{
+model {
 # Time Stratified Petersen with NON Diagonal recapture and allowing for error in the smoothed U curve.
 
 # Refer to Bonner (2008) Ph.D. thesis from Simon Fraser University available at
@@ -142,7 +146,24 @@ model TimeStratPetersenNonDiagError{
    ##### Fit the spline for the U's and specify hierarchial model for the logit(P)'s ######
    for(i in 1:Nstrata.cap){
         logUne[i] <- inprod(SplineDesign[i,1:n.bU],bU[1:n.bU])  # spline design matrix * spline coeff
+", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+        etaU[i] ~ dnorm(logUne[i], taueU)T(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
         etaU[i] ~ dnorm(logUne[i], taueU)C(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
         eU[i] <- etaU[i] - logUne[i]
    }
    for(i in 1:Nfree.logitP){   # model the free capture rates using covariates
@@ -151,10 +172,10 @@ model TimeStratPetersenNonDiagError{
 
         ## logitP[free.logitP.index[i]] ~ dnorm(mu.logitP[free.logitP.index[i]],tauP)
 
-        mu.epsilon[free.logitP.index[i]] <- mu.logitP[free.logitP.index[i]] - log(u2[free.logitP.index[i]] + 1) + etaU[free.logitP.index[i]]
+        mu.epsilon[free.logitP.index[i]] <- mu.logitP[free.logitP.index[i]] - log(u2copy[free.logitP.index[i]] + 1) + etaU[free.logitP.index[i]]
         epsilon[free.logitP.index[i]] ~ dnorm(mu.epsilon[free.logitP.index[i]],tauP)
 
-        logitP[free.logitP.index[i]] <- log(u2[free.logitP.index[i]] + 1) - etaU[free.logitP.index[i]] + epsilon[free.logitP.index[i]]
+        logitP[free.logitP.index[i]] <- log(u2copy[free.logitP.index[i]] + 1) - etaU[free.logitP.index[i]] + epsilon[free.logitP.index[i]]
 
    }
 
@@ -167,9 +188,29 @@ model TimeStratPetersenNonDiagError{
    }
 
    ## Run size - flat priors
+   ", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+   for(i in 1:n.b.flat){
+      bU[b.flat[i]] ~ dnorm(0, 1E-6)
+   }
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
    for(i in 1:n.b.flat){
       bU[b.flat[i]] ~ dflat()
    }
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
+
    ## Run size - priors on the difference
    for(i in 1:n.b.notflat){
       xiU[b.notflat[i]] <- 2*bU[b.notflat[i]-1] - bU[b.notflat[i]-2]
@@ -220,7 +261,24 @@ model TimeStratPetersenNonDiagError{
    for(i in 1:Nstrata.rel){
       # Compute cell probabilities
       for(j in i:Nstrata.cap){
-        Pmarked[i,j] <- Theta[i,j] * p[j]
+", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+        Pmarked[i,j] <- Theta[i,j] * p[j] + .0000001   # potential problem in Jags?
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
+        Pmarked[i,j] <- Theta[i,j] * p[j] 
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
       }
       Pmarked[i,Nstrata.cap+1] <- 1- sum(Pmarked[i,i:Nstrata.cap])
 
@@ -240,10 +298,10 @@ model TimeStratPetersenNonDiagError{
 } # end of model
 
 ", fill=TRUE)
-sink()  # End of saving the WinBugs program
+sink()  # End of saving the Bugs program
 
 
-# Now to create the initial values, and the data prior to call to WinBugs
+# Now to create the initial values, and the data prior to call to MCMC sampler
 
 Nstrata.rel <- length(n1)
 Nstrata.cap <- ncol(m2)-1  # remember last column of m2 has the number of fish NOT recovered
@@ -301,8 +359,11 @@ storage.mode(logitP) <- "double" # if there are no fixed logits, the default cla
 free.logitP.index <- (1:Nstrata.cap)[ is.na(logitP.fixed)]  # free values are those where NA is specifed
 Nfree.logitP <- length(free.logitP.index)
 
+# create copy of u2 for use in improving mixing
+u2copy <- spline(x=1:length(u2), y=u2, xout=1:length(u2))$y
+u2copy <- round(u2copy) # round to integers
 
-datalist <- list("Nstrata.rel", "Nstrata.cap", "n1", "m2", "u2",
+datalist <- list("Nstrata.rel", "Nstrata.cap", "n1", "m2", "u2", "u2copy",
                  "logitP", "Nfree.logitP", "free.logitP.index",   # those indices that are fixed and free to vary
                  "logitP.cov", "NlogitP.cov",
                  "SplineDesign",
@@ -412,9 +473,9 @@ for(i in 1:length(datalist)){
 }
 names(data.list) <- as.list(datalist)
 
-# Set up for the call to WinBUGS or OpenBUGS
+# Set up for the call to the MCMC sampler
 
-results <- run.openbugs(modelFile=model.file,
+results <- run.MCMC(modelFile=model.file,
                         dataFile=data.file,
                         dataList=data.list,
                         initFiles=init.files,
@@ -427,6 +488,7 @@ results <- run.openbugs(modelFile=model.file,
                         overRelax=FALSE,
                         initialSeed=InitialSeed,
                         working.directory=working.directory,
+			engine=engine,
                         debug=debug)
 
 return(results)

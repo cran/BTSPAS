@@ -1,5 +1,15 @@
+# 2014-09-01 CJS Converted to JAGS
+#                - no model name
+#                - C(,20) -> T(,20)
+#                - dflat() to dnorm(0, 1E-6)
+#                - added u2.Ncopy to improve mixing based on Matt S. suggestion
+#                - added u2.Acopy to improve mixing based on Matt S. suggestion
+#                - fixed monitoring of *H parameters that are only present in hatch.after or later
+#                  JAGS won't monitor these variables unless entries from 1:hatch.after are defined
+# 2013-09-04 CJS Add initialization for missing values; removed references to WinBugs
 # 2011-05-15 CJS limited etaU to 20 or less
 # 2011-01-24 SB  added call to run.windows.openbugs and run.windows.winbugs
+# 2013-13-31 CJS updated for JAGS
 # 2010-11-25 CJS add output to track progress of burnin and post-burnin phases
 # 2010-04-26 CJS fixed problem with initial values for logitP when n1=m2 (+infinite) which crashed lm()
 # 2009-12-05 CJS added title to argument list
@@ -14,17 +24,16 @@ TimeStratPetersenDiagErrorWHChinook <-
              mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
              tau_xiP=1/var(logit((m2+.5)/(n1+1)), na.rm=TRUE),
              tauP.alpha=.001, tauP.beta=.001,
-             debug=FALSE, debug2=FALSE,
+             debug=FALSE, debug2=FALSE, 
+	     engine=c('jags',"openbugs")[1],
              InitialSeed){
+
+set.seed(InitialSeed)  # set prior to initial value computations
+
 
 #
 #  Fit the smoothed time-Stratified Petersen estimator with Diagonal recoveries (i.e. no recoveries
 #  outside stratum of release), error in the smoothed U curve, and separating wild vs hatchery stocks
-#
-#  Packages Required - must be installed BEFORE calling this functin
-#
-#    R2WinBugs  - needed to call WinBugs to fit the model
-#
 #
 #  This routine assumes that the strata are time (e.g. weeks).
 #  In each stratum n1 fish are released (with marks). These are ususally
@@ -53,7 +62,7 @@ TimeStratPetersenDiagErrorWHChinook <-
 #      logitP.cov - covariates for logit(P)=X beta.logitP
 
 
-#  This routine makes a call to WinBugs to fit the model and then gets back the
+#  This routine makes a call to the MCMC sampler to fit the model and then gets back the
 #  coda files for the posteriour distribution.
 
       ## Set working directory to current directory (we should allow users to select this)
@@ -66,11 +75,11 @@ TimeStratPetersenDiagErrorWHChinook <-
                               paste("inits", 1:n.chains,".txt", sep = ""))
 
 
-      ## Save the WinBugs progam to the model.txt file
+      ## Save the Bugs progam to the model.txt file
       ##
       sink(model.file)  # NOTE: NO " allowed in model as this confuses the cat command
       cat("
-model TimeStratPetersenDiagErrorWHChinook{
+model {
 # Time Stratified Petersen with Diagonal recapture (no spillover in subsequent weeks or marked fish)
 #    and allowing for error in the smoothed U curve with separation of wild and hatchery fish
 # Each of the wild and hatchery populations are fit using a SINGLE spline curve as this should be flexible
@@ -121,13 +130,47 @@ model TimeStratPetersenDiagErrorWHChinook{
    ##### Fit the spline for wildfish - this covers the entire experiment ######
    for(i in 1:Nstrata){
         logUne.W[i] <- inprod(SplineDesign.W[i,1:n.bU.W],bU.W[1:n.bU.W])  # spline design matrix * spline coeff
+", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+        etaU.W[i] ~ dnorm(logUne.W[i], taueU)T(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
         etaU.W[i] ~ dnorm(logUne.W[i], taueU)C(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
         eU.W[i] <- etaU.W[i] - logUne.W[i]
    }
    ##### Fit the spline for hatchery fish - these fish only enter AFTER hatch.after ######
    for(i in (hatch.after+1):Nstrata){
         logUne.H[i] <- inprod(SplineDesign.H[i,1:n.bU.H],bU.H[1:n.bU.H])  # spline design matrix * spline coeff
+   ", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+        etaU.H[i] ~ dnorm(logUne.H[i], taueU)T(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
         etaU.H[i] ~ dnorm(logUne.H[i], taueU)C(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
         eU.H[i] <- etaU.H[i] - logUne.H[i]
    }
 
@@ -136,30 +179,53 @@ model TimeStratPetersenDiagErrorWHChinook{
         mu.logitP[i] <- inprod(logitP.cov[i,1:NlogitP.cov], beta.logitP[1:NlogitP.cov])
         ## logitP[i] ~ dnorm(mu.logitP[i],tauP)
 
-        mu.epsilon[i] <- mu.logitP[i] - log(u2.N[i] + 1) + etaU.W[i]
+        # use the u2.Ncopy to break the cycle (in OpenBugs) and improve mixing (see Matt S.)
+        mu.epsilon[i] <- mu.logitP[i] - log(u2.Ncopy[i] + 1) + etaU.W[i]
         epsilon[i] ~ dnorm(mu.epsilon[i],tauP)
 
-        logitP[i] <-  log(u2.N[i] + 1) - etaU.W[i] + epsilon[i]
+        logitP[i] <-  log(u2.Ncopy[i] + 1) - etaU.W[i] + epsilon[i]   # Matts trick to speed mixing
    }
    for(i in (hatch.after+1):Nstrata){
         mu.logitP[i] <- inprod(logitP.cov[i,1:NlogitP.cov], beta.logitP[1:NlogitP.cov])
         ## logitP[i] ~ dnorm(mu.logitP[i],tauP)
 
-        mu.epsilon[i] <- mu.logitP[i] - log(u2.N[i] + u2.A[i] + 1) + (etaU.W[i] + etaU.H[i])
+        # use the u2.Ncopy and u2.Acopy to break the cycle (in OpenBugs) and improve mixing (see Matt S.)
+        mu.epsilon[i] <- mu.logitP[i] - log(u2.Ncopy[i] + u2.Acopy[i] + 1) + (etaU.W[i] + etaU.H[i])  # Matts tricek to speed mixing
         epsilon[i] ~ dnorm(mu.epsilon[i],tauP)
 
-        logitP[i] <-  log(u2.N[i] + u2.A[i] + 1) - log(exp(etaU.W[i]) + exp(etaU.H[i])) + epsilon[i]
+        logitP[i] <-  log(u2.Ncopy[i] + u2.Acopy[i] + 1) - log(exp(etaU.W[i]) + exp(etaU.H[i])) + epsilon[i]
    }
 
    ##### Hyperpriors #####
    ## Run size - wild and hatchery fish - flat priors
+   ", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+   for(i in 1:n.b.flat.W){
+      bU.W[b.flat.W[i]] ~ dnorm(0, 1E-6)
+   }
+   for(i in 1:n.b.flat.H){
+      bU.H[b.flat.H[i]] ~ dnorm(0, 1E-6)
+   }
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
    for(i in 1:n.b.flat.W){
       bU.W[b.flat.W[i]] ~ dflat()
    }
    for(i in 1:n.b.flat.H){
       bU.H[b.flat.H[i]] ~ dflat()
    }
-
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
    ## Run size - priors on the difference for wild and hatchery fish
    for(i in 1:n.b.notflat.W){
       xiU.W[b.notflat.W[i]] <- 2*bU.W[b.notflat.W[i]-1] - bU.W[b.notflat.W[i]-2]
@@ -202,7 +268,6 @@ model TimeStratPetersenDiagErrorWHChinook{
       U.W[i] <- round(exp(etaU.W[i]))      # convert from log scale
       U.H[i] <- round(exp(etaU.H[i]))      # convert from log scale
       U.clip[i] ~ dbin(clip.frac.H, U.H[i])
-      #u2.A[i] ~ dbin(p[i], U.clip[i])
       p.temp[i] <- p[i]*clip.frac.H
       u2.A[i] ~ dbin(p.temp[i], U.H[i]) # must be hatchery and clipped
    }
@@ -217,13 +282,37 @@ model TimeStratPetersenDiagErrorWHChinook{
    Utot.W <- sum( U.W[1:Nstrata])              # Total number of unmarked fish - wild
    Utot.H <- sum( U.H[(hatch.after+1):Nstrata])# Total number of unmarked fish - hatchery
    Utot   <- Utot.W + Utot.H                   # Grand total number of fish
+   
+   # Because JAGES does not properly monitory partially defined vectors (see Section 2.5 of the JAGES user manual)
+   # we need to add dummy distribution for the parameters of interest prior to the hatchery fish arriving.
+   # This is not needed in OpenBugs who returns the subset actually monitored, but we add this to be consistent
+   # among the two programs
+   for(i in 1:hatch.after){
+      U.H[i]      ~ dnorm(0,1)  # These are complete arbitrary and never gets updated
+      etaU.H[i]   ~ dnorm(0,1)
+      logUne.H[i] ~ dnorm(0,1)
+      eU.H[i]     ~ dnorm(0,1)
+   }
 }  # end of model
-
 ", fill=TRUE)
-      sink()  # End of saving the WinBugs program
+   sink()  # End of saving the Bugs program
 
+      Nstrata <- length(n1)
 
-      datalist <- list("Nstrata", "n1", "m2", "u2.A", "u2.N", "hatch.after", "clip.frac.H",
+      # make a copy of u2.N to improve mixing in the MCMC model
+      u2.Ncopy <- spline(x=1:Nstrata, y=u2.N, xout=1:Nstrata)$y
+      u2.Ncopy <- round(u2.Ncopy) # round to integers
+
+      # similarly make a copy of u2.A to improve mixing in the MCMC model
+      # notice that Adipose clips only occur at hatch.after or later
+      u2.Acopy <- u2.A * 0
+      u2.Acopy[hatch.after:Nstrata] <- spline(x=hatch.after:Nstrata, y=u2.A[hatch.after:Nstrata], xout=hatch.after:Nstrata)$y
+      u2.Acopy <- round(u2.Acopy) # round to integers
+
+      datalist <- list("Nstrata", "n1", "m2",
+		        "u2.A", "u2.Acopy",
+		        "u2.N", "u2.Ncopy", 
+			"hatch.after", "clip.frac.H",
                        "logitP.cov", "NlogitP.cov",
                        "SplineDesign.W",
                        "b.flat.W", "n.b.flat.W", "b.notflat.W", "n.b.notflat.W", "n.bU.W",
@@ -242,11 +331,9 @@ model TimeStratPetersenDiagErrorWHChinook{
       if( any(is.na(u2.N))) {parameters <- c(parameters,"u2.N")}
 
 
-      ## Now to create the initial values, and the data prior to call to WinBugs
+      ## Now to create the initial values, and the data prior to call to the MCMC sampler 
 
-      Nstrata <- length(n1)
-
-                                        # Estimate number of wild and hatchery fish based on clip rate
+                                # Estimate number of wild and hatchery fish based on clip rate
       u2.H <- u2.A/clip.frac.H  # only a portion of the hatchery fish are clipped
       u2.W <- pmax(u2.N - u2.H*(1-clip.frac.H),0) # subtract the questimated number of hatchery fish
       u2.H[is.na(u2.H)] <- 1  # in case of missing values
@@ -276,7 +363,7 @@ model TimeStratPetersenDiagErrorWHChinook{
       init.bU.W   <- lm(log(Uguess.W+1) ~ SplineDesign.W-1)$coefficients  # initial values for spline coefficients
 
       ## hatchery fish. Notice they can only enter AFTER hatch.after, The spline design matrix still has rows
-                                        # of zero for 1:hatch.after to make it easier in WinBugs
+                                        # of zero for 1:hatch.after to make it easier in Bugs
       SplineDegree <- 3           # Degree of spline between occasions
       knots <- (seq((hatch.after+4),Nstrata-1,4)-hatch.after)/(Nstrata-hatch.after+1) # a knot roughly every 4th stratum
       SplineDesign.H <- bs((1:(Nstrata-hatch.after))/(Nstrata-hatch.after+1), knots=knots, degree=SplineDegree, intercept=TRUE, Boundary.knots=c(0,1))
@@ -309,7 +396,7 @@ model TimeStratPetersenDiagErrorWHChinook{
       init.vals <- genInitVals(model="TSPDE-WHchinook",
                                n1=n1,
                                m2=m2,
-                               u2=list(W=u2.W,H=u2.H),
+                               u2=list(W=u2.W,H=u2.H, A=u2.A, N=u2.N),
                                logitP.cov=logitP.cov,
                                SplineDesign=list(W=SplineDesign.W,H=SplineDesign.H),
                                hatch.after=hatch.after,
@@ -322,8 +409,8 @@ model TimeStratPetersenDiagErrorWHChinook{
       }
       names(data.list) <- as.list(datalist)
 
-      ## Call OpenBUGS
-      results <- run.openbugs(modelFile=model.file,
+      ## Call MCMC sampler
+      results <- run.MCMC(modelFile=model.file,
                               dataFile=data.file,
                               dataList=data.list,
                               initFiles=init.files,
@@ -336,6 +423,7 @@ model TimeStratPetersenDiagErrorWHChinook{
                               overRelax=FALSE,
                               initialSeed=InitialSeed,
                               working.directory=working.directory,
+			      engine=engine,
                               debug=debug)
 
       return(results)

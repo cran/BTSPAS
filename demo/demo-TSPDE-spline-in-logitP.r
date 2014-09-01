@@ -1,4 +1,5 @@
 # 2010-05-26  - added a spline to logitP
+# 2014-09-01  CJS removed prompts; jags; engine revised
 #
 # This is a demonstration of how to call the Time Stratified Petersen with Diagonal Entries (TSPDE) program
 # It is based on the analysis of California Junction City 2003 Chinook data and is the example used
@@ -45,25 +46,10 @@
 #  The prefix is used to identify the output files for this run.
 #  The title  is used to title the output.
 
-#  See if variables already exist in the directory and if so, warn about overwriting?
-demo.proceed <- TRUE
-if(!exists("demo.ans")) demo.ans <- " "
-
-while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
-  cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
-  cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPDE-spline-in-logitP' \n")
-  demo.ans <- readline(prompt="Do you want to proceed? (yes/no): ")
-}
-if(demo.ans %in% c("no","NO","n","N")){demo.proceed <- FALSE }
-
-# Create a directory to store the results
-if(file.access("demo-TSPDE-spline-in-logitP")!=0){ demo.proceed <- demo.proceed & dir.create("demo-TSPDE-spline-in-logitP", showWarnings=TRUE)}  # Test and then create the directory
+if(file.access("demo-TSPDE-spline-in-logitP")!=0){ 
+   dir.create("demo-TSPDE-spline-in-logitP", showWarnings=TRUE)}  # Test and then create the directory
 setwd("demo-TSPDE-spline-in-logitP")
 
-if(!demo.proceed){stop()}
-
-par(ask=FALSE)
-dev.off()  # turn off the blank graphics window
 library("BTSPAS")
 
 # Get the data. In many cases, this is stored in a *.csv file and read into the program
@@ -131,6 +117,7 @@ demo.jc.2003.ch.tspde.sp.logitP <- TimeStratPetersenDiagError_fit(
                   sampfrac=demo.sampfrac,
                   jump.after=demo.jump.after,
                   bad.m2=demo.bad.m2,
+		  #engine="openbugs",  # show how to call openbugs
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 

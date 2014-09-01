@@ -19,15 +19,15 @@ Full details are available at
 \details{
 \tabular{ll}{
 Package: \tab BTSPAS\cr
-Version: \tab 2010.12\cr
-Date: \tab 2010-12-01\cr
-Depends: \tab R2WinBUGS, coda, splines, actuar, BRugs\cr
+Version: \tab 2014.09\cr
+Date: \tab 2014-09-01\cr
+Depends: \tab R2WinBUGS, coda, splines, actuar, plyr, ggplot2\cr
 License: \tab GPL (>=2)\cr
 URL: \tab http://www.r-project.org\cr
 Repository: \tab R-Forge\cr
 Repository/R-Forge/Project: \tab btspas\cr
 Repository/R-Forge/Revision: \tab 8\cr
-Date/Publication: \tab 2009-12-02 02:49:34\cr
+Date/Publication: \tab 2014-09-02 02:49:34\cr
 Packaged: \tab 2009-12-02 21:03:35 UTC; rforge\cr
 Built: \tab R 2.10.0; ; 2009-12-03 23:01:26 UTC; windows\cr
 }

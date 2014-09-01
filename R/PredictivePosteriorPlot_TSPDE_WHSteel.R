@@ -1,3 +1,4 @@
+# 2014-09-01 CJS Inf in discrep set to NA
 # 2012-01-22 CJS made X/Y axis limits the same so p-value prints properly
 # 2011-06-13 CJS returned bayesian p-values
 
@@ -9,6 +10,11 @@ PredictivePosteriorPlot.TSPDE.WHSteel <- function( discrep  ) {
 #     (5-6)  o,s Freeman-Tukey measures for u2.W.1
 #     (7-8)  o,s Freeman-Tukey measures for U2.H.1
 #     (9-10)  o,s combined Freeman-Tukey 
+
+# Change any Inf to NA
+temp <- discrep == Inf | discrep == -Inf
+if(sum(temp)>0){cat(sum(temp), " infinite discrepancy measures set to NA\n")}
+discrep[ temp ] <- NA
 
 #browser()
 split.screen(figs=c(3,2))  # 3 rows and 2 columns
@@ -34,7 +40,7 @@ for(i in 1:5){
   abline(a=0, b=1)
 
   ## Compute Bayesian p-values
-  p.value <- sum(discrep[,2*i-1]<discrep[,2*i])/nrow(discrep)
+  p.value <- sum(discrep[,2*i-1]<discrep[,2*i], na.rm=TRUE)/nrow(discrep)
   saved_p_values[i] <- p.value
   
   ## Add p-value to plot

@@ -49,7 +49,7 @@ run.openbugs <-
   ## Set seed
   BRugs::modelSetRN(initialSeed)       ## BRUGS 0.7.1 which calls OPENBUS 3.2.1 Need to look into this
   ## BRugs::modelSetSeed(initialSeed)  ## BRugs 0.5-3.1
-  cat("Initial state set to:", initialSeed, "\n")
+  cat("Initial seed for OpenBugs set to:", initialSeed, "\n")
 
   ## Format initial values and write to file
   inits <- BRugs::bugsInits(inits = initVals, numChains = nChains, fileName=initFiles)

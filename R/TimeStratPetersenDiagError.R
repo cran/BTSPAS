@@ -1,19 +1,44 @@
-# 2011-05015 CJS limited etaU to 20 or less
+# 2014-09-01 CJS Converted to JAGS
+## 2013-12-31 CJS Tried adding u2copy to get back Matts fix for mixing
+## 2013-09-22 SJB Changes to model for JAGS compatability:
+##     -- Removed model name.
+##     -- Changed C(,20) to T(,20).
+##     -- Replace dflat() with dnorm(0.0,1.0E-6).
+##     -- Remove Matt's fix to improve mixing.
+# 2013-09-04 CJS removed all references to WinBugs. Fixed problem with initial values for NA in n1, m2, or u2
+# 2011-05-15 CJS limited etaU to 20 or less
 # 2011-01-24 SB  added call to run.windows.openbugs and run.windows.winbugs
 # 2010-11-25 CJS add output to show progress of sampling through burnin and post-burnin phases
 # 2010-04-26 CJS fixed problem in computing logitPguess when m2=n1 and you get infinite logit value
 # 2009-12-05 CJS added title to argument list
 # 2009-12-01 CJS (added WinBugs/OpenBugs directory to the argument list
 
-TimeStratPetersenDiagError <- function(title, prefix, time, n1, m2, u2,
-                     jump.after=NULL,
-                     logitP.cov,
-                     n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
-                     tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
-                     mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
-                     tau_xiP=1/var(logit((m2+.5)/(n1+1)),na.rm=TRUE),
-                     tauP.alpha=.001, tauP.beta=.001,
-                     debug=FALSE, debug2=FALSE,InitialSeed){
+TimeStratPetersenDiagError <- function(
+    title,
+    prefix,
+    time,
+    n1,
+    m2,
+    u2,
+    jump.after=NULL,
+    logitP.cov,
+    n.chains=3,
+    n.iter=200000,
+    n.burnin=100000,
+    n.sims=2000,
+    tauU.alpha=1,
+    tauU.beta=.05,
+    taueU.alpha=1,
+    taueU.beta=.05,
+    mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
+    tau_xiP=1/var(logit((m2+.5)/(n1+1)),na.rm=TRUE),
+    tauP.alpha=.001, tauP.beta=.001,
+    debug=FALSE,
+    debug2=FALSE,
+    engine=c("jags","openbugs")[1],
+    InitialSeed){
+
+set.seed(InitialSeed)  # set prior to initial value computations
 
 #
 #  Fit the smoothed time-Stratified Petersen estimator with Diagonal recoveries (i.e. no recoveries
@@ -21,8 +46,9 @@ TimeStratPetersenDiagError <- function(title, prefix, time, n1, m2, u2,
 #
 #  Packages Required - must be installed BEFORE calling this functin
 #
-#    R2WinBugs  - needed to call WinBugs to fit the model
-#    BRugs
+#    R2OpenBugs  - needed for the as.bugs.array() function
+#    BRugs       - only needed if using OpenBugs
+#    rjags       - only needed if using JAGS
 #    Coda
 #    actuar
 #    splines
@@ -48,7 +74,7 @@ TimeStratPetersenDiagError <- function(title, prefix, time, n1, m2, u2,
 #      logitP.cov - covariates for logit(P)=X beta.logitP
 
 
-#  This routine makes a call to WinBugs to fit the model and then gets back the
+#  This routine makes a call to the MCMC sampler to fit the model and then gets back the
 #  coda files for the posteriour distribution.
 
 ## Set working directory to current directory (we should allow users to select this)
@@ -61,11 +87,11 @@ init.files <- file.path(working.directory,
                        paste("inits", 1:n.chains,".txt", sep = ""))
 
 
-# Save the WinBugs progam to the model.txt file
+# Save the Bugs progam to the model.txt file
 #
 sink(model.file)  # NOTE: NO " allowed in model as this confuses the cat command
 cat("
-model TimeStratPetersenDiagError{
+model{
 # Time Stratified Petersen with Diagonal recapture (no spillover in subsequent weeks or marked fish)
 #    and allowing for error in the smoothed U curve.
 
@@ -109,22 +135,57 @@ model TimeStratPetersenDiagError{
    ##### Fit the spline and specify hierarchial model for the logit(P)'s ######
    for(i in 1:Nstrata){
         logUne[i] <- inprod(SplineDesign[i,1:n.bU],bU[1:n.bU])  # spline design matrix * spline coeff
+", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+        etaU[i] ~ dnorm(logUne[i], taueU)T(,20)    # add random error
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
         etaU[i] ~ dnorm(logUne[i], taueU)C(,20)    # add random error
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
         eU[i] <- etaU[i] - logUne[i]
         mu.logitP[i] <- inprod(logitP.cov[i,1:NlogitP.cov], beta.logitP[1:NlogitP.cov])
 
-        ## logitP[i] ~ dnorm(mu.logitP[i],tauP)
+#        logitPu[i] ~ dnorm(mu.logitP[i],tauP)       # uncontrained logitP value
+#        logitP [i] <- max(-10,min(10, logitPu[i]))  # keep the logit from wandering too far off
 
-        mu.epsilon[i] <- mu.logitP[i] - log(u2[i] + 1) + etaU[i]
-        epsilon[i] ~ dnorm(mu.epsilon[i],tauP)
-
-        logitP[i] <- max(-10,min(10,log(u2[i] + 1) - etaU[i] + epsilon[i]))
+        ## Matt's fix to improve mixing. Use u2copy to break the cycle (this doesn't work??)
+        mu.epsilon[i] <- mu.logitP[i] - log(u2copy[i] + 1) + etaU[i]   
+        epsilon[i] ~ dnorm(mu.epsilon[i],tauP)                     
+        logitP[i] <- max(-10,min(10,log(u2copy[i] + 1) - etaU[i] + epsilon[i]))  
    }
 
    ##### Hyperpriors #####
    ## Run size - flat priors
    for(i in 1:n.b.flat){
+", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+      bU[b.flat[i]] ~ dnorm(0.0,1.0E-6) 
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
       bU[b.flat[i]] ~ dflat()
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
    }
    ## Run size - priors on the difference
    for(i in 1:n.b.notflat){
@@ -159,7 +220,7 @@ model TimeStratPetersenDiagError{
 } # end of model
 
 ", fill=TRUE)
-sink()  # End of saving the WinBugs program
+sink()  # End of saving the Bugs program
 
 
 # create the B-spline design matrix
@@ -202,7 +263,12 @@ n.bU <- n.b.flat + n.b.notflat
 logitP.cov <- as.matrix(logitP.cov)
 NlogitP.cov <- ncol(as.matrix(logitP.cov))
 
-datalist <- list("Nstrata", "n1", "m2", "u2", "logitP.cov", "NlogitP.cov",
+# create a copy of the u2 to improve mixing in the MCMC model
+u2copy <- spline(x=1:Nstrata, y=u2, xout=1:Nstrata)$y
+u2copy <- round(u2copy)  # round to integers
+
+datalist <- list("Nstrata", "n1", "m2", "u2", "u2copy", 
+		 "logitP.cov", "NlogitP.cov",
                  "SplineDesign",
                  "b.flat", "n.b.flat", "b.notflat", "n.b.notflat", "n.bU",
                  "tauU.alpha", "tauU.beta", "taueU.alpha", "taueU.beta",
@@ -293,22 +359,22 @@ for(i in 1:length(datalist)){
 }
 names(data.list) <- as.list(datalist)
 
-# Call OpenBUGS
+# Make the call to the MCMC sampler
 
-results <- run.openbugs(modelFile=model.file,
-                        dataFile=data.file,
-                        dataList=data.list,
-                        initFiles=init.files,
-                        initVals=init.vals,
-                        parameters=parameters,
-                        nChains=n.chains,
-                        nIter=n.iter,
-                        nBurnin=n.burnin,
-                        nSims=n.sims,
-                        overRelax=FALSE,
-                        initialSeed=InitialSeed,
-                        working.directory=working.directory,
-                        debug=debug)
-
-  return(results)
+results <- run.MCMC(modelFile=model.file,
+                            dataFile=data.file,
+                            dataList=data.list,
+                            initFiles=init.files,
+                            initVals=init.vals,
+                            parameters=parameters,
+                            nChains=n.chains,
+                            nIter=n.iter,
+                            nBurnin=n.burnin,
+                            nSims=n.sims,
+                            overRelax=FALSE,
+                            initialSeed=InitialSeed,
+                            working.directory=working.directory,
+			    engine=engine,
+                            debug=debug)
+return(results)
 }

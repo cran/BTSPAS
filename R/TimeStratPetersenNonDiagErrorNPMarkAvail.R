@@ -1,3 +1,8 @@
+# 2014-09-01 CJS conversion to JAGS
+#                - no model name
+#                - C(,20) -> T(,20)
+#                - dflat() to dnorm(0, 1E-6)
+#                - added u2copy to improve mixing based on Matt S. suggestion
 # 2011-05-15 CJS Limited etaU to max of 20
 # 2011-02-28 CJS First version
 
@@ -29,7 +34,11 @@ TimeStratPetersenNonDiagErrorNPMarkAvail <- function(title,
                                                      tauP.beta=.001, 
                                                      debug=FALSE,
                                                      debug2=FALSE,
+						     engine=c('jags','openbugs')[1],
                                                      InitialSeed){
+
+set.seed(InitialSeed)  # set prior to initial value computations
+
 #
 #  Fit the smoothed time-Stratified Petersen estimator with NON-Diagonal recoveries and less than 100%
 #  marked fish available for recapture.
@@ -37,12 +46,6 @@ TimeStratPetersenNonDiagErrorNPMarkAvail <- function(title,
 #  The travel time model is based on the continuation ratio and makes no parametric assumptions.
 #  It allows for only a fraction of marked fish to be available based on prior information
 #  on the marked availability rate (ma.p).
-#
-#  Packages Required - must be installed BEFORE calling this functin
-#
-#    R2WinBugs  - needed to call WinBugs to fit the model
-#    coda
-#    splines
 #
 #  This routine assumes that the strata are time (e.g. weeks).
 #  In each stratum n1 fish are released (with marks). These are ususally
@@ -73,7 +76,7 @@ TimeStratPetersenNonDiagErrorNPMarkAvail <- function(title,
 #      ma.p.alpha, ma.p.beta - information on mark available. Assumed to be prior beta(ma.p.alpha, ma.p.beta)
 
 
-#  This routine makes a call to WinBugs to fit the model and then gets back the 
+#  This routine makes a call to the MCMC sampler to fit the model and then gets back the 
 #  coda files for the posteriour distribution.
 
 ## Set working directory to current directory (we should allow users to select this)
@@ -85,12 +88,12 @@ data.file <- file.path(working.directory,"data.txt")
 init.files <- file.path(working.directory,
                        paste("inits", 1:n.chains,".txt", sep = ""))
   
-# Save the WinBugs progam to the model.txt file
+# Save the Bugs progam to the model.txt file
 #
 sink(model.file)  # NOTE: NO " allowed in model as this confuses the cat command
 cat("
 
-model TimeStratPetersenNonDiagErrorNP{
+model {
 
 # Time Stratified Petersen with NON Diagonal recapture and allowing for error in the smoothed U curve.
 # Non-parametric estimateion of travel times for marked individuals.
@@ -151,7 +154,24 @@ model TimeStratPetersenNonDiagErrorNP{
    for(i in 1:(Nstrata.cap)){
         ## Model for U's
         logUne[i] <- inprod(SplineDesign[i,1:n.bU],bU[1:n.bU])  # spline design matrix * spline coeff 
-        etaU[i] ~ dnorm(logUne[i], taueU)C(,20)              # add random error
+", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+        etaU[i] ~ dnorm(logUne[i], taueU)T(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
+        etaU[i] ~ dnorm(logUne[i], taueU)C(,20)              # add random error but keep from getting too large
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
         eU[i] <- etaU[i] - logUne[i]
    }
 
@@ -194,9 +214,29 @@ model TimeStratPetersenNonDiagErrorNP{
    sdTT <- 1/sqrt(tauTT)
 	
    ## Run size - flat priors
+      ", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+   for(i in 1:n.b.flat){
+      bU[b.flat[i]] ~ dnorm(0, 1E-6)
+   }
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
    for(i in 1:n.b.flat){
       bU[b.flat[i]] ~ dflat()
    }
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
+
    ## Run size - priors on the difference
    for(i in 1:n.b.notflat){
       xiU[b.notflat[i]] <- 2*bU[b.notflat[i]-1] - bU[b.notflat[i]-2]
@@ -245,9 +285,9 @@ model TimeStratPetersenNonDiagErrorNP{
 } # end of model
 ", fill=TRUE)
 
-sink()  # End of saving the WinBugs program
+sink()  # End of saving the Bugs program
 
-# Now to create the initial values, and the data prior to call to WinBugs
+# Now to create the initial values, and the data prior to call to the MCMC sampler
 
 Nstrata.rel <- length(n1)
 Nstrata.cap <- length(u2)
@@ -302,8 +342,12 @@ storage.mode(logitP) <- "double"  # force the storage class to be correct if the
 free.logitP.index <- (1:Nstrata.cap)[ is.na(logitP.fixed)]  # free values are those where NA is specifed
 Nfree.logitP <- length(free.logitP.index)
 
+# make a copy of u2 to improve mixing (not yet implemented)
+#u2copy <- spline(x=1:length(u2), y=u2, xout=1:length(u2))$y
+#u2copy <- round(u2copy) # round to integers
+
 datalist <- list("Nstrata.rel", "Nstrata.cap","Extra.strata.cap",
-                 "Delta.max","n1", "m2", "u2",
+                 "Delta.max","n1", "m2", "u2", # "u2copy", # u2copy not yet implemented
                  "logitP", "Nfree.logitP", "free.logitP.index",
                  "logitP.cov", "NlogitP.cov",
                  "ma.p.alpha","ma.p.beta",
@@ -430,13 +474,17 @@ for(i in 1:length(datalist)){
   data.list[[length(data.list)+1]] <-get(datalist[[i]])
 }
 names(data.list) <- as.list(datalist)
+
+## Generate the initial values and put into a list
+# make a list of initial values
+init.vals.list <- lapply(1:n.chains, function(x){init.vals()})
   
-# Call OpenBUGS
-results <- run.openbugs(modelFile=model.file,
+# Call the MCMC sampler
+results <- run.MCMC(modelFile=model.file,
                         dataFile=data.file,
                         dataList=data.list,
                         initFiles=init.files,
-                        initVals=init.vals,
+                        initVals=init.vals.list,
                         parameters=parameters,
                         nChains=n.chains,
                         nIter=n.iter,
@@ -445,6 +493,7 @@ results <- run.openbugs(modelFile=model.file,
                         overRelax=FALSE,
                         initialSeed=InitialSeed,
                         working.directory=working.directory,
+			engine=engine,
                         debug=debug)
 
 return(results)

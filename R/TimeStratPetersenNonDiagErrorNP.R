@@ -1,3 +1,8 @@
+# 2014-09-01 CJS converstion to JAGS
+#                - no model name
+#                - C(,20) -> T(,20)
+#                - dflat() to dnorm(0, 1E-6)
+#                - added u2copy to improve mixing based on Matt S. suggestion
 # 2011-05-15 CJS limited etaU to 20 to prevent overflow in binomial computations
 # 2011-03-09 CJS added prior to muTT (mean.muTT and sd.muTT) with defaults same a previously
 # 2011-02-17 CJS limited initial Pguess to between .01 and .99 to avoid taking logit of 0 or 1
@@ -36,17 +41,15 @@ TimeStratPetersenNonDiagErrorNP <- function(title,
                                             tauP.beta=.001,
                                             debug=FALSE,
                                             debug2=FALSE,
+					    engine=c('jags','openbugs')[1],
                                             InitialSeed){
+
+set.seed(InitialSeed)  # set prior to initial value computations
+
 #
 #  Fit the smoothed time-Stratified Petersen estimator with NON-Diagonal recoveries.
 #  This model allows recoveries outside the stratum of release and error in the smoothed U curve.
 #  The travel time model is based on the continuation ratio and makes no parametric assumptions.
-#
-#  Packages Required - must be installed BEFORE calling this functin
-#
-#    R2WinBugs  - needed to call WinBugs to fit the model
-#    coda
-#    splines
 #
 #  This routine assumes that the strata are time (e.g. weeks).
 #  In each stratum n1 fish are released (with marks). These are ususally
@@ -74,7 +77,7 @@ TimeStratPetersenNonDiagErrorNP <- function(title,
 #                    otherwise specify the logitP value.
 
 
-#  This routine makes a call to WinBugs to fit the model and then gets back the
+#  This routine makes a call to the MCMC sample to fit the model and then gets back the
 #  coda files for the posteriour distribution.
 
 ## Set working directory to current directory (we should allow users to select this)
@@ -86,12 +89,12 @@ data.file <- file.path(working.directory,"data.txt")
 init.files <- file.path(working.directory,
                        paste("inits", 1:n.chains,".txt", sep = ""))
 
-# Save the WinBugs progam to the model.txt file
+# Save the Bugs progam to the model.txt file
 #
 sink(model.file)  # NOTE: NO " allowed in model as this confuses the cat command
 cat("
 
-model TimeStratPetersenNonDiagErrorNP{
+model {
 
 # Time Stratified Petersen with NON Diagonal recapture and allowing for error in the smoothed U curve.
 # Non-parametric estimateion of travel times for marked individuals.
@@ -149,17 +152,34 @@ model TimeStratPetersenNonDiagErrorNP{
    for(i in 1:(Nstrata.cap)){
         ## Model for U's
         logUne[i] <- inprod(SplineDesign[i,1:n.bU],bU[1:n.bU])  # spline design matrix * spline coeff
+", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+        etaU[i] ~ dnorm(logUne[i], taueU)T(,20)              # add random error but keep from getting too large
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
         etaU[i] ~ dnorm(logUne[i], taueU)C(,20)              # add random error but keep from getting too large
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
         eU[i] <- etaU[i] - logUne[i]
    }
 
    for(i in 1:Nfree.logitP){   # model the free capture rates using covariates
         mu.logitP[free.logitP.index[i]] <- inprod(logitP.cov[free.logitP.index[i],1:NlogitP.cov], beta.logitP[1:NlogitP.cov])
         ## logitP[free.logitP.index[i]] ~ dnorm(mu.logitP[free.logitP.index[i]],tauP)
-        mu.epsilon[free.logitP.index[i]] <- mu.logitP[free.logitP.index[i]] - log(u2[free.logitP.index[i]] + 1) + etaU[free.logitP.index[i]]
+        mu.epsilon[free.logitP.index[i]] <- mu.logitP[free.logitP.index[i]] - log(u2copy[free.logitP.index[i]] + 1) + etaU[free.logitP.index[i]]
         epsilon[free.logitP.index[i]] ~ dnorm(mu.epsilon[free.logitP.index[i]],tauP)
 
-        logitP[free.logitP.index[i]] <- log(u2[free.logitP.index[i]] + 1) - etaU[free.logitP.index[i]] + epsilon[free.logitP.index[i]]
+        logitP[free.logitP.index[i]] <- log(u2copy[free.logitP.index[i]] + 1) - etaU[free.logitP.index[i]] + epsilon[free.logitP.index[i]]
    }
 
    ##### Priors and hyperpriors #####
@@ -191,9 +211,28 @@ model TimeStratPetersenNonDiagErrorNP{
    sdTT <- 1/sqrt(tauTT)
 
    ## Run size - flat priors
+   ", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+   for(i in 1:n.b.flat){
+      bU[b.flat[i]] ~ dnorm(0, 1E-6)
+   }
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
    for(i in 1:n.b.flat){
       bU[b.flat[i]] ~ dflat()
    }
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
    ## Run size - priors on the difference
    for(i in 1:n.b.notflat){
       xiU[b.notflat[i]] <- 2*bU[b.notflat[i]-1] - bU[b.notflat[i]-2]
@@ -242,9 +281,9 @@ model TimeStratPetersenNonDiagErrorNP{
 } # end of model
 ", fill=TRUE)
 
-sink()  # End of saving the WinBugs program
+sink()  # End of saving the Bugs program
 
-# Now to create the initial values, and the data prior to call to WinBugs
+# Now to create the initial values, and the data prior to call to MCMC sampler
 
 Nstrata.rel <- length(n1)
 Nstrata.cap <- length(u2)
@@ -300,8 +339,13 @@ free.logitP.index <- (1:Nstrata.cap)[ is.na(logitP.fixed)]  # free values are th
 Nfree.logitP <- length(free.logitP.index)
 
 tau.muTT <- 1/sd.muTT**2  # convert from sd to precision = 1/variance
+
+# make a copy of u2 to improve mixing
+u2copy <- spline(x=1:length(u2), y=u2, xout=1:length(u2))$y
+u2copy <- round(u2copy) # round to integers
+
 datalist <- list("Nstrata.rel", "Nstrata.cap","Extra.strata.cap",
-                 "Delta.max","n1", "m2", "u2",
+                 "Delta.max","n1", "m2", "u2", "u2copy",
                  "logitP", "Nfree.logitP", "free.logitP.index",
                  "logitP.cov", "NlogitP.cov",
                  "SplineDesign",
@@ -353,66 +397,6 @@ parameters <- c("logitP", "beta.logitP", "tauP", "sigmaP",
 if( any(is.na(m2))) {parameters <- c(parameters,"m2")} # monitor in case some bad data where missing values present
 if( any(is.na(u2))) {parameters <- c(parameters,"u2")}
 
-init.vals <- function(){
-   init.logitP <- c(logit((apply(m2[,1:(Delta.max+1)],1,sum)+1)/(n1+1)),rep(mu_xiP,Nstrata.cap-Nstrata.rel))         # initial capture rates based on observed recaptures
-   init.logitP <- pmin(10,pmax(-10,init.logitP))
-   init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
-   init.logitP[!is.na(logitP.fixed)] <- NA        # no need to initialize the fixed values
-
-   init.beta.logitP <- as.vector(lm( init.logitP ~ logitP.cov-1)$coefficients)
-   init.beta.logitP[is.na(init.beta.logitP)] <- 0
-   init.beta.logitP <- c(init.beta.logitP, 0)   # add one extra element so that single beta is still written as a
-                                             # vector in the init files etc.
-
-   init.logitP <- c(init.logitP,rep(NA,Extra.strata.cap)) # Add values for extra capture probabilities
-
-   init.tauP <- 1/var(init.logitP, na.rm=TRUE)     # 1/variance of logit(p)'s (ignoring the covariates for now)
-
-   init.bU   <- lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
-   init.eU   <- as.vector(log(Uguess)-SplineDesign%*%init.bU)  # error terms set as differ between obs and pred
-   init.etaU <- log(Uguess)
-
-   # variance of spline difference
-   sigmaU <- sd( init.bU[b.notflat]-2*init.bU[b.notflat-1]+init.bU[b.notflat-2], na.rm=TRUE)
-   init.tauU <- 1/sigmaU^2
-
-   # variance of error in the U' over and above the spline fit
-   sigmaeU <- sd(init.eU, na.rm=TRUE)
-   init.taueU <- 1/sigmaeU^2
-
-   # initialize the u2 where missing
-   init.u2    <- u2
-   init.u2[ is.na(u2)] <- 100
-   init.u2[!is.na(u2)] <- NA
-
-   ## Transition probabilities
-   init.Theta <- t(sapply(1:Nstrata.rel,function(i){
-
-     if(all(is.na(m2[i,])) || sum(m2[i,])==0)
-        return(rep(NA,Delta.max+1))
-
-     else{
-       thetatmp <- pmax(.01,pmin(m2[i,-(Delta.max+2)]/sum(m2[i,-(Delta.max+2)],na.rm=TRUE),.99,na.rm=TRUE))  # CJS 2011-02-16
-       return(thetatmp/sum(thetatmp))
-     }
-   }))
-# cat('Initial values')
-# browser()
-   init.delta <- t(apply(as.matrix(init.Theta[,-(Delta.max+1)]),1,   # CJS 2011-02-16 as.matrix added
-      function(theta){    # CJS fixed -(Delta.max+1)
-         if(length(theta) == 1){theta} else {theta/(1-c(0,cumsum(theta[-Delta.max])))}
-   }))
-
-   ## mean and standard deviation of transition probabilties
-   init.muTT <- apply(logit(init.delta),2,mean,na.rm=TRUE)
-   init.sdTT <- sd(as.vector(t(logit(init.delta)))-init.muTT,na.rm=TRUE)
-
-#browser()
-   list(logitP=init.logitP, beta.logitP=init.beta.logitP, tauP=init.tauP,
-        bU=init.bU,  tauU=init.tauU, taueU=init.taueU, etaU=init.etaU,
-        muTT=init.muTT, tauTT=1/init.sdTT^2,r=logit(init.delta))
-}
-
 init.vals <- genInitVals("TSPNDENP",
                          n1,m2,u2,
                          Delta.max=Delta.max,
@@ -428,9 +412,9 @@ for(i in 1:length(datalist)){
 }
 names(data.list) <- as.list(datalist)
 
-# Set up for the call to WinBUGS or OpenBUGS
+# Set up for the call to the MCMC sampler
 
-results <- run.openbugs(modelFile=model.file,
+results <- run.MCMC(modelFile=model.file,
                         dataFile=data.file,
                         dataList=data.list,
                         initFiles=init.files,
@@ -443,6 +427,7 @@ results <- run.openbugs(modelFile=model.file,
                         overRelax=FALSE,
                         initialSeed=InitialSeed,
                         working.directory=working.directory,
+			engine=engine,
                         debug=debug)
 
 return(results)

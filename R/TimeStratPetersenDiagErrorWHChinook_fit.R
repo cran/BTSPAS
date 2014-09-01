@@ -1,3 +1,4 @@
+# 2014-09-01 CJS converted to JAGS
 # 2012-08-30 CJS fixed problem in any() and all() in error checking with NAs
 # 2011-06-13 CJS add p-values to results
 # 2010-11-25 CJS pretty printing of final population estimates
@@ -22,12 +23,13 @@ TimeStratPetersenDiagErrorWHChinook_fit<-
                  tauP.alpha=.001, tauP.beta=.001,
                  run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
                  debug=FALSE, debug2=FALSE,
-                 InitialSeed=ceiling(runif(1,min=0, max=14))) {
+		 engine=c('jags',"openbugs")[1],
+                 InitialSeed=ceiling(runif(1,min=0, max=if(engine=="jags"){1000000}else{14}))) {
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error,
 # covariates for the the capture probabilities, and separating the wild vs hatchery fish
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2011-01-24'
+   version <- '2014-09-01'
    options(width=200)
 
 # Input parameters are
@@ -447,7 +449,7 @@ if (debug)
             logitP.cov=new.logitP.cov,
             n.chains=3, n.iter=10000, n.burnin=5000, n.sims=500,  # set to low values for debugging only
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
-            debug=debug, InitialSeed=InitialSeed)
+            debug=debug, engine=engine, InitialSeed=InitialSeed)
    } else #notice R syntax requires { before the else
    {results <- TimeStratPetersenDiagErrorWHChinook(title=title, prefix=prefix, 
             time=new.time, n1=new.n1, m2=new.m2, u2.A=new.u2.A, u2.N=new.u2.N, 
@@ -455,12 +457,16 @@ if (debug)
             logitP.cov=new.logitP.cov,
             n.chains=n.chains, n.iter=n.iter, n.burnin=n.burnin, n.sims=n.sims,
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
-                                                  InitialSeed=InitialSeed)
+            engine=engine, InitialSeed=InitialSeed)
    }
 
 # Now to create the various summary tables of the results
 
-#browser()
+if (debug2) {
+   cat("\nAfter formal call to TimeStratPetersenDiagErrorWHChinook\n")
+   browser()
+}
+
 # A plot of the observered log(U) on the log scale, and the final mean log(U)
 plot_logU <- function(title, time, n1, m2, u2.A, u2.N, clip.frac.H, results){
 #  Plot the observed and fitted logU values along with posterior limits
@@ -501,22 +507,22 @@ plot_logU <- function(title, time, n1, m2, u2.A, u2.N, clip.frac.H, results){
    # the wild fish are estimated for ALL strata
    # the hatchery fish are estimated ONLY for those weeks after hatch.after
    time.W <- time
-   time.H <- time[time>hatch.after]
+   time.H <- time>hatch.after
    # plot the raw log(U) values
    plot(time.W, log(Uguess.W), type="p", pch="w", 
         main=paste(title,"\nFitted spline curve to raw U.W[i] U.H[i] with 95% credible intervals"),
         sub='Fitted/Smoothed/Raw values plotted for W(solid) and H(dash)',
         ylab='log(U[i])',
         xlab='Time Index', ylim=c(min_logU,max_logU))  # initial points on log scale.
-   points(time.H, log(Uguess.H[time>hatch.after]), pch="h")
+   points(time[time.H], log(Uguess.H[time.H]), pch="h")
    # plot the mean of the etaU
    points(time.W, etaU.W[,"mean"], type="p", pch=19)  # fitted values for wild fish
-   points(time.H+.1, etaU.H[,"mean"], type="p", pch=22)  # fitted values for hatchery fish
+   points(time[time.H]+.1, etaU.H[time.H,"mean"], type="p", pch=22)  # fitted values for hatchery fish
    lines(time.W, etaU.W[,"mean"])  # add smoothed spline through points
-   lines(time.H+.1, etaU.H[,"mean"], lty=2)
+   lines(time[time.H]+.1, etaU.H[time.H,"mean"], lty=2)
    # plot the 2.5 -> 97.5 posterior values
    segments(time.W,    etaU.W[,"2.5%"], time.W,    etaU.W[,"97.5%"])
-   segments(time.H+.1, etaU.H[,"2.5%"], time.H+.1, etaU.H[,"97.5%"], lty=2)
+   segments(time[time.H]+.1, etaU.H[time.H,"2.5%"], time[time.H]+.1, etaU.H[time.H,"97.5%"], lty=2)
 
    # plot the spline curve before the error term is added.
    # extract the bU coefficients
@@ -525,96 +531,19 @@ plot_logU <- function(title, time, n1, m2, u2.A, u2.N, clip.frac.H, results){
    logUne.row.index.H <- grep("logUne.H", results.row.names)
    logUne.H<- results$summary[logUne.row.index.H,"mean"]
 #  points(time.W, logUne.W, type="p", pch=20) # too busy to plot the spline points as well)
-   lines(time.W, logUne.W, lty=1)  # plot the curve
-#  points(time.H, logUne.H, type="p", pch=21)
-   lines(time.H, logUne.H, lty=2)  # plot the curve # too busy to plot the spline points as well
+   lines (time.W, logUne.W, lty=1)  # plot the curve
+#  points(time[time.H], logUne.H[time.H], type="p", pch=21)
+   lines (time[time.H], logUne.H[time.H], lty=2)  # plot the curve # too busy to plot the spline points as well
 
 }
-
-plot_logitP <- function(title, time, n1, m2, u2.A, u2.N, logitP.cov, results){
-#  Plot the observed and fitted logit(p) values along with posterior limits
-#  n1, m2, u2.A, u2.N are the raw data (u2 has been adjusted upward for sampling fraction < 1 prior to call)
-#  logitP.cov is the covariate matrix for modelling the logit(P)'s
-#  results is the summary table from WinBugs
-#
-#  Get the minimum and maximum values for the axis on the logit scale
-
-   min_logitP <- 100
-   max_logitP <- -100
-
-   if(debug2){
-      cat("plot_logitP\n")
-      browser()
-   }
-   Nstrata <- length(n1)
-   raw_logitP <- logit((m2+1)/(n1+2))        # based on raw data
-   min_logitP <- min( c(min_logitP, raw_logitP), na.rm=TRUE)
-   max_logitP <- max( c(max_logitP, raw_logitP), na.rm=TRUE)
-
-   # which rows contain the logitP[xx] ?
-   results.row.names <- rownames(results$summary)
-   logitP.row.index    <- grep("^logitP", results.row.names)
-   est_logitP<- results$summary[logitP.row.index,]
-   min_logitP <- min( c(min_logitP, est_logitP[,"mean"]), na.rm=TRUE)
-   max_logitP <- max( c(max_logitP, est_logitP[,"mean"]), na.rm=TRUE)
-   min_logitP <- min( c(min_logitP, est_logitP[,"2.5%"]), na.rm=TRUE)
-   max_logitP <- max( c(max_logitP, est_logitP[,"2.5%"]), na.rm=TRUE)
-   min_logitP <- min( c(min_logitP, est_logitP[,"97.5%"]),na.rm=TRUE)
-   max_logitP <- max( c(max_logitP, est_logitP[,"97.5%"]),na.rm=TRUE)
-
-
-
-   main.title <- paste(title,"\nPlot of logit(p[i]) with 95% credible intervals")
-   if(ncol(logitP.cov)>1){main.title<- title}
-       sub.title <- paste("Horizontal line is estimated beta.logitP[1]",
-                 "\nInner fence is c.i. on beta.logitP[1]",
-                 "\nOuter fence is 95% range on logit(p)")
-   if(ncol(logitP.cov)>1){sub.title <- "Dashed line is second covariate"}
-   plot(time, raw_logitP, 
-       main=main.title,
-       sub=sub.title,
-       ylab='logit(p[i])', xlab='Stratum', ylim=c(min_logitP,max_logitP))  # initial points on log scale.
-
- 
-   # plot the posterior mean of the logitP if there is only one column for a covariate
-   points(time, est_logitP[,"mean"],type="p", pch=19) # the final estimates
-   lines(time, est_logitP[,"mean"])  # join the mean of the fitted logitP
- 
-   # plot the 2.5 -> 97.5 posterior values
-   segments(time, est_logitP[,"2.5%"], time, est_logitP[,"97.5%"])
-
-   if(ncol(logitP.cov)==1){  # if only 1 column for covariate vector, usually an intercept
-      # plot the posterior mean of the beta.logitP[1] term which is usually
-      #      the intercept in most models with covariates along with 95% credible interval
-      intercept.row.index    <- grep("beta.logitP[1]", results.row.names, fixed=TRUE)
-      intercept <- results$summary[intercept.row.index,]
-      segments(time[1], intercept["mean"],time[Nstrata], intercept["mean"])
-      segments(time[1], intercept["2.5%"],time[Nstrata], intercept["2.5%"], lty=2)
-      segments(time[1], intercept["97.5%"],time[Nstrata],intercept["97.5%"], lty=2)
-
-      # plot the posterior "95% range" for the logit(P)'s based on N(xip, sigmaP^2)
-      sigmaP.row.index <- grep("sigmaP", results.row.names)
-      sigmaP <- results$summary[sigmaP.row.index,]
-      segments(time[1], intercept["mean"]-2*sigmaP["mean"], time[Nstrata], intercept["mean"]-2*sigmaP["mean"], lty=3)
-      segments(time[1], intercept["mean"]+2*sigmaP["mean"], time[Nstrata], intercept["mean"]+2*sigmaP["mean"], lty=3)
-   }
-   if(ncol(logitP.cov)>1){  # if exactly 2 covariates, plot the second covarite over time as well
-      par(new=TRUE)   # reuse the same plot
-      plot(time, logitP.cov[,2], type="l", lty=2, axes=FALSE, xlab="", ylab="")  # plot the covariate
-   }
-
-   # plot residuals of the logit(P)'s against the various covariates
-   # to be done in my next life
-}
-
 
 pdf(file=paste(prefix,"-logU.pdf",sep=""))
 plot_logU(title=title, time=new.time, n1=new.n1, m2=new.m2, u2.A=new.u2.A, u2.N=new.u2.N, clip.frac.H, results=results)
 dev.off()
 
-pdf(file=paste(prefix,"-logitP.pdf",sep=""))
-plot_logitP(title=title, time=new.time, n1=new.n1, m2=new.m2, u2.A=new.u2.A, u2.N=new.u2.N,logitP.cov=new.logitP.cov, results=results) 
-dev.off()
+logitP.plot <- plot_logitP(title=title, time=new.time, n1=new.n1, m2=new.m2, u2=new.u2.A+new.u2.N,  logitP.cov=new.logitP.cov, results=results)
+ggsave(plot=logitP.plot, filename=paste(prefix,"-logitP.pdf",sep=""), height=6, width=10, units="in")
+results$plots$logitP.plot <- logitP.plot
 
 # Look at autocorrelation function for Utot.W and Utot.H
 pdf(file=paste(prefix,"-UtotW-acf.pdf",sep=""))
@@ -721,7 +650,7 @@ print(round(temp,2))
 
 cat("\n\n*** Summary of Quantiles of Run Timing.Hatchery *** \n")
 cat(    "    This is based on the sample weeks provided and the U.H[i] values \n") 
-q <- RunTime(time=time[time>hatch.after], U=results$sims.list$U.H, prob=run.prob)
+q <- RunTime(time=time[time>hatch.after], U=results$sims.list$U.H[,time>hatch.after], prob=run.prob)
 temp <- rbind(apply(q,2,mean), apply(q,2,sd))
 rownames(temp) <- c("Mean", "Sd")
 print(round(temp,2))

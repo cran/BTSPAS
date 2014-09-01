@@ -5,6 +5,7 @@
 \alias{genInitsTTln}
 \alias{genInitsTTnp}
 \alias{lnTheta}
+\alias{plot_logitP}
 \alias{PredictivePosterior.TSPDE}
 \alias{PredictivePosterior.TSPDE.WHCH}
 \alias{PredictivePosterior.TSPDE.WHCH2}
@@ -19,9 +20,8 @@
 \alias{PredictivePosterior.TSPNDENP}
 \alias{RunTime}
 \alias{run.openbugs}
-%\alias{run.windows}
-%\alias{run.windows.openbugs}
-%\alias{run.windows.winbugs}
+\alias{run.jags}
+\alias{run.MCMC}
 \alias{simTSPNDE}
 \alias{SimplePetersen}
 \alias{TestIfPool}

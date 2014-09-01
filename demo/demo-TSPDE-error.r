@@ -1,8 +1,8 @@
+# 2014-09-01 CJS Removed prompts; showed how to call openbugs
 # 2009-12-05
 # This is a demonstration of the error messages in calling Time Stratified Petersen with Diagonal Entries (TSPDE) program
 
-par(ask=FALSE)
-dev.off()  # turn off blank graphics page
+# load library
 library("BTSPAS")
 
 # Get the data. In many cases, this is stored in a *.csv file and read into the program
@@ -70,6 +70,7 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagError_fit(
                   sampfrac=demo.sampfrac,
                   jump.after=demo.jump.after,
                   bad.m2=demo.bad.m2,
+		  #engine="openbugs",
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 demo.logitP.cov_error <- matrix(0,nrow=length(demo.n1)+2,ncol=2)
@@ -84,6 +85,7 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagError_fit(
                   sampfrac=demo.sampfrac,
                   jump.after=demo.jump.after,
                   bad.m2=demo.bad.m2,
+		  #engine="openbugs",
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 
@@ -100,6 +102,7 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagError_fit(
                   sampfrac=demo.sampfrac,
                   jump.after=demo.jump.after,
                   bad.m2=demo.bad.m2,
+		  #engine="openbugs",
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 
@@ -117,6 +120,7 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagError_fit(
                   sampfrac=demo.sampfrac,
                   jump.after=demo.jump.after,
                   bad.m2=demo.bad.m2_error,
+		  #engine="openbugs",
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 
@@ -134,6 +138,7 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagError_fit(
                   sampfrac=demo.sampfrac,
                   jump.after=demo.jump.after_error,
                   bad.m2=demo.bad.m2,
+		  #engine="openbugs",
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 
@@ -148,6 +153,7 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagError_fit(
                   sampfrac=demo.sampfrac,
                   jump.after=demo.jump.after,
                   bad.m2=demo.bad.m2,
+		  #engine="openbugs",
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 
@@ -162,6 +168,7 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagError_fit(
                   sampfrac=demo.sampfrac,
                   jump.after=demo.jump.after,
                   bad.m2=demo.bad.m2,
+		  #engine="openbugs",
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 

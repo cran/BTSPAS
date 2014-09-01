@@ -1,3 +1,4 @@
+% 2013-12-31 CJS conversion to jags
 % 2012-01-10 CJS commented out the \details, \note, \seealso section to avoid warnings on package build
 % 2011-05-03 CJS Updated with openbugs, openbugs.directory, winbugs.directory
 % 2011-03-10 CJS Updated with changes to arguments for prior on movement rates
@@ -42,7 +43,9 @@ TimeStratPetersenNonDiagError_fit(title="TSPNDE", prefix="TSPNDE-",
     tau_xiP = .6666,
     tauP.alpha = 0.001, tauP.beta = 0.001, run.prob = seq(0, 1, 0.1),  
     debug = FALSE, debug2 = FALSE, 
-    InitialSeed=ceiling(runif(1,min=0, max=14)))
+    engine=c('jags',"openbugs")[1],
+    InitialSeed=ceiling(runif(1,min=0, max=if(engine=="jags"){1000000}else{14})))
+
 
 TimeStratPetersenNonDiagError (
     title, prefix, time, n1, m2, u2,
@@ -52,7 +55,9 @@ TimeStratPetersenNonDiagError (
     tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
     mu_xiP=-2, tau_xiP=.6666, 
     tauP.alpha=.001, tauP.beta=.001, 
-    debug=FALSE, debug2=FALSE, InitialSeed)
+    debug=FALSE, debug2=FALSE, 
+    engine=c('jags',"openbugs")[1],
+    InitialSeed)
 
 TimeStratPetersenNonDiagErrorNP_fit( 
     title="TSPNDENP", prefix="TSPNDENP-", 
@@ -70,7 +75,9 @@ TimeStratPetersenNonDiagErrorNP_fit(
     tauTT.alpha=.1,tauTT.beta=.1,
     run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
     debug=FALSE, debug2=FALSE, 
-    InitialSeed=ceiling(runif(1,min=0, max=14)))
+    engine=c('jags',"openbugs")[1],
+    InitialSeed=ceiling(runif(1,min=0, max=if(engine=="jags"){1000000}else{14})))
+
 
 TimeStratPetersenNonDiagErrorNP (
      title, prefix, time, n1, m2, u2,
@@ -83,7 +90,9 @@ TimeStratPetersenNonDiagErrorNP (
      tauTT.alpha=.1, tauTT.beta=.1,
      mu_xiP=-2, tau_xiP=.6666, 
      tauP.alpha=.001, tauP.beta=.001, 
-     debug=FALSE, debug2=FALSE, InitialSeed)
+     debug=FALSE, debug2=FALSE, 
+     engine=c('jags',"openbugs")[1],
+     InitialSeed)
 
 TimeStratPetersenNonDiagErrorNPMarkAvail_fit( 
     title="TSPNDENP", prefix="TSPNDENP-", 
@@ -100,7 +109,9 @@ TimeStratPetersenNonDiagErrorNPMarkAvail_fit(
     Delta.max=NULL,tauTT.alpha=.1,tauTT.beta=.1,
     run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
     debug=FALSE, debug2=FALSE,
-    InitialSeed=ceiling(runif(1,min=0, max=14)))
+    engine=c('jags',"openbugs")[1],
+    InitialSeed=ceiling(runif(1,min=0, max=if(engine=="jags"){1000000}else{14})))
+
 
 TimeStratPetersenNonDiagErrorNPMarkAvail (
      title, prefix, time, n1, m2, u2,
@@ -112,7 +123,9 @@ TimeStratPetersenNonDiagErrorNPMarkAvail (
      Delta.max,tauTT.alpha=.1, tauTT.beta=.1,
      mu_xiP=-2, tau_xiP=.6666, 
      tauP.alpha=.001, tauP.beta=.001, 
-     debug=FALSE, debug2=FALSE, InitialSeed)
+     debug=FALSE, debug2=FALSE, 
+     engine=c('jags',"openbugs")[1],
+     InitialSeed)
 #
 }
 %- maybe also 'usage' for other objects documented here.
@@ -201,6 +214,7 @@ TimeStratPetersenNonDiagErrorNPMarkAvail (
        is reduced considerably for a quick turn around. }
   \item{debug2}{Logical flag indicated if additional debugging information is produced. Normally the functions will halt at \code{browser()}
        calls to allow the user to peek into the internal variables. Not useful except to package developers.}
+  \item{engine}{Which MCMC sampler to use. JAGS=default, OpenBugs=alternate. Case not important.}
   \item{InitialSeed}{Numeric value used to initialize the random numbers used in the MCMC iterations.}
 }
 %\details{

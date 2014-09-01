@@ -1,3 +1,4 @@
+## 2014-09-01 CJS conversion to jags
 ## 2012-08-30 CJS fixed errors with any() and all() with NAs in error checking
 ## 2012-02-15 CJS fixed plotting limits on log(U) plot
 ## 2011-06-13 CJS added bayesian p-values to results
@@ -27,13 +28,14 @@ TimeStratPetersenNonDiagErrorNP_fit<- function( title="TSPNDENP", prefix="TSPNDE
                          tauTT.alpha=.1,tauTT.beta=.1,
                          run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted
                          debug=FALSE, debug2=FALSE,
-                         InitialSeed=ceiling(runif(1,min=0, max=14))) {
+                         engine=c('jags','openbugs')[1],
+                         InitialSeed=ceiling(runif(1,min=0, max=if(engine=="jags"){1000000}else{14}))) {
   ## Fit a Time Stratified Petersen model with NON-diagonal entries and with smoothing on U allowing for random error
   ## This is the classical stratified Petersen model where the recoveries can take place for this and multiple
   ## strata later. Transisions of marked fish are modelled non-parametrically.
   ##
 
-  version <- '2011-06-13'
+  version <- '2014-09-01'
   options(width=200)
 
   ## Input parameters are
@@ -403,7 +405,8 @@ sampfrac <- as.vector(sampfrac)
                          Delta.max=Delta.max,
                          mean.muTT=mean.muTT, sd.muTT=sd.muTT,
                          tauTT.alpha=tauTT.alpha,tauTT.beta=tauTT.beta,
-                         debug=debug, debug2=debug2, InitialSeed=InitialSeed)
+                         debug=debug, debug2=debug2, 
+			 engine=engine, InitialSeed=InitialSeed)
    } else #notice R syntax requires { before the else
    {results <- TimeStratPetersenNonDiagErrorNP(title=title, prefix=prefix,
                          time=new.time, n1=new.n1, m2=new.m2, u2=new.u2,
@@ -415,7 +418,9 @@ sampfrac <- as.vector(sampfrac)
                          Delta.max=Delta.max,
                          mean.muTT=mean.muTT, sd.muTT=sd.muTT,
                          tauTT.alpha=tauTT.alpha,tauTT.beta=tauTT.beta,
-                         debug=debug, debug2=debug2,  InitialSeed=InitialSeed)
+                         debug=debug, debug2=debug2,  
+			 engine=engine,
+			 InitialSeed=InitialSeed)
    }
 
   ## Now to create the various summary tables of the results
@@ -458,79 +463,14 @@ sampfrac <- as.vector(sampfrac)
     lines(time, logUne, lty=2)  ## plot the curve
   }
 
-plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
-#  Plot the observed and fitted logit(p) values along with posterior limits
-#  n1, m2, u2 are the raw data (u2 has been adjusted upward for sampling fraction < 1 prior to call)
-#  logitP.cov is the covariate matrix for modelling the logit(P)'s
-#  results is the summary table from WinBugs
-   if(debug2){
-      cat("*** plot_logitP\n")
-      browser()
-   }
-   Nstrata.rel <- length(n1)
-   Nstrata.cap <- ncol(m2) -1 # remember that last column of m2 is number of fish never seen again
-   logitP <- max(-10,min(10,logit((apply(m2[,1:Nstrata.cap],1,sum)+1)/(n1+2))))        # based on raw data
-   main.title <- paste(title,"\nPlot of logit(p[i]) with 95% credible intervals")
-   if(ncol(as.matrix(logitP.cov))>1){main.title<- title}
-    sub.title <- paste("Horizontal line is estimated beta.logitP[1]",
-                 "\nInner fence is c.i. on beta.logitP[1]",
-                 "\nOuter fence is 95% range on logit(p)")
-   if(ncol(as.matrix(logitP.cov))>1){sub.title <- "Dashed line is second covariate"}
- #  plot(time[1:Nstrata.rel], logitP,   # Not really sensible to plot these initial guesses as they are silly
- #      main=main.title,
- #      sub=sub.title,
- #      ylab='logit(p[i])', xlab='Stratum')  # initial points on log scale.
-
-   # which rows contain the logitP[xx] ?
-   results.row.names <- rownames(results$summary)
-   logitP.row.index  <- grep("^logitP", results.row.names)
-   logitP<- results$summary[logitP.row.index,]   # Notice that fixed logitPs will NOT be in this list
-   free.index <- (1:Nstrata.cap)[is.na(new.logitP.fixed)]
-   temp.logitP <- rep(NA,Nstrata.cap)
-   temp.logitP[free.index] <- logitP[,"mean"]   # pick out the free logitPs for plotting
-
-   # plot the posterior mean of the logitP if there is only one column for a covariate
-   ylim=c( min(c(temp.logitP,logitP.fixed.values,logitP[,"2.5%"] ), na.rm=TRUE),
-           max(c(temp.logitP,logitP.fixed.values,logitP[,"97.5%"]), na.rm=TRUE))
-   plot(time, temp.logitP ,type="p", pch=19, main=main.title, sub=sub.title, ylab='logit(p[i])', ylim=ylim) # the final estimates
-   # plot the fixed logitPs
-   points(logitP.fixed, logitP.fixed.values, type="p", pch=13)
-   lines(time,temp.logitP)  # join the mean of the fitted free logitP
-
-   # plot the 2.5 -> 97.5 posterior values
-   segments(time[free.index], logitP[,"2.5%"], time[free.index], logitP[,"97.5%"])
-
-   if(ncol(as.matrix(logitP.cov))==1){  # if only 1 column for covariate vector, usually an intercept
-      # plot the posterior mean of the beta.logitP[1] term which is usually
-      #      the intercept in most models with covariates along with 95% credible interval
-      intercept.row.index    <- grep("beta.logitP[1]", results.row.names, fixed=TRUE)
-      intercept <- results$summary[intercept.row.index,]
-      segments(time[1], intercept["mean"],time[Nstrata.cap], intercept["mean"])
-      segments(time[1], intercept["2.5%"],time[Nstrata.cap], intercept["2.5%"], lty=2)
-      segments(time[1], intercept["97.5%"],time[Nstrata.cap],intercept["97.5%"], lty=2)
-
-      # plot the posterior "95% range" for the logit(P)'s based on N(xip, sigmaP^2)
-      sigmaP.row.index <- grep("sigmaP", results.row.names)
-      sigmaP <- results$summary[sigmaP.row.index,]
-      segments(time[1], intercept["mean"]-2*sigmaP["mean"], time[Nstrata.cap], intercept["mean"]-2*sigmaP["mean"], lty=3)
-      segments(time[1], intercept["mean"]+2*sigmaP["mean"], time[Nstrata.cap], intercept["mean"]+2*sigmaP["mean"], lty=3)
-   }
-   if(ncol(as.matrix(logitP.cov))>1){  # if exactly 2 covariates, plot the second covarite over time as well
-      par(new=TRUE)   # reuse the same plot
-      plot(time, logitP.cov[,2], type="l", lty=2, axes=FALSE, xlab="", ylab="")  # plot the covariate
-   }
-
-   # plot residuals of the logit(P)'s against the various covariates
-   # to be done in my next life
-}
 
   pdf(file=paste(prefix,"-logU.pdf",sep=""))
   plot_logU(title=title, time=new.time, n1=new.n1, m2=expanded.m2, u2=new.u2, results=results)
   dev.off()
 
-  pdf(file=paste(prefix,"-logitP.pdf",sep=""))
-  plot_logitP(title=title, time=new.time, n1=new.n1, m2=expanded.m2, u2=new.u2, logitP.cov=new.logitP.cov, results=results)
-  dev.off()
+  logitP.plot <- plot_logitP(title=title, time=new.time, n1=new.n1, m2=expanded.m2, u2=new.u2, logitP.cov=new.logitP.cov, results=results)
+  ggsave(plot=logitP.plot, filename=paste(prefix,"-logitP.pdf",sep=""), height=6, width=10, units="in")
+  results$plots$logitP.plot <- logitP.plot
 
   ## Look at autocorrelation function for Ntot
   pdf(file=paste(prefix,"-Utot-acf.pdf",sep=""))
@@ -552,6 +492,7 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
   abline(v=results$summary["Utot",c("2.5%","97.5%")])  ## add vertical reference lines
   dev.off()
 
+  #browser()
   ## Bayesian P-values
   pdf(file=paste(prefix,"-GOF.pdf",sep=""))
   discrep <-PredictivePosterior.TSPNDENP(new.n1, expanded.m2, new.u2,
@@ -559,7 +500,7 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
                                          expit(results$sims.list$logitP),
                                          round(results$sims.list$U),
                                          results$sims.list$Theta,
-                                         Delta.max)
+                                         Delta.max, engine)
   gof <- PredictivePosteriorPlot.TSPNDE (discrep)
   dev.off()
 

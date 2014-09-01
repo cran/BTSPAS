@@ -1,3 +1,4 @@
+% 2013-12-30 CJS added engine=jags argument to call
 % 2013-05-13 CJS fixed all \usage lines more than 90 characters long to avoid R CMD check warnings
 % 2012-01-13 CJS commented out the \details, \note, \seealso sections to avoid R CMD check warnings
 % 2011-05-03 CJS fixed documentation to match latest release (drop openbugs etc)
@@ -22,7 +23,8 @@ Use the \code{\link{TimeStratPetersenNonDiagError_fit}} function for cases where
 recaptures take place outside the stratum of release.}
 
 \usage{
-TimeStratPetersenDiagError_fit(title, prefix, time, n1, m2, u2, sampfrac, 
+TimeStratPetersenDiagError_fit(title="TSDPE", prefix="TSPDE-", 
+    time, n1, m2, u2, sampfrac, 
     jump.after = NULL, bad.n1=c(), bad.m2 = c(), bad.u2=c(),
     logitP.cov = rep(1, length(n1)), 
     n.chains = 3, n.iter = 2e+05, n.burnin = 1e+05, n.sims = 2000, 
@@ -30,8 +32,9 @@ TimeStratPetersenDiagError_fit(title, prefix, time, n1, m2, u2, sampfrac,
     mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)),  
     tau_xiP = 1/var(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE),  
     tauP.alpha = 0.001, tauP.beta = 0.001, run.prob = seq(0, 1, 0.1),  
-    debug = FALSE, debug2 = FALSE, 
-    InitialSeed=ceiling(runif(1,min=0, max=14)))
+    debug = FALSE, debug2 = FALSE,
+    engine=c("jags","openbugs")[1],
+    InitialSeed=ceiling(runif(1,min=0, max=if(engine=="jags"){1000000}else{14})))
 
 TimeStratPetersenDiagError(title, prefix, time, n1, m2, u2, jump.after = NULL,
      logitP.cov, 
@@ -40,6 +43,7 @@ TimeStratPetersenDiagError(title, prefix, time, n1, m2, u2, jump.after = NULL,
      mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)), 
      tau_xiP = 1/var(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE), 
      tauP.alpha = 0.001, tauP.beta = 0.001, debug = FALSE, debug2 = FALSE, 
+     engine=c("jags","openbugs")[1],
      InitialSeed )
 }
 %- maybe also 'usage' for other objects documented here.
@@ -87,6 +91,7 @@ TimeStratPetersenDiagError(title, prefix, time, n1, m2, u2, jump.after = NULL,
        is reduced considerably for a quick turn around. }
   \item{debug2}{Logical flag indicated if additional debugging information is produced. Normally the functions will halt at \code{browser()}
        calls to allow the user to peek into the internal variables. Not useful except to package developers.}
+  \item{engine}{Which MCMC sampler should be used. Default is "JAGS". Also available is "OpenBugs" or "Winbugs". Case not relevant.}
   \item{InitialSeed}{Numeric value used to initialize the random numbers used in the MCMC iterations.}
 }
 %\details{

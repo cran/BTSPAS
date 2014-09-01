@@ -1,3 +1,13 @@
+# 2013-12-31 CJS conversion to JAGS
+#                - no model name
+#                - C(,20) -> T(,20)
+#                - dflat() to dnorm(0, 1E-6)
+#                - added u2.N.1copy to improve mixing based on Matt S. suggestion   ????? - not done here?
+#                - added u2.A.1copy to improve mixing based on Matt S. suggestion
+#                - added u2.N.YoYcopy to improve mixing based on Matt S. suggestion
+#                - added u2.A.YoYcopy to improve mixing based on Matt S. suggestion
+#                - fixed monitoring of *H parameters that are only present in hatch.after or later
+#                  JAGS won't monitor these variables unless entries from 1:hatch.after are defined
 # 2011-05-15 CJS limited etaU to 20 or less
 # 2011-01-24 SB  added call to run.windows.openbugs and run.windows.winbugs
 # 2010-11-25 CJS add output to track progress of sampling through burnin and post-burnin
@@ -23,16 +33,16 @@ TimeStratPetersenDiagErrorWHChinook2 <-
                 tau_xiP=1/var(logit((m2+.5)/(n1+1)), na.rm=TRUE), 
                 tauP.alpha=.001, tauP.beta=.001, 
                 debug=FALSE, debug2=FALSE,
+		engine=c('jags','openbugs')[1],
                 InitialSeed){
+
+set.seed(InitialSeed)  # set prior to initial value computations
+
 
 #
 #  Fit the smoothed time-Stratified Petersen estimator with Diagonal recoveries (i.e. no recoveries
 #  outside stratum of release), error in the smoothed U curve, and separating wild vs hatchery stocks
 #  for chinook. 
-#
-#  Packages Required - must be installed BEFORE calling this functin
-#
-#    R2WinBugs  - needed to call WinBugs to fit the model
 #
 #  This routine assumes that the strata are time (e.g. weeks).
 #  In each stratum n1 fish are released (with marks). These are ususally
@@ -69,7 +79,7 @@ TimeStratPetersenDiagErrorWHChinook2 <-
 #      logitP.cov - covariates for logit(P)=X beta.logitP
 
 
-#  This routine makes a call to WinBugs to fit the model and then gets back the 
+#  This routine makes a call to the MCMC sampler to fit the model and then gets back the 
 #  coda files for the posteriour distribution.
 
 ## Set working directory to current directory (we should allow users to select this)
@@ -81,11 +91,11 @@ data.file <- file.path(working.directory,"data.txt")
 init.files <- file.path(working.directory,
                        paste("inits", 1:n.chains,".txt", sep = ""))
   
-# Save the WinBugs progam to the model.txt file
+# Save the Bugs progam to the model.txt file
 #
 sink(model.file)  # NOTE: NO " allowed in model as this confuses the cat command
 cat("
-model TimeStratPetersenDiagErrorWHChinook{
+model {
 # Time Stratified Petersen with Diagonal recapture (no spillover in subsequent weeks or marked fish)
 #    and allowing for error in the smoothed U curve with separation of wild and hatchery fish
 # Each of the wild and hatchery populations are fit using a SINGLE spline curve as this should be flexible 
@@ -156,25 +166,93 @@ model TimeStratPetersenDiagErrorWHChinook{
    ##### Fit the spline for YoY wildfish - this covers the entire experiment ######
    for(i in 1:Nstrata){
         logUne.W.YoY[i] <- inprod(SplineDesign.W.YoY[i,1:n.bU.W.YoY],bU.W.YoY[1:n.bU.W.YoY])  # spline design matrix * spline coeff 
+", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+        etaU.W.YoY[i] ~ dnorm(logUne.W.YoY[i], taueU)T(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
         etaU.W.YoY[i] ~ dnorm(logUne.W.YoY[i], taueU)C(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
         eU.W.YoY  [i] <- etaU.W.YoY[i] - logUne.W.YoY[i]
    }
    ##### Fit the spline for YoY hatchery fish - these fish only enter AFTER hatch.after.YoY ######
    for(i in (hatch.after.YoY+1):Nstrata){
         logUne.H.YoY[i] <- inprod(SplineDesign.H.YoY[i,1:n.bU.H.YoY],bU.H.YoY[1:n.bU.H.YoY])  # spline design matrix * spline coeff 
+  ", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+        etaU.H.YoY[i] ~ dnorm(logUne.H.YoY[i], taueU)T(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
         etaU.H.YoY[i] ~ dnorm(logUne.H.YoY[i], taueU)C(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
         eU.H.YoY  [i] <- etaU.H.YoY[i] - logUne.H.YoY[i]
    }
    ##### Fit the spline for Age1 wildfish - this covers the entire experiment ######
    for(i in 1:Nstrata){
         logUne.W.1[i] <- inprod(SplineDesign.W.1[i,1:n.bU.W.1],bU.W.1[1:n.bU.W.1])  # spline design matrix * spline coeff 
+     ", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+        etaU.W.1[i] ~ dnorm(logUne.W.1[i], taueU)T(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
         etaU.W.1[i] ~ dnorm(logUne.W.1[i], taueU)C(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
         eU.W.1  [i] <- etaU.W.1[i] - logUne.W.1[i]
    }
    ##### Fit the spline for Age1 hatchery fish - this covers the entire experiment because the have residualized from last year
    for(i in 1:Nstrata){
         logUne.H.1[i] <- inprod(SplineDesign.H.1[i,1:n.bU.H.1],bU.H.1[1:n.bU.H.1])  # spline design matrix * spline coeff 
-        etaU.H.1[i] ~ dnorm(logUne.H.1[i], taueU)C(,20)              # add random error
+     ", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+      etaU.H.1[i] ~ dnorm(logUne.H.1[i], taueU)T(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
+      etaU.H.1[i] ~ dnorm(logUne.H.1[i], taueU)C(,20)              # add random error
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
         eU.H.1  [i] <- etaU.H.1[i] - logUne.H.1[i]
    }
 
@@ -186,7 +264,31 @@ model TimeStratPetersenDiagErrorWHChinook{
         logitP[i] ~ dnorm(mu.logitP[i],tauP)
    }
 
-
+   ", fill=TRUE)
+sink()  # Temporary end of saving bugs program
+if(tolower(engine)=="jags") {
+   sink("model.txt", append=TRUE)
+   cat("
+   ##### Hyperpriors #####
+   ## Run size - wild and hatchery fish - flat priors
+   for(i in 1:n.b.flat.W.YoY){
+      bU.W.YoY[b.flat.W.YoY[i]] ~ dnorm(0, 1E-6)
+   }
+   for(i in 1:n.b.flat.H.YoY){
+      bU.H.YoY[b.flat.H.YoY[i]] ~ dnorm(0, 1E-6)
+   }
+   for(i in 1:n.b.flat.W.1){
+      bU.W.1[b.flat.W.1[i]] ~ dnorm(0, 1E-6)
+   }
+   for(i in 1:n.b.flat.H.1){
+      bU.H.1[b.flat.H.1[i]] ~ dnorm(0, 1E-6)
+   }
+   ",fill=TRUE)
+   sink()
+}
+if(tolower(engine) %in% c("openbugs")) {
+   sink("model.txt", append=TRUE)
+   cat("
    ##### Hyperpriors #####
    ## Run size - wild and hatchery fish - flat priors
    for(i in 1:n.b.flat.W.YoY){
@@ -201,6 +303,11 @@ model TimeStratPetersenDiagErrorWHChinook{
    for(i in 1:n.b.flat.H.1){
       bU.H.1[b.flat.H.1[i]] ~ dflat()
    }
+   ",fill=TRUE)
+   sink()
+}
+   sink("model.txt", append=TRUE)
+   cat("
 
    ## Run size - priors on the difference for YoY wild and hatchery fish
    for(i in 1:n.b.notflat.W.YoY){
@@ -254,7 +361,6 @@ model TimeStratPetersenDiagErrorWHChinook{
       U.W.YoY[i] <- round(exp(etaU.W.YoY[i]))      # convert from log scale
       U.H.YoY[i] <- round(exp(etaU.H.YoY[i]))      # convert from log scale
       U.clip.YoY[i] ~ dbin(clip.frac.H.YoY, U.H.YoY [i])
-      #u2.A[i] ~ dbin(p[i], U.clip.YoY[i])
       p.temp.YoY[i] <- p[i]*clip.frac.H.YoY
       u2.A.YoY[i] ~ dbin(p.temp.YoY[i], U.H.YoY[i]) # must be hatchery and clipped
    }
@@ -291,10 +397,22 @@ model TimeStratPetersenDiagErrorWHChinook{
    Utot.YoY   <- Utot.W.YoY + Utot.H.YoY               # Grand total number of YoY fish
    Utot.1     <- Utot.W.1   + Utot.H.1                 # Grand total number of Age1 fish
    Utot       <- Utot.YoY + Utot.1
+
+   # Because JAGES does not properly monitory partially defined vectors (see Section 2.5 of the JAGES user manual)
+   # we need to add dummy distribution for the parameters of interest prior to the hatchery fish arriving.
+   # This is not needed in OpenBugs who returns the subset actually monitored, but we add this to be consistent
+   # among the two programs
+   for(i in 1:hatch.after.YoY){
+      U.H.YoY[i]      ~ dnorm(0,1)  # These are complete arbitrary and never gets updated
+      etaU.H.YoY[i]   ~ dnorm(0,1)
+      logUne.H.YoY[i] ~ dnorm(0,1)
+      eU.H.YoY[i]     ~ dnorm(0,1)
+   }
+
 }  # end of model
 
 ", fill=TRUE)
-sink()  # End of saving the WinBugs program
+sink()  # End of saving the Bugs program
 
 
 datalist <- list("Nstrata", "n1", "m2",
@@ -329,7 +447,7 @@ if( any(is.na(u2.A.1  ))) {parameters <- c(parameters,"u2.A.1")}
 if( any(is.na(u2.N.1  ))) {parameters <- c(parameters,"u2.N.1")}
 
 
-# Now to create the initial values, and the data prior to call to WinBugs
+# Now to create the initial values, and the data prior to call to the MCMC sampler
 
 Nstrata <- length(n1)
 
@@ -381,7 +499,7 @@ n.bU.W.1          <- n.b.flat.W.1 + n.b.notflat.W.1
 init.bU.W.1     <- lm(log(Uguess.W.1+1) ~ SplineDesign.W.1-1)$coefficients  # initial values for spline coefficients
 
 # YoY hatchery fish. Notice they can only enter AFTER hatch.after, The spline design matrix still has rows
-# of zero for 1:hatch.after to make it easier in WinBugs
+# of zero for 1:hatch.after to make it easier in Bugs
 SplineDegree <- 3           # Degree of spline between occasions
 knots <- (seq((hatch.after.YoY+4),Nstrata-1,4)-hatch.after.YoY)/(Nstrata-hatch.after.YoY+1) # a knot roughly every 4th stratum
 SplineDesign.H.YoY <- bs((1:(Nstrata-hatch.after.YoY))/(Nstrata-hatch.after.YoY+1), knots=knots, degree=SplineDegree, intercept=TRUE, Boundary.knots=c(0,1))
@@ -435,6 +553,7 @@ NlogitP.cov <- ncol(as.matrix(logitP.cov))
 #  initial values for the parameters of the model
                 
 init.vals <- function(){
+#  browser()
    # Initial values for the probability of capture
    init.logitP <- pmax(-10,pmin(10,logit((m2+1)/(n1+2))))         # initial capture rates based on observed recaptures
    init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
@@ -458,7 +577,7 @@ init.vals <- function(){
 
    init.eU.H.YoY   <- as.vector(log(Uguess.H.YoY+1)-SplineDesign.H.YoY%*%init.bU.H.YoY)  # error terms set as differ between obs and pred
    init.etaU.H.YoY <- log(Uguess.H.YoY+1)
-   init.etaU.H.YoY[1:hatch.after.YoY] <- NA  # these are never used.
+#  init.etaU.H.YoY[1:hatch.after.YoY] <- NA  # these are never used.
    init.eU.H.1     <- as.vector(log(Uguess.H.1  +1)-SplineDesign.H.1  %*%init.bU.H.1  )  # error terms set as differ between obs and pred
    init.etaU.H.1   <- log(Uguess.H.1  +1)
 
@@ -491,6 +610,8 @@ init.vals <- function(){
         bU.W.1  =init.bU.W.1  , bU.H.1  =init.bU.H.1  , 
         etaU.W.1=init.etaU.W.1, etaU.H.1=init.etaU.H.1)
 }
+# make a list of initial values
+init.vals.list <- lapply(1:n.chains, function(x){init.vals()})
 
 #browser()
 
@@ -502,13 +623,13 @@ for(i in 1:length(datalist)){
 }
 names(data.list) <- as.list(datalist)
   
-# Call OpenBUGS
+# Call the MCMC sampler 
 
-results <- run.openbugs(modelFile=model.file,
+results <- run.MCMC(modelFile=model.file,
                         dataFile=data.file,
                         dataList=data.list,
                         initFiles=init.files,
-                        initVals=init.vals,
+                        initVals=init.vals.list,
                         parameters=parameters,
                         nChains=n.chains,
                         nIter=n.iter,
@@ -517,6 +638,7 @@ results <- run.openbugs(modelFile=model.file,
                         overRelax=FALSE,
                         initialSeed=InitialSeed,
                         working.directory=working.directory,
+			engine=engine,
                         debug=debug)
 
 return(results)

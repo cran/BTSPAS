@@ -1,3 +1,6 @@
+# 2014-09-01 CJS Converted to JAGS engine from OpenBugs
+# 2013-09-04 CJS Initialized n1, m2, u2 that are NA to sensible values.
+#                Removed references to WinBugs
 # 2012-08-30 CJS fixed problem in error checking in any() function that includes missing values
 # 2011-06-13 CJS inserted the bayesian p-values in the results 
 # 2010-11-29 CJS added code for bad.n1 to the call.
@@ -21,12 +24,13 @@ TimeStratPetersenDiagError_fit <-
            tauP.alpha=.001, tauP.beta=.001,
            run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
            debug=FALSE, debug2=FALSE,
-           InitialSeed=ceiling(runif(1,min=0, max=14))) {
+	   engine=c("jags","openbugs")[1],
+           InitialSeed=ceiling(runif(1,min=0, max=if(engine=="jags"){1000000}else{14}))) {
     
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2011-06-13'
+   version <- '2014-09-01'
    options(width=200)
 
 # Input parameters are
@@ -232,7 +236,7 @@ new.n1[time-min(new.time)+1]         <- n1
 new.m2[time-min(new.time)+1]         <- m2
 new.m2[match(bad.m2,new.time)]       <- NA  # wipe out where m2 is flagged as bad
 new.u2[time-min(new.time)+1]         <- u2
-new.u2[match(bad.u2,new.time)]       <- NA  # wipe out where u2 is flassed as bad
+new.u2[match(bad.u2,new.time)]       <- NA  # wipe out where u2 is flagged as bad
 new.sampfrac[time-min(new.time)+1]   <- sampfrac
 new.logitP.cov[time-min(new.time)+1,]<- as.matrix(logitP.cov)
 new.logitP.cov[ is.na(new.logitP.cov[,1]), 1] <- 1  # insert a 1 into first columns where not specified
@@ -284,7 +288,7 @@ cat("   Parameters for prior on tauP (residual variance of logit(P) after adjust
     " which corresponds to a mean/std dev of 1/var of:",
     round(tauP.alpha/tauP.beta,2),round(sqrt(tauP.alpha/tauP.beta^2),2),"\n")
 
-cat("\n\nInitial seed for this run is: ",InitialSeed, "\n")
+cat("\n\n*** Initial seed for this run is: ",InitialSeed, "\n")
 
 sink()
 
@@ -300,14 +304,14 @@ if (debug)
             logitP.cov=new.logitP.cov,
             n.chains=3, n.iter=10000, n.burnin=5000, n.sims=500,  # set to low values for debugging purposes only
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
-            debug=debug, debug2=debug2, InitialSeed=InitialSeed)
+            debug=debug, debug2=debug2, engine=engine, InitialSeed=InitialSeed)
    } else #notice R syntax requires { before the else
    {results <- TimeStratPetersenDiagError(title=title, prefix=prefix, 
             time=new.time, n1=new.n1, m2=new.m2, u2=new.u2, 
             jump.after=jump.after-min(time)+1, logitP.cov=new.logitP.cov,
             n.chains=n.chains, n.iter=n.iter, n.burnin=n.burnin, n.sims=n.sims,
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
-            debug=debug, debug2=debug2,InitialSeed=InitialSeed)
+            debug=debug, debug2=debug2,engine=engine, InitialSeed=InitialSeed)
    }
 
 # Now to create the various summary tables of the results
@@ -316,7 +320,7 @@ if (debug)
 plot_logU <- function(title, time, n1, m2, u2, results){
 #  Plot the observed and fitted logU values along with posterior limits
 #  n1, m2, u2 are the raw data
-#  results is the summary table from WinBugs
+#  results is the summary table 
 
    Nstrata <- length(n1)
    Uguess <- (u2+1)*(n1+2)/(m2+1)  # try and keep Uguess larger than observed values
@@ -356,90 +360,13 @@ plot_logU <- function(title, time, n1, m2, u2, results){
    lines(time, logUne, lty=2)  # plot the curve
 }
 
-plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
-#  Plot the observed and fitted logit(p) values along with posterior limits
-#  n1, m2, u2 are the raw data (u2 has been adjusted upward for sampling fraction < 1 prior to call)
-#  logitP.cov is the covariate matrix for modelling the logit(P)'s
-#  results is the summary table from WinBugs
-#
-#  Get the minimum and maximum values for the axis on the logit scale
-
-   min_logitP <- 100
-   max_logitP <- -100
-
-   if(debug2){
-      cat("plot_logitP\n")
-      browser()
-   }
-   Nstrata <- length(n1)
-   raw_logitP <- logit((m2+1)/(n1+2))        # based on raw data
-   min_logitP <- min( c(min_logitP, raw_logitP), na.rm=TRUE)
-   max_logitP <- max( c(max_logitP, raw_logitP), na.rm=TRUE)
-
-   # which rows contain the logitP[xx] ?
-   results.row.names <- rownames(results$summary)
-   logitP.row.index    <- grep("^logitP", results.row.names)
-   est_logitP<- results$summary[logitP.row.index,]
-   min_logitP <- min( c(min_logitP, est_logitP[,"mean"]), na.rm=TRUE)
-   max_logitP <- max( c(max_logitP, est_logitP[,"mean"]), na.rm=TRUE)
-   min_logitP <- min( c(min_logitP, est_logitP[,"2.5%"]), na.rm=TRUE)
-   max_logitP <- max( c(max_logitP, est_logitP[,"2.5%"]), na.rm=TRUE)
-   min_logitP <- min( c(min_logitP, est_logitP[,"97.5%"]),na.rm=TRUE)
-   max_logitP <- max( c(max_logitP, est_logitP[,"97.5%"]),na.rm=TRUE)
-
-
-
-   main.title <- paste(title,"\nPlot of logit(p[i]) with 95% credible intervals")
-   if(ncol(logitP.cov)>1){main.title<- title}
-       sub.title <- paste("Horizontal line is estimated beta.logitP[1]",
-                 "\nInner fence is c.i. on beta.logitP[1]",
-                 "\nOuter fence is 95% range on logit(p)")
-   if(ncol(logitP.cov)>1){sub.title <- "Dashed line is second covariate"}
-   plot(time, raw_logitP, 
-       main=main.title,
-       sub=sub.title,
-       ylab='logit(p[i])', xlab='Stratum', ylim=c(min_logitP,max_logitP))  # initial points on log scale.
-
- 
-   # plot the posterior mean of the logitP if there is only one column for a covariate
-   points(time, est_logitP[,"mean"],type="p", pch=19) # the final estimates
-   lines(time, est_logitP[,"mean"])  # join the mean of the fitted logitP
- 
-   # plot the 2.5 -> 97.5 posterior values
-   segments(time, est_logitP[,"2.5%"], time, est_logitP[,"97.5%"])
-
-   if(ncol(logitP.cov)==1){  # if only 1 column for covariate vector, usually an intercept
-      # plot the posterior mean of the beta.logitP[1] term which is usually
-      #      the intercept in most models with covariates along with 95% credible interval
-      intercept.row.index    <- grep("beta.logitP[1]", results.row.names, fixed=TRUE)
-      intercept <- results$summary[intercept.row.index,]
-      segments(time[1], intercept["mean"],time[Nstrata], intercept["mean"])
-      segments(time[1], intercept["2.5%"],time[Nstrata], intercept["2.5%"], lty=2)
-      segments(time[1], intercept["97.5%"],time[Nstrata],intercept["97.5%"], lty=2)
-
-      # plot the posterior "95% range" for the logit(P)'s based on N(xip, sigmaP^2)
-      sigmaP.row.index <- grep("sigmaP", results.row.names)
-      sigmaP <- results$summary[sigmaP.row.index,]
-      segments(time[1], intercept["mean"]-2*sigmaP["mean"], time[Nstrata], intercept["mean"]-2*sigmaP["mean"], lty=3)
-      segments(time[1], intercept["mean"]+2*sigmaP["mean"], time[Nstrata], intercept["mean"]+2*sigmaP["mean"], lty=3)
-   }
-   if(ncol(logitP.cov)>1){  # if exactly 2 covariates, plot the second covarite over time as well
-      par(new=TRUE)   # reuse the same plot
-      plot(time, logitP.cov[,2], type="l", lty=2, axes=FALSE, xlab="", ylab="")  # plot the covariate
-   }
-
-   # plot residuals of the logit(P)'s against the various covariates
-   # to be done in my next life
-}
-
-
 pdf(file=paste(prefix,"-logU.pdf",sep=""))
 plot_logU(title=title, time=new.time, n1=new.n1, m2=new.m2, u2=new.u2, results=results)
 dev.off()
 
-pdf(file=paste(prefix,"-logitP.pdf",sep=""))
-plot_logitP(title=title, time=new.time, n1=new.n1, m2=new.m2, u2=new.u2, logitP.cov=new.logitP.cov, results=results) 
-dev.off()
+logitP.plot <- plot_logitP(title=title, time=new.time, n1=new.n1, m2=new.m2, u2=new.u2, logitP.cov=new.logitP.cov, results=results)
+ggsave(plot=logitP.plot, filename=paste(prefix,"-logitP.pdf",sep=""), height=6, width=10, units="in")
+results$plots$logitP.plot <- logitP.plot
 
 # Look at autocorrelation function for Ntot
 pdf(file=paste(prefix,"-Utot-acf.pdf",sep=""))
@@ -486,8 +413,6 @@ dev.off()
 
 
 sink(results.filename, append=TRUE)
-# What was the initial seed
-cat("\n\n*** Initial Seed for this run ***: ", results$Seed.initial,"\n")
 
 # Global summary of results
 cat("\n\n*** Summary of MCMC results *** \n\n")
@@ -495,7 +420,7 @@ print(results, digits.summary=3)
 
 # Give an alternate computation of DIC based on the variance of the deviance
 # Refer to http://www.mrc-bsu.cam.ac.uk/bugs/winbugs/DIC-slides.pdf for derivation and why
-# this alternate method may be superior to that automatically computed by WinBugs/OpenBugs
+# this alternate method may be superior to that automatically computed by OpenBugs
 
 cat("\n\n*** Alternate DIC computation based on p_D = var(deviance)/2 \n")
 results.row.names <- rownames(results$summary)

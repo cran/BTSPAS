@@ -1,3 +1,9 @@
+## 2014-09-01 CJS bug in init.muLogTT which gives log(0) if a release has all recoveries only in initial strataum of
+#                 of release. In those cases, I set the mean to those values that are not infinite
+## 2013-12-18 CJS Any init.epsilon that correspond to logitP.fixed (typically to -10 or 0 on the p scale) must be set to NA
+## 2013-09-04 CJS if any init.epsilon are NA, then set it to the mean of the non-missing values.
+##                If any of n1, m2, u2 are missing set to average (but m2 <= n1). This tries to keep
+##                OpenBugs from wandering off too far and generating nonsense values.
 ## 2012-02-01 CJS added na.rm=TRUE in computation of pScale to avoid passing NA
 ## 2011-05-15 CJS limited the etaU=log(U) to a maximum of 15 which corresponds to around 400,000,000 fish. 
 ## 2011-05-09 CJS subtle bug with initial values of epsilon where if fixed values for logitP at the end of the
@@ -17,13 +23,13 @@ genInitsTTln <-
 
         init.muLogTT <- rep(NA,Nstrata.rel)
         tmp1 <- (m2dot1>0)
-        init.muLogTT[tmp1] <- log((m2[tmp1,1:Nstrata.cap] %*% 1:Nstrata.cap) /
-                                  (m2dot1[tmp1]) - (1:Nstrata.rel)[tmp1])
+#       init.muLogTT[tmp1] <- log((m2[tmp1,1:Nstrata.cap] %*% 1:Nstrata.cap)/(m2dot1[tmp1]) - (1:Nstrata.rel)[tmp1])
+        init.muLogTT[tmp1] <- log(pmax(1, (m2[tmp1,1:Nstrata.cap] %*% 1:Nstrata.cap)/(m2dot1[tmp1]) - (1:Nstrata.rel)[tmp1]))  # 2014-09-01 added the pmax(1, xxx) to avoid taking log of zero
 
         init.muLogTT[!tmp1] <- mean(init.muLogTT[tmp1])
 
         init.xiMu <- mean(init.muLogTT)
-        init.tauMu <- 1/var(init.muLogTT)
+        init.tauMu <- 1/max(0.2,var(init.muLogTT))  # avoid variances that are zero
 
         init.etasdLogTT <- log(rep(.5,Nstrata.rel))  # note that log (sd(log travel time)) is being modelled
         init.xiSd <- mean(init.etasdLogTT)
@@ -82,7 +88,7 @@ genInitValsChain <-
              u2,                          # (List of) unmarked individuals captured per strata with a single spline
              Delta.max=NULL,              # Max travel time for NP model
              logitP.cov,                  # Covariate matrix for capture probabilities
-             logitP.fixed=NULL,
+             logitP.fixed=NULL,           # Which logitP are fixed (typically to zero)?
              SplineDesign,                # (List of) design matrix(ces) for splines
              hatch.after=NULL,            # Data of release for hatchery fish in model with two splines
              pScale=1){
@@ -123,7 +129,7 @@ genInitValsChain <-
         }
         else if(model %in% c("TSPNDENP")){
             ## Compute expected number of marked fish in each cell
-            N2 <- lapply(1:Nstrata.rel,function(i) inits$Theta[i,]*n1[i])
+             N2 <- lapply(1:Nstrata.rel,function(i) inits$Theta[i,]*n1[i])
 
             ## Compute expected number of marked fish in each capture strata
             n2 <- sapply(1:Nstrata.cap,function(i){
@@ -144,17 +150,10 @@ genInitValsChain <-
 
         }
 
-                                        # Constrain p to the interval (.00001,.99999)
-        init.P <- pmax(.00001,pmin(init.P,.99999))
-
-                                        # Remove missing values
-        init.P[is.na(init.P)] <- mean(init.P,na.rm=TRUE)
-
-                                        # Remove fixed values from inital vector
-        init.P[!is.na(logitP.fixed)] <- NA
-
-                                        # Compute logit
-        init.logitP <- logit(init.P)
+        init.P <- pmax(.00001,pmin(init.P,.99999))  # constrain p to the interval (.00001, .99999)
+        init.P[is.na(init.P)] <- mean(init.P,na.rm=TRUE) # remove missing values
+        init.P[!is.na(logitP.fixed)] <- NA # remove fixed values from initial vector
+        init.logitP <- logit(init.P)    # Compute the logit
 
         ## 2.2) Compute associated coefficients for design matrix
         init.beta.logitP <- as.vector(lm(init.logitP ~ logitP.cov - 1)$coeff)
@@ -335,8 +334,14 @@ genInitValsChain <-
         }
 
         ## 7) Transform initial values for logitP to initial values for epsilon
+        #     If some of the logitP are fixed, you need to set the corresponding value of epsilon to NA
+        #     This is done at the end of these possible model choices.
         ## Option 1: Models with only one spline
+        #cat("GenInitVals \n")
+        #browser()
         if(model %in% c("TSPDE","TSPNDE","TSPNDENP")){
+            #cat("GenInitVals - setting epsilon: ", model, "\n")
+            #browser()
             init.epsilon <- init.logitP - log(u2 + 1) + inits$etaU
             # subtle problem. If the logitP.fixed include elements at the end of the experiment
             # then init.epsion needs to be truncated at the end, otherwise OPENBugs gets upset
@@ -358,6 +363,10 @@ genInitValsChain <-
             init.epsilon <- init.logitP - log(u2$W.YoY + 1) + inits$etaU.W.YoY
         }
 
+        ## Change any missing epsilon values to the mean of the epsilon unless these were from 
+        ## logitP values that were fixed. In those cases, the epsilon must remain as missing
+        init.epsilon[is.na(init.epsilon)] <- mean(init.epsilon, na.rm=TRUE)  ## CJS 2013-09-04
+        init.epsilon[!is.na(logitP.fixed)] <- NA  ## CJS 2013-12-17 (if logitP is fixed, don't initialize epsilon
         inits <- append(inits,list(epsilon=c(init.epsilon)))
 
         ## Remove working objects from the initial values
@@ -365,9 +374,50 @@ genInitValsChain <-
             inits$Theta <- NULL
         }
 
-        return(inits)
+        ##9. Generate initial values for missing n1, m2, or u2 as the average of the other values (rounded to integers)
+        if(model %in% c("TSPDE","TSPDE-WHchinook","TSPNDE","TSPNDENP","TSPDE-WHsteel")){
+           init.n1 <- rep(NA, length(n1))
+           init.n1[is.na(n1)] <- round(mean(n1, na.rm=TRUE))
+           if(any(is.na(n1))){inits <- append(inits, list(n1=init.n1))}
+        }
+ 
+        if(model %in% c("TSPDE","TSPDE-WHchinook","TSPDE-WHsteel")){ 
+           init.m2 <- rep(NA, length(m2))
+           init.m2[is.na(m2)] <- round(pmin(n1[is.na(m2)],mean(m2, na.rm=TRUE)))
+           if(any(is.na(m2))){inits <- append(inits, list(m2=init.m2))}
+        }
+        if(model %in% c("TSPNDE","TSPNDENP")){ 
+           # not sure how to initialize bad m2 values for the non-diagonal case
+           # because m2 is a full matrix with elements arranges diagonally
+        }
+
+        if(model %in% c("TSPDE", "TSPNDE","TSPNDENP")){
+           init.u2 <- rep(NA, length(u2))
+           init.u2[is.na(u2)] <- round(mean(u2, na.rm=TRUE))
+           if(any(is.na(u2))){inits <- append(inits, list(u2=init.u2))}
+        }
+        if(model %in% c("TSPDE-WHchinook")){  # u2 is a list with components W and H, A and N
+           init.u2.A <- rep(NA, length(u2$A))
+           init.u2.A[is.na(u2$A)] <- pmin(init.U.H[is.na(u2$A)], round(median(u2$A, na.rm=TRUE)))
+           if(any(is.na(u2$A))){inits <- append(inits, list(u2.A=init.u2.A))}
+           init.u2.N <- rep(NA, length(u2$N))
+           init.u2.N[is.na(u2$N)] <- pmin(init.U.W[is.na(u2$N)],round(median(u2$N, na.rm=TRUE))) # This is too strict as some hatchery have no clips
+           if(any(is.na(u2$N))){inits <- append(inits, list(u2.N=init.u2.N))}
+        }
+        if(model %in% c("TSPDE-WHsteel")){  # u2 is a list with components W.YoY, W.1, H.1
+           init.u2.W.1 <- rep(NA, length(u2$W.1))
+           init.u2.W.1[is.na(u2$W.1)] <- pmin(init.U.W.1[is.na(u2$W.1)], round(median(u2$W.1, na.rm=TRUE)))
+           if(any(is.na(u2$W.1))){inits <- append(inits, list(u2.W.1=init.u2.W.1))}
+           init.u2.W.YoY <- rep(NA, length(u2$W.YoY))
+           init.u2.W.YoY[is.na(u2$W.YoY)] <- pmin(init.U.W.YoY[is.na(u2$W.YoY)], round(median(u2$W.YoY, na.rm=TRUE)))
+           if(any(is.na(u2$W.YoY))){inits <- append(inits, list(u2.W.YoY=init.u2.W.YoY))}
+           init.u2.H.1 <- rep(NA, length(u2$H.1))
+           init.u2.H.1[is.na(u2$H.1)] <- pmin(init.U.H.1[is.na(u2$H.1)], round(median(u2$H.1, na.rm=TRUE)))
+           if(any(is.na(u2$H.1))){inits <- append(inits, list(u2.H.1=init.u2.H.1))}
+        }
 
         return(inits)
+
     }
 
 genInitVals <-
@@ -377,7 +427,7 @@ genInitVals <-
              u2=NULL,                     # (List of) unmarked individuals captured
              Delta.max=NULL,              # Max travel time for NP model
              logitP.cov,                  # Covariate matrix for capture probabilities
-             logitP.fixed=NULL,
+             logitP.fixed=NULL,           # Which values of logitP are fixed (typically at zero)?
              SplineDesign,                # (List of) desgin matrices for spline for models
              hatch.after=NULL,            # Data of release for hatchery fish in model with two splines
              n.chains=3,

@@ -1,3 +1,4 @@
+# 2014-09-01 CJS removed all of the prompts
 # 2010-11-25
 # This is a demonstration of how to call the Time Stratified Petersen with Diagonal Entries (TSPDE) program
 # It is based on the analysis of California Junction City 2003 Chinook data.
@@ -46,26 +47,11 @@
 #  The prefix is used to identify the output files for this run.
 #  The title  is used to title the output.
 
-#  See if variables already exist in the directory and if so, warn about overwriting?
-demo.proceed <- TRUE
-if(!exists("demo.ans")) demo.ans <- " "
-
-while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
-  cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
-  cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPDE' \n")
-  demo.ans <- readline(prompt="Do you want to proceed? (yes/no): ")
-}
-if(demo.ans %in% c("no","NO","n","N")){demo.proceed <- FALSE }
+library("BTSPAS")
 
 # Create a directory to store the results
-if(file.access("demo-TSPDE")!=0){ demo.proceed <- demo.proceed & dir.create("demo-TSPDE", showWarnings=TRUE)}  # Test and then create the directory
+if(file.access("demo-TSPDE")!=0){ dir.create("demo-TSPDE", showWarnings=TRUE)}  # Test and then create the directory
 setwd("demo-TSPDE")
-
-if(!demo.proceed){stop()}
-
-par(ask=FALSE)
-dev.off()  # turn off the blank graphics window
-library("BTSPAS")
 
 # Get the data. In many cases, this is stored in a *.csv file and read into the program
 # using a read.csv() call. In this demo, the raw data is assigned directly as a vector.
@@ -131,6 +117,8 @@ demo.jc.2003.ch.tspde <- TimeStratPetersenDiagError_fit(
                   bad.n1=demo.bad.n1,
                   bad.m2=demo.bad.m2,
                   bad.u2=demo.bad.u2,
+		              #engine="openbugs",  # how to run openbugs
+                  InitialSeed=890110,
                   debug=TRUE  # this generates only 10,000 iterations of the MCMC chain for checking.
                   )
 

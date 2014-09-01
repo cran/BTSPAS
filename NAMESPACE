@@ -8,8 +8,11 @@ import(
   coda,
   splines,
   actuar,
-  BRugs,
-  R2OpenBUGS
+#  BRugs,    # optional???
+  rjags,
+  R2OpenBUGS,
+  ggplot2,
+  plyr
 )
 
 export(  # List functions to be visible from outside the package

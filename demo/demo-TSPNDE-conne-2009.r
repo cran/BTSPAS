@@ -1,3 +1,4 @@
+# 2014-09-01 CJS modified for JAGS; removed prompts
 # 2010-03-03 Conne River 2009 analysis.
 
 # Demonstration of the Time-Stratified Petersen experiment with NON-Diagonal entries
@@ -36,25 +37,10 @@
 # In this implementation, the parameters of the log-normal movement distribution are
 # smoothed over time.
 
-demo.proceed <- TRUE
-if(!exists("demo.ans")) demo.ans <- " "
-
-while(! demo.ans %in% c("yes","no","YES","NO","Y","N","y","n")){
-  cat("***** WARNING ***** This demonstration may create/over-write objects with names 'demo.xxx' \n")
-  cat("***** WARNING ***** This demonstration may create/over-write a directory 'demo-TSPNDE' \n")
-  demo.ans <- readline(prompt="Do you want to proceed? (yes/no): ")
-}
-if(demo.ans %in% c("no","NO","n","N")){demo.proceed <- FALSE }
-
 # Create a directory to store the results
-if(file.access("demo-TSPNDE")!=0){ demo.proceed <- demo.proceed & dir.create("demo-TSPNDE", showWarnings=TRUE)}  # Test and then create the directory
+if(file.access("demo-TSPNDE")!=0){ dir.create("demo-TSPNDE", showWarnings=TRUE)}  # Test and then create the directory
 setwd("demo-TSPNDE")
 
-if(!demo.proceed){stop()}
-
-
-par(ask=FALSE)
-dev.off()  # turn off the blank graphics window
 library("BTSPAS")
 
 # Get the raw data and read it in
@@ -151,6 +137,7 @@ demo.cr.2009.as.tspnde <- TimeStratPetersenNonDiagError_fit(
                   bad.u2=     demo.bad.u2,
                   logitP.fixed=demo.logitP.fixed,
                   logitP.fixed.values=demo.logitP.fixed.values,
+		  #engine="openbugs",   # use the openbugs engine
                   debug=TRUE)
 
 # Rename files that were created.

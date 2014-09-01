@@ -15,6 +15,27 @@
 %   }
 %}
 
+\section{CHANGES IN VERSION 2014.0901}{
+  \subsection{USER-VISIBLE CHANGES}{
+    \itemize{
+        \item Now uses JAGS rather than OpenBugs so BTSPAS should run on all platforms.
+              OpenBUGS can still be run using the 'engine' argument on the *_fit() call.
+      \item Minor changes to package file structures to meet R package conventions. No change in 
+             functionality.
+      \item Minor bug fixes discovered in conversion to JAGS.
+ 
+    }
+  }
+   \subsection{BUG FIX}{
+     \itemize{
+       \item Initialized missing values in n1, u2, m2 to sensible values to avoid OpenBugs from 
+             wandering too far off and generating nonsense values.
+       \item Corrected initialization of epsilon when logitP.fixed is set 
+     }
+   }
+}
+
+
 \section{CHANGES IN VERSION 2012.0217}{
   \subsection{USER-VISIBLE CHANGES}{
     \itemize{
