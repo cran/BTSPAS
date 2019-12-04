@@ -1,5 +1,27 @@
+#' Generate Predictive Posterior Plots (Bayesian p-values) for number of models.
+#' 
+#' This is an internal function, not normally of use to users.
 
-PredictivePosterior.TSPDE <- function (n1, m2, u2, p, U) {
+
+#' @aliases PredictivePosterior_TSPDE_WHChinook 
+#' @aliases PredictivePosterior.TSPDE.WHCH2 
+#' @aliases PredictivePosterior.TSPDE.WHSteel
+#' @aliases PredictivePosterior.TSPNDE 
+#' @aliases PredictivePosterior.TSPNDENP
+#' @aliases PredictivePosteriorPlot.TSPDE 
+#' @aliases PredictivePosteriorPlot.TSPDE.WHCH 
+#' @aliases PredictivePosteriorPlot.TSPDE.WHCH2 
+#' @aliases PredictivePosteriorPlot.TSPDE.WHSteel 
+#' @aliases PredictivePosteriorPlot.TSPNDE 
+#' @import stats plyr
+
+#' @keywords internal
+
+# 2018-12-15 CJS added in logitP fixed entries.
+
+PredictivePosterior.TSPDE <- function (n1, m2, u2, 
+                                       logitP.fixed, p, 
+                                       U) {
 #  Generate Predictive Posterior Plot (Bayesian p-value) given the data
 #  for a TimeStratified Petersen with Diagonal Elements and error
 #    n1, m2, u2  = vectors of input data

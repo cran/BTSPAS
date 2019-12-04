@@ -1,3 +1,5 @@
+# 2018-12-06 CJS saved initial plot to ggplots format
+# 2018-11-26 CJS Removed all references to OpenBugs
 # 2014-09-01 CJS conversion to JAGS
 #                - no model name
 #                - C(,20) -> T(,20)
@@ -14,6 +16,9 @@
 # 2009-12-07 CJS changed etaP to logitP
 # 2009-12-05 CJS added title to argument list
 # 2009-12-01 CJS added openbugs/winbugs directory to argument list
+
+#' @keywords internal
+
 
 TimeStratPetersenNonDiagError <- function(title,
                                           prefix,
@@ -38,8 +43,8 @@ TimeStratPetersenNonDiagError <- function(title,
                                           tauP.beta=.001,
                                           debug=FALSE,
                                           debug2=FALSE,
-					  engine=c("jags","openbugs")[1],
-                                          InitialSeed){
+                                          InitialSeed,
+                                          save.output.to.files=TRUE){
 
 set.seed(InitialSeed)  # set prior to initial value computations
 
@@ -92,10 +97,6 @@ cat("
 model {
 # Time Stratified Petersen with NON Diagonal recapture and allowing for error in the smoothed U curve.
 
-# Refer to Bonner (2008) Ph.D. thesis from Simon Fraser University available at
-#     http://www.stat.sfu.ca/people/alumni/Theses/Bonner-2008.pdf
-# The model is in Appendix B. The discussion of the model is in Chapter 2.
-
 #  Data input:
 #      Nstrata.rel - number of strata where fish are releases
 #      Nstrata.cap - number of (future strata) where fish are recaptured.
@@ -125,7 +126,7 @@ model {
 #      tauP.alpha, tauP.beta - parameter for prior on tauP (residual variance of logit(P)'s after adjusting for
 #                         covariates)
 #      xiMu, tauMu  - mean and precision (1/variance) for prior on mean(log travel-times)
-#      siSd, tauSd  - mean and precision (1/variance) for prior on sd(log travel times)
+#      xiSd, tauSd  - mean and precision (1/variance) for prior on sd(log travel times) - ON THE LOG SCALE
 #
 #  Parameters of the model are:
 #      p[i]
@@ -146,24 +147,7 @@ model {
    ##### Fit the spline for the U's and specify hierarchial model for the logit(P)'s ######
    for(i in 1:Nstrata.cap){
         logUne[i] <- inprod(SplineDesign[i,1:n.bU],bU[1:n.bU])  # spline design matrix * spline coeff
-", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
         etaU[i] ~ dnorm(logUne[i], taueU)T(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-        etaU[i] ~ dnorm(logUne[i], taueU)C(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
         eU[i] <- etaU[i] - logUne[i]
    }
    for(i in 1:Nfree.logitP){   # model the free capture rates using covariates
@@ -179,6 +163,9 @@ if(tolower(engine) %in% c("openbugs")) {
 
    }
 
+   for(i in 1:Nfixed.logitP){  # logit P parameters are fixed so we need to force epsilon to be defined.
+       epsilon[fixed.logitP.index[i]] <- 0
+   }
 
    ##### Hyperpriors #####
    ## Mean and sd of log travel-times
@@ -188,28 +175,9 @@ if(tolower(engine) %in% c("openbugs")) {
    }
 
    ## Run size - flat priors
-   ", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
    for(i in 1:n.b.flat){
       bU[b.flat[i]] ~ dnorm(0, 1E-6)
    }
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-   for(i in 1:n.b.flat){
-      bU[b.flat[i]] ~ dflat()
-   }
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
 
    ## Run size - priors on the difference
    for(i in 1:n.b.notflat){
@@ -245,6 +213,9 @@ if(tolower(engine) %in% c("openbugs")) {
       log(sdLogTT[i]) <- etasdLogTT[i]
    }
 
+   baseMu <- xiMu        # mean and sd of log(travel time) distribution
+   baseSd <- exp(xiSd)   # for the base distribution
+
    ## Transition probabilities
    for(i in 1:Nstrata.rel){
      # Probability of transition in 0 days (T<1 days)
@@ -261,24 +232,7 @@ if(tolower(engine) %in% c("openbugs")) {
    for(i in 1:Nstrata.rel){
       # Compute cell probabilities
       for(j in i:Nstrata.cap){
-", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
         Pmarked[i,j] <- Theta[i,j] * p[j] + .0000001   # potential problem in Jags?
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-        Pmarked[i,j] <- Theta[i,j] * p[j] 
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
       }
       Pmarked[i,Nstrata.cap+1] <- 1- sum(Pmarked[i,i:Nstrata.cap])
 
@@ -359,12 +313,17 @@ storage.mode(logitP) <- "double" # if there are no fixed logits, the default cla
 free.logitP.index <- (1:Nstrata.cap)[ is.na(logitP.fixed)]  # free values are those where NA is specifed
 Nfree.logitP <- length(free.logitP.index)
 
+fixed.logitP.index <- (1:Nstrata.cap)[!is.na(logitP.fixed)]
+fixed.logitP.value <- logitP.fixed[ fixed.logitP.index]
+Nfixed.logitP      <- length(fixed.logitP.index)
+
 # create copy of u2 for use in improving mixing
-u2copy <- spline(x=1:length(u2), y=u2, xout=1:length(u2))$y
+u2copy <- exp(spline(x = 1:length(u2), y = log(u2+1), xout = 1:length(u2))$y)-1 # on log scale to avoid negative values
 u2copy <- round(u2copy) # round to integers
 
 datalist <- list("Nstrata.rel", "Nstrata.cap", "n1", "m2", "u2", "u2copy",
                  "logitP", "Nfree.logitP", "free.logitP.index",   # those indices that are fixed and free to vary
+                 "Nfixed.logitP","fixed.logitP.index","fixed.logitP.value", # indices that are fixed and cannot vary
                  "logitP.cov", "NlogitP.cov",
                  "SplineDesign",
                  "b.flat", "n.b.flat", "b.notflat", "n.b.notflat", "n.bU",
@@ -388,7 +347,9 @@ if(debug2) {
    browser()  # Stop here to examine the spline design matrix function
 }
 
-logitPguess <- c(logit((apply(m2[,1:Nstrata.cap],1,sum)+1)/(n1+1)),rep(mu_xiP,Nstrata.cap-Nstrata.rel))
+logitPguess <- c(logit(pmax(0.05,pmin(.95,(apply(m2[,1:Nstrata.cap],1,sum,na.rm=TRUE)+1)/(n1+1))))
+                 ,rep(mu_xiP,Nstrata.cap-Nstrata.rel))
+#browser()
 init.beta.logitP <- as.vector(lm( logitPguess ~ logitP.cov-1)$coefficients)
 if(debug2) {
    cat(" obtained initial values of beta.logitP\n")
@@ -397,18 +358,24 @@ if(debug2) {
 
 
 # create an initial plot of the fit
-pdf(file=paste(prefix,"-initialU.pdf",sep=""))
-plot(time, log(Uguess),
-    main=paste(title,"\nInitial spline fit to estimated U[i]"),
-    ylab="log(U[i])", xlab='Stratum')  # initial points on log scale.
-lines(time, SplineDesign %*% init.bU)  # add smoothed spline through points
-dev.off()
+plot.data <- data.frame(time=time, 
+                        logUguess=log(Uguess),
+                        spline=SplineDesign %*% init.bU, stringsAsFactors=FALSE)
+init.plot <- ggplot(data=plot.data, aes_(x=~time, y=~logUguess))+
+  ggtitle(title, subtitle="Initial spline fit to estimated log U[i]")+
+  geom_point()+
+  geom_line(aes_(y=~spline))+
+  xlab("Stratum")+ylab("log(U[i])")
+if(save.output.to.files)ggsave(init.plot, filename=paste(prefix,"-initialU.pdf",sep=""), height=4, width=6, units="in")
+#results$plots$plot.init <- init.plot  # do this after running the MCMC chain (see end of function)
 
 
 parameters <- c("logitP", "beta.logitP", "tauP", "sigmaP",
                 "bU", "tauU", "sigmaU",
                 "eU", "taueU", "sigmaeU",
                 "Ntot", "Utot", "logUne", "etaU", "U",
+                 "baseMu","baseSd",  # mean and sd of base log(travel time)
+                 "Theta",            # the movement probabilities 
                  "muLogTT", "sdLogTT")      #  mean and sd of log(travel times)
 if( any(is.na(m2))) {parameters <- c(parameters,"m2")} # monitor in case some bad data where missing values present
 if( any(is.na(u2))) {parameters <- c(parameters,"u2")}
@@ -488,8 +455,8 @@ results <- run.MCMC(modelFile=model.file,
                         overRelax=FALSE,
                         initialSeed=InitialSeed,
                         working.directory=working.directory,
-			engine=engine,
                         debug=debug)
+results$plots$plot.init <- init.plot  # save initial plot as well
 
 return(results)
 }

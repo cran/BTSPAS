@@ -1,3 +1,39 @@
+#' Computes and plots posterior distribution of time to get target run size.
+#' For example, the time to reach a cumulative run of 10,000 fish.
+#' 
+#' Takes a sim.list object from the MCMC runs, computes the posterior
+#' distribution of the time to the target runsize, plots the posterior
+#' #' 
+#' 
+#' @param U Elements of sim.list from MCMC object for U - the estimate runsize
+#' in each stratum
+#' @param time Vector of stratum time indices
+#' @param targetU The targeted cumulative run size. E.g. 10,000
+#' @param file_prefix Character string giving prefix for plot. A plot will be
+#' produced of the posterior in the filename
+#' paste(file_prefix,"-target.pdf",sep="")).
+#' @param ci_prob What size of credible interval should be computed?
+#' @return A list with a sample of the posterior (index), quantiles
+#' (quantiles), mean (mean), median(median), and standard deviation (sd), and
+#' target value (targetU)
+#' @template author 
+#' @keywords ~models ~plots
+#' @examples
+#'  
+#' \dontrun{
+#' # Compute the posterior of time to reach 10,000 fish. Results contains the MCMC object
+#' # 
+#' results$TimeToTargetRunSize <- TimeToTargetRunSize( 
+#'         U=results$sims.list$U,
+#'         time=results$data$time,
+#'         targetU=10000,
+#'         file_prefix = 'Time10000')
+#' 
+#' } % end of dontrun
+#' 
+#' @export TimeToTargetRunSize
+#' 
+
 TimeToTargetRunSize <- function(U, time, targetU, file_prefix, ci_prob=.95){
 #
 #  Take the results from the MCMC runs and use it to estimate the

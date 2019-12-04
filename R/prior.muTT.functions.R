@@ -1,5 +1,6 @@
 # 2011-03-10 CJS Utility functions for specifying prior for muTT
- 
+
+#' @import utils
 #****************************************************************************
 
 make.muTT.prior <- function(x){

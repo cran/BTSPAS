@@ -2,6 +2,8 @@
 # Take the input values and create a ggplot object for the logitP's with the credible intervals plotted
 # Input are the usual data values along with the MCMC results
 
+#' @keywords internal
+#' @import ggplot2 plyr
 
 
 plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){

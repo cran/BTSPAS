@@ -1,3 +1,7 @@
+#' @rdname PredictivePosterior.TSPDE
+
+# 2019-02-13 CJS convert from arrangeGrob to facet_wrap because arrangeGrob dosn't work in paralle.
+# 2015-06-10 CJS convert to ggplot()
 # 2014-09-01 CJS dealing with Inf and -Inf in the discrepancy measures
 # 2012-01-22 CJS made X/Y axis limits the same so p-value prints properly
 # 2011-06-13 CJS returned bayesian p-values
@@ -17,42 +21,35 @@ temp <- discrep == Inf | discrep == -Inf
 if(sum(temp)>0){cat(sum(temp), " infinite discrepancy measures set to NA\n")}
 discrep[ temp ] <- NA
 
-split.screen(figs=c(3,2))  # 3 rows and 2 columns
-titles <- c("Freeman-Tukey for m2", 
-            "Deviance for m2",
+discrep.long <- data.table::melt( data.table::as.data.table(discrep), 
+                                    measure.vars=list(seq(1,ncol(discrep),2), seq(2,ncol(discrep),2)),
+                                    value.name=c("Observed","Simulated"),
+                                    variable.name="Statistic",
+                                    variable.factor=FALSE)
+
+titles <- data.frame(Statistic=as.character(1:6), Title=c( 
+            "Freeman-Tukey for m2", 
+            "Deviance for m2", 
             "Freeman-Tukey for u2", 
-            "Deviance for u2",
+            "Deviance for u2", 
             "Total Freeman-Tukey",
-            "Total deviance")
-saved_p_values <- rep(NA, length(titles))
+            "Total Deviance"), stringsAsFactors=FALSE)
+discrep.long <- merge(discrep.long, titles)
 
-for(i in 1:6){
-  screen(i)
-  par(cex=.5)
-  par(mai=c(.40,.40,.40,.40)) # margins of plot relative to plotting position
-
-  ## Compute plotting limits to generate symmetric plot
-  lims <- range(discrep[,(2*i):(2*i-1)], na.rm=TRUE)
+# compute the bayesian p-values
+p_values <-plyr::ddply(discrep.long, c("Statistic","Title"), function(x){
+       p.value=mean(x$Observed < x$Simulated)
+       data.frame(p.value=p.value)
+})
+p_values$label = paste("Bayesian GOF P:",formatC(p_values$p.value, digits=2, format="f"))
   
-  ## Plot observed vs simulated discrepancies
-  plot(discrep[,(2*i):(2*i-1)],
-       xlab="Simulated", ylab="Observed", 
-       main=titles[i], cex.main=1.5, xlim=lims, ylim=lims)
-  abline(a=0, b=1)
-
-  ## Compute Bayesian p-value
-  p.value <- sum(discrep[,2*i-1]<discrep[,2*i], na.rm=TRUE)/nrow(discrep)
-  saved_p_values[i] <- p.value
-
-  ## Add p-value to plot
-  x.loc <- mean(lims, na.rm=TRUE)
-  y.loc <- min(lims,  na.rm=TRUE)
-  
-  text(x.loc, y.loc,
-       labels=paste("Bayesian GOF P:",formatC(p.value, digits=2, format="f")),
-       cex=1.5, adj=c(0,0))  
-}
-close.screen(all.screens=TRUE)     # exit from plots  
-gof <- data.frame(statistic=titles, p.value=saved_p_values)
+gof.plot <-ggplot(data=discrep.long, aes_(x=~Simulated, y=~Observed))+
+       geom_point()+
+       geom_abline(intercept=0, slope=1)+
+       geom_text(data=p_values, x=Inf,y=-Inf, hjust=1, vjust=0, label=p_values$label)+
+       facet_wrap(~Title, ncol=2, nrow=3, scales="free")
+ 
+gof <- list(bp.plot=gof.plot,  bp.values=data.frame(test.names=titles, p.value=p_values, stringsAsFactors=FALSE))
+#browser()
 gof
 }

@@ -1,6 +1,8 @@
+# 2018-11-27 CJS - removed call to OpenBugs. Left this here in case we want to change samplers in the future.
 # 2013-12-30 CJS - function to switch between the three samplers as needed. 
 #                  This way we wont't have to modify much code (hopefully)
 
+#' @keywords internal
 run.MCMC <-
     function(modelFile,
              dataFile,
@@ -15,27 +17,9 @@ run.MCMC <-
              overRelax=FALSE,
              initialSeed,
              working.directory,
-             debug=FALSE,
-	     engine=c("jags","openbugs")[1]){
+             debug=FALSE){
 
-if(tolower(engine) %in% c("openbugs")){
-    results <- run.openbugs(modelFile=modelFile,
-                            dataFile=dataFile,
-                            dataList=dataList,
-                            initFiles=initFiles,
-                            initVals=initVals,
-                            parameters=parameters,
-                            nChains=nChains,
-                            nIter=nIter,
-                            nBurnin=nBurnin,
-                            nSims=nSims,
-                            overRelax=overRelax,
-                            initialSeed=initialSeed,
-                            working.directory=working.directory,
-                            debug=debug)
-   } 
-else if(tolower(engine) == "jags"){
-        results <- run.jags(modelFile=modelFile,
+   results <- run.jags(modelFile=modelFile,
                            dataFile=dataFile,
                            dataList=dataList,
                            initFiles=initFiles,
@@ -49,9 +33,6 @@ else if(tolower(engine) == "jags"){
                            initialSeed=initialSeed,
                            working.directory=working.directory,
                            debug=debug)
-    } 
-else{ stop(paste("Unknown BUGS engine:",engine,".\n")) }
-
 return(results)
 } # end of function
 

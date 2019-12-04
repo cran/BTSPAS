@@ -1,3 +1,4 @@
+# 2015-06-11 CJS Updated for fixed to Bayesian p-value plots
 # 2013-12-30 CJS Updated for JAGS
 # 2013-01-25 CJS Changed messages from .onLoad to .onAttach in accordance with R policies
 # 2012-01-10 CJS Change name of .First.lib to  .onLoad with changes for R2.14+
@@ -6,15 +7,16 @@
 # 2009-12-01 CJS added openbugs/winbugs to arguments of all functions. No need for global variables
 #
 
+#' Message to display when package is loaded
+#' 
+#' @keywords internal
+#'
+
 .onAttach <- function(libname,pkgname){
 
-  packageStartupMessage("***** BTSPAS: Bayesian Time Stratified Petersen Analysis System - Version 2014.0901 (2014-09-01) ***** \n\n",
-        "      Help available with  help(package='BTSPAS')  or  \n",
-        "                           help(BTSPAS)                \n\n",
-        '      List of demonstrations available with demo(package="BTSPAS") \n',
-        '      A demo is run as (e.g.): demo("demo-TSPDE", package="BTSPAS")\n\n')
-  ## Turn off the ask options when demonstrations are run
-  options(demo.ask=FALSE)
+  packageStartupMessage("***** BTSPAS: Bayesian Time Stratified Petersen Analysis System - Version 2020.1.1 (2020-01-01) ***** \n\n",
+        "      Help available with  help(package='BTSPAS') \n",
+        '      Several vignettes are available. See browseVignettes(package="BTSPAS") \n\n')
 }
 
 

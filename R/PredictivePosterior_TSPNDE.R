@@ -1,3 +1,8 @@
+#' @rdname PredictivePosterior.TSPDE
+#' @import stats plyr
+
+
+
 # 2014-09-01 CJS Needed to deal with different behaviour between OPENBugs and JAGS when the logitP parameters may be fixed.
 #    OpenBUGS does NOT includ the fixed logits in the returned MCMC sampler; JAGS does.
 #    Consequently, the expansion of the the logitP from the samplers for the fixed logits only has to be done in OpenBugs and not JAGS
@@ -13,8 +18,7 @@ PredictivePosterior.TSPNDE <- function (n1,
                                         p,
                                         U,
                                         mu,
-                                        sigma,
-					engine) {
+                                        sigma) {
 #  Generate Predictive Posterior Plot (Bayesian p-value) given the data
 #  for a TimeStratified Petersen with NonDiagonal Elements and error
 #    n1, m2, u2  = vectors of input data
@@ -35,12 +39,12 @@ PredictivePosterior.TSPNDE <- function (n1,
   p.bkp <- p
 
   # 2014-09-01. Fixed a problem when fixed p is in first position and 1:0 doesn't work properly
-  if(any(!is.na(logitP.fixed[1:t])) & tolower(engine)=="openbugs"  ){  # the second condition is for JAGS
-    for(j in which(!is.na(logitP.fixed[1:t]))){
-      if(j==1){ p <- cbind(expit(logitP.fixed[1]), p)}  # code below fails when j==1
-      if(j> 1){ p <- cbind(p[,1:(j-1)],  expit(logitP.fixed[j]), p[,-(1:(j-1))]) }
-    }
-  }
+#  if(any(!is.na(logitP.fixed[1:t])) & tolower(engine)=="openbugs"  ){  # the second condition is for JAGS
+#    for(j in which(!is.na(logitP.fixed[1:t]))){
+#      if(j==1){ p <- cbind(expit(logitP.fixed[1]), p)}  # code below fails when j==1
+#      if(j> 1){ p <- cbind(p[,1:(j-1)],  expit(logitP.fixed[j]), p[,-(1:(j-1))]) }
+#    }
+#  }
 
 ## Compute matrices of movement probabilities for each iteration
 Theta <- lapply(1:nrow(p),function(i) lnTheta(mu[i,],sigma[i,],s,t))

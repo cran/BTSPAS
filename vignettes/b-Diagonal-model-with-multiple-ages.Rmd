@@ -1,0 +1,582 @@
+---
+title: "Diagonal Case - Multiple Stocks/Ages"
+author: "Carl James Schwarz"
+date: "`r Sys.Date()`"
+output: 
+  html_vignette: 
+    toc: true # table of content true
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    number_sections: true  ## if you want number sections at each table header
+#vignette: >
+#  %\VignetteIndexEntry{02 - Diagonal Case - Multiple Stocks/Ages}
+#  %\VignetteEncoding{UTF-8}
+#  %\VignetteEngine{knitr::rmarkdown_notangle}
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include = FALSE,message=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(binom)
+library(BTSPAS)
+library(ggplot2)
+max.width=70
+```
+# Location of vignette source and code.
+Because of the length of time needed to run the vignettes, only
+static vignettes have been included with this package.
+
+The original of the vignettes and the code can be obtained from 
+the GitHub site at
+https://github.com/cschwarz-stat-sfu-ca/BTSPAS
+
+# Introduction
+In some cases, the population of fish consist of a mixture of ages (young of year, and juvenile) and
+stocks (wild and hatchery). *BTSPAS* has a number of routines to handle three common
+occurrences as explained below.
+
+In all cases, only diagonal recoveries are allowed.
+
+Refer to the vignette on the *Diagonal Case* for information about fixing values of $p$ or modelling 
+$p$ using covariates such a stream flow or smoothing $p$ using a temporal spline.
+
+
+# Wild and Hatchery Chinook
+
+In each stratum $j$, $n1[j]$ fish are marked and released above a rotary screw trap.
+Of these, $m2[j]$ are recaptured in the stratum of release, i.e. the matrix of
+releases and recoveries is diagonal.
+The $n1[j]$ and $m2[j]$ establish the capture efficiency of the trap.
+ 
+At the same time, $u2[j]$ unmarked fish are captured at the screw trap.
+These fish are a mixture of wild and hatchery raised chinook salmon.
+A portion (*clip.rate*) of the hatchery raised fish are adipose fin clipped and can be recognized as hatchery raised.
+The unclipped fish are a mixture of wild and hatchery fish which must be separated.
+Hence the $u2[j]$ are separated into:
+
+* $u2.A[j]$ representing the number of adipose clipped fish known to be hatchery fish, and
+* $u2.N[j]$ representing the number of unclipped fish which are mixture of hatchery and wild fish.
+
+
+## Reading in the data
+Here is an example of some raw data that is read in:
+```{r}
+demo.data.csv <- textConnection(
+"     jweek,      n1,      m2,      u2.A,      u2.N
+          9,       0,       0,         0,      4135
+         10,    1465,      51,         0,     10452
+         11,    1106,     121,         0,      2199
+         12,     229,      25,         0,       655
+         13,      20,       0,         0,       308
+         14,     177,      17,         0,       719
+         15,     702,      74,         0,       973
+         16,     633,      94,         0,       972
+         17,    1370,      62,         0,      2386
+         18,     283,      10,         0,       469
+         19,     647,      32,         0,       897
+         20,     276,      11,         0,       426
+         21,     277,      13,         0,       407
+         22,     333,      15,         0,       526
+         23,    3981,     242,      9427,     30542
+         24,    3988,      55,      4243,     13337
+         25,    2889,     115,      1646,      6282
+         26,    3119,     198,      1366,      5552
+         27,    2478,      80,       619,      2959
+         28,    1292,      71,       258,      1455
+         29,    2326,     153,       637,      3575
+         30,    2528,     156,       753,      4284
+         31,    2338,     275,       412,      2903
+         32,    1012,     101,       173,      1127
+         33,     729,      66,        91,       898
+         34,     333,      44,        38,       406
+         35,     269,      33,        22,       317
+         36,      77,       7,         8,       99
+         37,      62,       9,         2,       77
+         38,      26,       3,         4,        37
+         39,      20,       1,         1,        22")
+
+demo.data <- read.csv(demo.data.csv, header=TRUE, as.is=TRUE, strip.white=TRUE)
+
+print(demo.data)
+```
+
+There are several unusual features of the data set: 
+
+* No fish were tagged and released in the first stratum. So no information is available
+to estimate the capture efficiency at the second trap in the first week.
+* In one of the recovery strata, there were no recaptures and so the
+estimated recapture probability will be zero. But the data shows that some unmarked
+fish were captured in these strata, so the actual efficiency must have been non-zero.
+* There one julian week  where the number of unmarked fish captured suddenly jumps by
+several orders of magnitude. This
+jump correspond to releases of hatchery fish into the system.
+* Before the hatchery release, we know that all of the unmarked fish
+without an adipose clip are wild fish.
+
+## Fitting the  BTSPAS diagonal model
+
+We already read in the data above. Here we set the rest of the parameters. 
+
+* the *hatch.after* variable indicates the stratum after which hatchery fish are released
+* the *bad.m2* variable identifies the stratum where the $m2$ value is unusual.
+* the *clip.frac.H* variable identify what fraction of the hatchery fish have adipose fin clips.
+
+Don't forget to set the working directory as appropriate:
+```{r }
+library("BTSPAS")  
+
+# After which weeks do the hatchery fish start to arrive. Prior to this point, all fish are wild and it is not
+# necessary to separate out the wild vs hatchery
+demo.hatch.after <- c(22)  # julian weeks after which hatchery fish arrive.
+
+# Which julian weeks have "bad"  values. These will be set to missing and estimated.
+demo.bad.m2     <- c()   # list of julian weeks with bad m2 values
+demo.bad.u2.A   <- c()     # list of julian weeks with bad u2.A values
+demo.bad.u2.N   <- c()     # list of julian weeks with bad u2.N values
+
+# The clipping fraction
+demo.clip.frac.H <- .25    # what fraction of the hatchery fish are adipose fin clipped
+
+
+# The prefix for the output files:
+demo.prefix <- "JC-2003-CH"
+
+# Title for the analysis
+demo.title <- "Junction City 2003 Chinook - Separation of Wild and Hatchery YoY Chinook"
+
+
+cat("*** Starting ",demo.title, "\n\n")
+
+# Make the call to fit the model and generate the output files
+demo.fit <- TimeStratPetersenDiagErrorWHChinook_fit(
+                  title      =demo.title,
+                  prefix     =demo.prefix,
+                  time       =demo.data$jweek ,
+                  n1         =demo.data$n1,
+                  m2         =demo.data$m2,
+                  u2.A       =demo.data$u2.A,
+                  u2.N       =demo.data$u2.N ,
+                  clip.frac.H= demo.clip.frac.H,
+                  hatch.after=demo.hatch.after,
+                  bad.m2     =demo.bad.m2, 
+                  bad.u2.A   =demo.bad.u2.A, 
+                  bad.u2.N   =demo.bad.u2.N,
+                  debug=TRUE,  # this generates only 10,000 iterations of the MCMC chain for checking.
+                  save.output.to.files=FALSE)
+
+```
+
+```{r echo=FALSE,results="hide" }
+# delete extra files that were created
+file.remove("data.txt"       )       
+file.remove("CODAindex.txt"  )
+file.remove("CODAchain1.txt" )
+file.remove("CODAchain2.txt" )
+file.remove("CODAchain3.txt" )
+file.remove("inits1.txt"     )
+file.remove("inits2.txt"     )
+file.remove("inits3.txt"     )
+file.remove("model.txt"      )
+
+```
+
+## The output from the fit
+
+Here is the fitted spline curve to the number of unmarked fish available in each recovery sample
+```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted spline curve")}
+demo.fit$plots$fit.plot
+```
+
+The separation of wild and hatchery fish is evident as well has the start of the spline for the hatchery fish.
+
+
+A plot of the $logit(P)$ is 
+```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
+demo.fit$plots$logitP.plot
+```
+In cases where there is no information (such as the first julian week), $BTSPAS$ has interpolated based on the distribution of catchability
+in the other strata and so the credible interval is very wide.
+
+A summary of the posterior for each parameter is also available. In particular, here are the
+summary statistics on the posterior sample for the total number unmarked separated by wild and hatchery origin:
+```{r}
+demo.fit$summary[ row.names(demo.fit$summary) %in% c("Ntot","Utot","Utot.H","Utot.W"),]
+```
+
+
+
+# Wild and Hatchery Chinook with YoY and Age 1 fish.
+
+In this example, *BTSPAS* allows for
+separating wild from hatchery Chinook salmon when Age-1 chinook are present (residualized) from last year.
+
+
+In each stratum $j$, $n1[j]$ fish are marked and released above a rotary screw trap.
+Of these, $m2[j]$ are recaptured in the stratum of release, i.e. the matrix of
+releases and recoveries is diagonal.
+The $n1[j]$ and $m2[j]$ establish the capture efficiency of the trap.
+ 
+At the same time, $u2[j]$ unmarked fish are captured at the screw trap.
+These fish are a mixture of YoY and Age-1 wild and hatchery raised chinook salmon. 
+A portion (*clip.rate.H.YoY*, *clip.rate.H.1*) of the YoY and Age1 hatchery raised fish 
+are adipose fin clipped and can be recognized as hatchery raised.
+The unclipped fish are a mixture of wild and hatchery fish which must be separated.
+Hence the $u2[j]$ are separated into 
+
+* $u2.A.YoY[j]$ representing the number of YoY adipose clipped fish known to be hatchery fish, and
+* $u2.N.YoY[j]$ representing the number YoY unclipped fish which are mixture of hatchery and wild fish
+* $u2.A.1  [j]$ representing the number of Age1 adipose clipped fish known to be hatchery fish, and
+* $u2.N.1  [j]$ representing the number of Age1 unclipped fish) which are mixture of hatchery and wild fish.
+
+
+## Reading in the data
+Here is an example of some raw data that is read in:
+```{r}
+demo2.data.csv <- textConnection(
+"     jweek,      n1,      m2,      u2.A.YoY,      u2.N.YoY,      u2.A.1,      u2.N.1
+          2,       0,       0,             0,            15,           0,          10
+          3,       0,       0,             0,            94,           1,          90
+          4,     833,      52,             0,           385,           2,         112
+          5,     852,      67,             0,          1162,          12,         140
+          6,    1495,      77,             0,           592,          10,         103
+          7,    1356,     182,             0,          1151,           4,          94
+          8,    1889,     145,             0,          2258,           7,         121
+          9,    2934,      89,             0,          1123,           2,          80
+         10,    1546,      53,             0,          2277,           5,          57
+         11,    4001,     232,             0,          2492,           4,          27
+         12,    2955,     158,             0,          1579,          14,          88
+         13,     529,      14,             0,          1046,           5,          45
+         14,    1172,      49,             0,           766,           3,          13
+         15,    3204,     232,             0,          2702,           1,           9
+         16,    1328,      57,             0,         10408,           2,          18
+         17,    3540,     114,             0,         12145,           3,          15
+         18,    4791,      45,             0,           186,           0,           1
+         19,    4808,      11,             0,           407,           0,           2
+         20,    5952,      44,             0,           862,           0,           0
+         21,    3852,      55,             0,           465,           0,           0
+         22,    2621,      17,             0,           724,           0,          27
+         23,    2131,      37,           854,          4860,           0,           0
+         24,    5002,     152,           794,          3539,           0,           1
+         25,    3706,     120,           904,          4597,           0,           0
+         26,    1225,      44,           708,          3819,           0,           0
+         27,     723,      45,           762,          3300,           0,           0
+         28,    2895,     167,          1356,          5460,           0,           0
+         29,    1395,     117,           614,          2918,           0,           0
+         30,     479,      77,           420,          2252,           0,           0
+         31,     964,      74,           289,          1240,           0,           0
+         32,    2803,     288,            87,           428,           0,           0
+         33,     952,      51,           114,           464,           0,           0
+         34,     880,     126,            53,           515,           0,           0
+         35,       0,       0,            21,            93,           0,           0")
+
+demo2.data <- read.csv(demo2.data.csv, header=TRUE, as.is=TRUE, strip.white=TRUE)
+
+print(demo2.data)
+```
+
+There are several unusual features of the data set: 
+
+* No fish were tagged and released in the first two strata nor in the last stratum. So no information is available
+to estimate the capture efficiency at the second trap in these strata.
+* There one julian week  where the number of unmarked fish captured suddenly jumps by
+several orders of magnitude. This
+jump correspond to releases of hatchery fish into the system.
+* Before the hatchery release, we know that all of the unmarked fish
+without an adipose clip are wild fish.
+
+## Fitting the  BTSPAS diagonal model
+
+We already read in the data above. Here we set the rest of the parameters. 
+
+* the *hatch.after* variable indicates the stratum after which hatchery fish are released
+* the *bad.m2* variable identifies the stratum where the $m2$ value is unusual.
+* the *clip.frac.H* variables identify what fraction of the hatchery fish have adipose fin clips in the YoY and Age 1 fish.
+
+Don't forget to set the working directory as appropriate:
+```{r }
+library("BTSPAS")  
+
+# After which weeks do the YoY hatchery fish start to arrive. 
+# Prior to this point, all YoY fish are wild and it is not
+# necessary to separate out the YoY wild vs hatchery
+demo2.hatch.after.YoY <- c(22)  # julian weeks after which YoY hatchery fish arrive.
+
+# Which julian weeks have "bad"  values. These will be set to missing and estimated.
+demo2.bad.m2       <- c()     # list of julian weeks with bad m2 values
+demo2.bad.u2.A.YoY <- c()     # list of julian weeks with bad u2.A.YoY values
+demo2.bad.u2.N.YoY <- c()     # list of julian weeks with bad u2.N.YoY values
+demo2.bad.u2.A.1   <- c()     # list of julian weeks with bad u2.A.YoY values
+demo2.bad.u2.N.1   <- c()     # list of julian weeks with bad u2.N.YoY values
+
+# The clipping fraction for the current YoY and last year's YoY (which are now Age 1 fish)
+demo2.clip.frac.H.YoY <- .25    # what fraction of the YoY  hatchery fish are adipose fin clipped
+demo2.clip.frac.H.1   <- .25    # what fraction of the Age1 hatchery fish are adipose fin clipped
+
+# The prefix for the output files:
+demo2.prefix <- "NF-2009-CH-WH-YoY-Age1" 
+
+# Title for the analysis
+demo2.title <- "North Fork 2009 Chinook - Separation of YoY and Age 1 Wild and Hatchery Chinook"
+
+
+cat("*** Starting ",demo2.title, "\n\n")
+
+# Make the call to fit the model and generate the output files
+demo2.fit  <- TimeStratPetersenDiagErrorWHChinook2_fit(
+                  title    = demo2.title,
+                  prefix   = demo2.prefix,
+                  time     = demo2.data$jweek,
+                  n1       = demo2.data$n1,          
+                  m2       = demo2.data$m2,         
+                  u2.A.YoY = demo2.data$u2.A.YoY,
+                  u2.N.YoY = demo2.data$u2.N.YoY,
+                  u2.A.1   = demo2.data$u2.A.1,
+                  u2.N.1   = demo2.data$u2.N.1,
+                  clip.frac.H.YoY= demo2.clip.frac.H.YoY,
+                  clip.frac.H.1  = demo2.clip.frac.H.1,
+                  hatch.after.YoY= demo2.hatch.after.YoY,
+                  bad.m2       = demo2.bad.m2, 
+                  bad.u2.A.YoY = demo2.bad.u2.A.YoY, 
+                  bad.u2.N.YoY = demo2.bad.u2.N.YoY,
+                  bad.u2.A.1   = demo2.bad.u2.A.1  , 
+                  bad.u2.N.1   = demo2.bad.u2.N.1,
+                  debug=TRUE,  # this generates only 10,000 iterations of the MCMC chain for checking.
+                  save.output.to.files=FALSE)
+
+```
+
+```{r echo=FALSE,results="hide" }
+# delete extra files that were created
+file.remove("data.txt"       )       
+file.remove("CODAindex.txt"  )
+file.remove("CODAchain1.txt" )
+file.remove("CODAchain2.txt" )
+file.remove("CODAchain3.txt" )
+file.remove("inits1.txt"     )
+file.remove("inits2.txt"     )
+file.remove("inits3.txt"     )
+file.remove("model.txt"      )
+
+```
+
+## The output from the fit
+
+Here is the fitted spline curve to the number of unmarked fish available of both stocks and ages.
+```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted spline curve")}
+demo2.fit$plots$fit.plot
+```
+
+The separation of wild and hatchery fish is evident as well has the start of the spline for the hatchery fish.
+
+
+A plot of the $logit(P)$ is 
+```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
+demo2.fit$plots$logitP.plot
+```
+In cases where there is no information (such as the first julian week), $BTSPAS$ has interpolated based on the distribution of catchability
+in the other strata and so the credible interval is very wide.
+
+A summary of the posterior for each parameter is also available. In particular, here are the
+summary statistics on the posterior sample for the total number unmarked separated by wild and hatchery origin and the different ages:
+```{r}
+round(demo2.fit$summary[ grepl("Utot", row.names(demo2.fit$summary)),],1)
+```
+
+
+
+# Wild and Hatchery Steelhead with YoY and Age 1 fish.
+
+In this analysis we fit a diagonal time-stratified Petersen estimator 
+separating wind from hatchery Steelhead salmon..
+
+This differs from the Wild vs Hatchery Chinook salmon in previous sections in that all hatchery raised steelhead are marked,
+so there is complete separation by age and (wild/hatchery).
+There are 3 population of interest, Wild.YoY, Hatchery.Age1+, and  Wild.Age1+.
+
+This analysis is based on the analysis of California Junction City 2003 Steelhead data and is the example used
+in the Trinity River Project.
+
+
+In each stratum $j$, $n1[j]$ fish are marked and released above a rotary screw trap.
+Of these, $m2[j]$ are recaptured in the stratum of release, i.e. the matrix of
+releases and recoveries is diagonal.
+The $n1[j]$ and $m2[j]$ establish the capture efficiency of the trap.
+ 
+At the same time, $u2[j]$ unmarked fish are captured at the screw trap.
+These fish are a mixture of wild and hatchery raised steelhead salmon. 
+The $u2[j]$ are separated into 
+
+* $u2.W.YoY[j]$ representing wild, YoY steelhead,
+* $u2.W.1  [j]$ representing wild, age 1+ steelhead, and
+* $u2.H.1  [j]$ representing hatchery, age 1+ steelhead.
+
+
+## Reading in the data
+Here is an example of some raw data that is read in:
+```{r}
+demo3.data.csv <- textConnection(
+"     jweek,      n1,      m2,      u2.W.YoY,      u2.W.1,      u2.H.1
+          9,       0,       0,             0,          58,           0
+         10,       0,       0,             0,         357,           2
+         11,       0,       0,             0,         720,           0
+         12,     999,       5,             0,         850,        4643
+         13,    1707,      13,            11,         585,        5758
+         14,    1947,      39,             0,         532,        4220
+         15,    2109,       7,             0,         873,        2328
+         16,     972,       1,             0,         303,        1474
+         17,     687,       0,             1,         291,         875
+         18,       0,       0,            33,          12,          39
+         19,       0,       0,            31,         101,          15
+         20,       0,       0,            11,          47,          13
+         21,       0,       0,            78,          49,          26
+         22,       0,       0,            46,          44,          22
+         23,       0,       0,            35,          50,          59
+         24,       0,       0,            30,          38,          15
+         25,       0,       0,           309,          58,           8
+         26,       3,       0,           278,          36,           4
+         27,       0,       0,           207,          13,           2
+         28,       0,       0,           196,           5,           0
+         29,       0 ,      0,           613,          12,           0
+         30,       0,       0,           764,          15,           0
+         31,       0,       0,           556,          11,           0
+         32,       0,       0,           250,          12,           0
+         33,       0,       0,           106,          13,           0
+         34,       0,       0,           413,          12,           0
+         35,       0,       0,           995,          28,           1
+         36,       0,       0,           357,          10 ,          0
+         37,       0,       0,           181,           8,          27
+         38,       0,       0,            53,           3,           2
+         39,       0,       0,            29,           2,           0
+         40,       0,       0,             3,           0,           0
+         41,       0,       0,             5,           0,           0
+         42,       0,       0,            14,           4,           0
+         43,       0,       0,             8,          10,           0
+         44,       0,       0,            19,           7,           0
+         45,       0,       0,            46,           4,           0
+         46,       0,       0,           229,           7,          0")
+
+demo3.data <- read.csv(demo3.data.csv, header=TRUE, as.is=TRUE, strip.white=TRUE)
+
+print(demo3.data)
+```
+
+There are several unusual features of the data set: 
+
+* Marking and releasing of steelhead took place in only a few weeks! The hierarchical model
+will extrapolate outside these weeks to estimate the capture rate. This is likely a very dangerous thing
+to do.
+* There one julian week  where the number of unmarked fish captured suddenly jumps by
+several orders of magnitude. This
+jump correspond to releases of hatchery fish into the system.
+* Before the hatchery release, we know that all of the unmarked fish
+without an adipose clip are wild fish.
+
+## Fitting the  BTSPAS diagonal model
+
+We already read in the data above. Here we set the rest of the parameters. 
+
+* the *hatch.after* variable indicates the stratum after which hatchery fish are released
+* the *bad.m2* variable identifies the stratum where the $m2$ value is unusual.
+* the *clip.frac.H* variables identify what fraction of the hatchery fish have adipose fin clips in the YoY and Age 1 fish.
+
+Don't forget to set the working directory as appropriate:
+```{r }
+library("BTSPAS")  
+
+# After which weeks do the hatchery fish start to arrive. Prior to this point, all fish are wild and it is not
+# necessary to separate out the wild vs hatchery
+demo3.hatch.after <- c(11)  # julian weeks after which hatchery fish arrive.
+
+# Which julian weeks have "bad"  values. These will be set to missing and estimated.
+demo3.bad.m2       <- c()     # list of julian weeks with bad m2 values
+demo3.bad.u2.W.YoY <- c()     # list of julian weeks with bad u2.W.YoY values
+demo3.bad.u2.W.1   <- c()     # list of julian weeks with bad u2.W.1   values
+demo3.bad.u2.H.1   <- c()     # list of julian weeks with bad u2.H.1   values
+
+
+
+# The prefix for the output files:
+demo3.prefix <- "demo-JC-2003-ST-TSPDE-WH" 
+
+# Title for the analysis
+demo3.title <- "Junction City 2003 Steelhead - Separation of Wild and Hatchery YoY and Age 1+ Steelhead"
+
+
+
+cat("*** Starting ",demo3.title, "\n\n")
+
+# Make the call to fit the model and generate the output files
+demo3.fit <- TimeStratPetersenDiagErrorWHSteel_fit(
+                  title     = demo3.title,
+                  prefix    = demo3.prefix,
+                  time      = demo3.data$jweek,
+                  n1        = demo3.data$n1,
+                  m2        = demo3.data$m2,
+                  u2.W.YoY  = demo3.data$u2.W.YoY, 
+                  u2.W.1    = demo3.data$u2.W.1, 
+                  u2.H.1    = demo3.data$u2.H.1,
+                  hatch.after=demo3.hatch.after,
+                  bad.m2     = demo3.bad.m2,
+                  bad.u2.W.YoY= demo3.bad.u2.W.YoY,
+                  bad.u2.W.1  = demo3.bad.u2.W.1,
+                  bad.u2.H.1  = demo3.bad.u2.H.1,
+                  debug=TRUE,  # this generates only 10,000 iterations of the MCMC chain for checking.
+                  save.output.to.files=FALSE)
+
+```
+The final parameter (*save.output.to.files*) can be set to automatically to save plots and reports in files with the appropriate prefix in the working directory.  
+
+```{r echo=FALSE,results="hide" }
+# delete extra files that were created
+file.remove("data.txt"       )       
+file.remove("CODAindex.txt"  )
+file.remove("CODAchain1.txt" )
+file.remove("CODAchain2.txt" )
+file.remove("CODAchain3.txt" )
+file.remove("inits1.txt"     )
+file.remove("inits2.txt"     )
+file.remove("inits3.txt"     )
+file.remove("model.txt"      )
+
+```
+
+## The output from the fit
+
+Here is the fitted spline curve to the number of unmarked fish available of both stocks and ages.
+```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted spline curve")}
+demo3.fit$plots$fit.plot
+```
+
+The separation of wild and hatchery fish is evident as well has the start of the spline for the hatchery fish.
+
+
+A plot of the $logit(P)$ is 
+```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
+demo3.fit$plots$logitP.plot
+```
+In cases where there is no information (such as the first julian week), $BTSPAS$ has interpolated based on the distribution of catchability
+in the other strata and so the credible interval is very wide.
+
+A summary of the posterior for each parameter is also available. In particular, here are the
+summary statistics on the posterior sample for the total number unmarked separated by wild and hatchery origin and the different ages:
+```{r}
+demo3.fit$summary[ grepl("Utot", row.names(demo3.fit$summary)),]
+```
+
+
+
+# References
+
+Bonner, S. J., & Schwarz, C. J. (2011). 
+Smoothing population size estimates for Time-Stratified Mark–Recapture experiments Using Bayesian P-Splines. 
+Biometrics, 67, 1498–1507. 
+https://doi.org/10.1111/j.1541-0420.2011.01599.x
+
+Schwarz, C. J., & Dempson, J. B. (1994).
+Mark-recapture estimation of a salmon smolt population. 
+Biometrics, 50, 98–108.
+
+

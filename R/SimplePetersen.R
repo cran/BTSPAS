@@ -1,5 +1,30 @@
 # 2010-05-25 CJS fixed error in se of Petersen estimator
 
+#' Simple Petersen Estimator and test if pooling can be done
+#' 
+#' Computes the Petersen estimator (Chapman correction applied) for the number of UNMARKED animals (U)
+#' and total population (N) given n1, m2, and u2.
+#' 
+#' @aliases TestIfPool
+#' @param n1 Number of animals tagged and released. Can be a vector in which the estimate is formed for each element of the vector
+#' @param m2 Number of animals from n1 that are recaptured.
+#' @param u2 Number of unmarked animals in the second sample.
+#'
+#' @return Data frame with variables U.est, U.se, N.est, and N.se.
+#' .
+#' @template author 
+#' @examples
+#'  
+#' SimplePetersen( 200, 10, 300) 
+#' SimplePetersen(c(200,400), c(10,20), c(300,600))
+#'
+#' 
+#' @export SimplePetersen TestIfPool
+#' 
+#' 
+
+
+
 SimplePetersen <- function( n1, m2, u2) {
 #
 #   Estimate abundance of unmarked fish at second sample occasion using the SimplePetersen estimator
@@ -17,9 +42,12 @@ SimplePetersen <- function( n1, m2, u2) {
 #        $est and $se
 #
 
-   est <- (n1+1)*(u2+1)/(m2+1) - 1
-   se  <- sqrt((n1+1)*(m2+u2+1)*(n1-m2)*(u2)/(m2+1)^2/(m2+2))
-   list(est=est, se=se)
+   U.est <- (n1+1)*(u2+1)/(m2+1) - 1
+   U.se  <- sqrt((n1+1)*(m2+u2+1)*(n1-m2)*(u2)/(m2+1)^2/(m2+2))
+   N.est <- (n1+1)*(u2+m2+1)/(m2+1) - 1
+   N.se  <- U.se
+   
+   data.frame(U.est=U.est, U.se=U.se, N.est=N.est, N.se=N.se, stringsAsFactors=FALSE)
 } #end of function
 
 

@@ -1,3 +1,4 @@
+# 2018-12-06 CJS converted initial plot to ggplot2 format
 # 2014-09-01 CJS Converted to JAGS
 #                - no model name
 #                - C(,20) -> T(,20)
@@ -15,6 +16,8 @@
 # 2009-12-05 CJS added title to argument list
 # 2009-12-01 CJS Added open/win bugs path names to argument list
 
+#' @keywords internal
+
 TimeStratPetersenDiagErrorWHChinook <-
     function(title, prefix, time, n1, m2, u2.A, u2.N,
              hatch.after=NULL, clip.frac.H=.25,
@@ -25,8 +28,8 @@ TimeStratPetersenDiagErrorWHChinook <-
              tau_xiP=1/var(logit((m2+.5)/(n1+1)), na.rm=TRUE),
              tauP.alpha=.001, tauP.beta=.001,
              debug=FALSE, debug2=FALSE, 
-	     engine=c('jags',"openbugs")[1],
-             InitialSeed){
+             InitialSeed,
+             save.output.to.files=TRUE){
 
 set.seed(InitialSeed)  # set prior to initial value computations
 
@@ -130,47 +133,13 @@ model {
    ##### Fit the spline for wildfish - this covers the entire experiment ######
    for(i in 1:Nstrata){
         logUne.W[i] <- inprod(SplineDesign.W[i,1:n.bU.W],bU.W[1:n.bU.W])  # spline design matrix * spline coeff
-", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
         etaU.W[i] ~ dnorm(logUne.W[i], taueU)T(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-        etaU.W[i] ~ dnorm(logUne.W[i], taueU)C(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
         eU.W[i] <- etaU.W[i] - logUne.W[i]
    }
    ##### Fit the spline for hatchery fish - these fish only enter AFTER hatch.after ######
    for(i in (hatch.after+1):Nstrata){
         logUne.H[i] <- inprod(SplineDesign.H[i,1:n.bU.H],bU.H[1:n.bU.H])  # spline design matrix * spline coeff
-   ", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
         etaU.H[i] ~ dnorm(logUne.H[i], taueU)T(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-        etaU.H[i] ~ dnorm(logUne.H[i], taueU)C(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
         eU.H[i] <- etaU.H[i] - logUne.H[i]
    }
 
@@ -198,34 +167,13 @@ if(tolower(engine) %in% c("openbugs")) {
 
    ##### Hyperpriors #####
    ## Run size - wild and hatchery fish - flat priors
-   ", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
    for(i in 1:n.b.flat.W){
       bU.W[b.flat.W[i]] ~ dnorm(0, 1E-6)
    }
    for(i in 1:n.b.flat.H){
       bU.H[b.flat.H[i]] ~ dnorm(0, 1E-6)
    }
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-   for(i in 1:n.b.flat.W){
-      bU.W[b.flat.W[i]] ~ dflat()
-   }
-   for(i in 1:n.b.flat.H){
-      bU.H[b.flat.H[i]] ~ dflat()
-   }
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
+
    ## Run size - priors on the difference for wild and hatchery fish
    for(i in 1:n.b.notflat.W){
       xiU.W[b.notflat.W[i]] <- 2*bU.W[b.notflat.W[i]-1] - bU.W[b.notflat.W[i]-2]
@@ -299,101 +247,108 @@ if(tolower(engine) %in% c("openbugs")) {
 
       Nstrata <- length(n1)
 
-      # make a copy of u2.N to improve mixing in the MCMC model
-      u2.Ncopy <- spline(x=1:Nstrata, y=u2.N, xout=1:Nstrata)$y
-      u2.Ncopy <- round(u2.Ncopy) # round to integers
+  # make a copy of u2.N to improve mixing in the MCMC model
+  u2.Ncopy <- spline(x=1:Nstrata, y=u2.N, xout=1:Nstrata)$y
+  u2.Ncopy <- round(u2.Ncopy) # round to integers
 
-      # similarly make a copy of u2.A to improve mixing in the MCMC model
-      # notice that Adipose clips only occur at hatch.after or later
-      u2.Acopy <- u2.A * 0
-      u2.Acopy[hatch.after:Nstrata] <- spline(x=hatch.after:Nstrata, y=u2.A[hatch.after:Nstrata], xout=hatch.after:Nstrata)$y
-      u2.Acopy <- round(u2.Acopy) # round to integers
+  # similarly make a copy of u2.A to improve mixing in the MCMC model
+  # notice that Adipose clips only occur at hatch.after or later
+  u2.Acopy <- u2.A * 0
+  u2.Acopy[hatch.after:Nstrata] <- spline(x=hatch.after:Nstrata, y=u2.A[hatch.after:Nstrata], xout=hatch.after:Nstrata)$y
+  u2.Acopy <- round(u2.Acopy) # round to integers
 
-      datalist <- list("Nstrata", "n1", "m2",
-		        "u2.A", "u2.Acopy",
-		        "u2.N", "u2.Ncopy", 
-			"hatch.after", "clip.frac.H",
-                       "logitP.cov", "NlogitP.cov",
-                       "SplineDesign.W",
-                       "b.flat.W", "n.b.flat.W", "b.notflat.W", "n.b.notflat.W", "n.bU.W",
-                       "SplineDesign.H",
-                       "b.flat.H", "n.b.flat.H", "b.notflat.H", "n.b.notflat.H", "n.bU.H",
-                       "tauU.alpha", "tauU.beta", "taueU.alpha", "taueU.beta",
-                       "mu_xiP", "tau_xiP", "tauP.alpha", "tauP.beta")
+  datalist <- list("Nstrata", "n1", "m2",
+                  "u2.A", "u2.Acopy",
+                   "u2.N", "u2.Ncopy", 
+                   "hatch.after", "clip.frac.H",
+                   "logitP.cov", "NlogitP.cov",
+                   "SplineDesign.W",
+                   "b.flat.W", "n.b.flat.W", "b.notflat.W", "n.b.notflat.W", "n.bU.W",
+                   "SplineDesign.H",
+                   "b.flat.H", "n.b.flat.H", "b.notflat.H", "n.b.notflat.H", "n.bU.H",
+                   "tauU.alpha", "tauU.beta", "taueU.alpha", "taueU.beta",
+                   "mu_xiP", "tau_xiP", "tauP.alpha", "tauP.beta")
 
-      parameters <- c("logitP", "beta.logitP", "tauP", "sigmaP",
-                      "bU.W", "bU.H", "tauU", "sigmaU",
-                      "eU.W", "eU.H", "taueU", "sigmaeU",
-                      "Utot.W", "Utot.H", "Utot", "logUne.W", "logUne.H",
-                      "etaU.W", "etaU.H", "U.W", "U.H")
-      if( any(is.na(m2))) {parameters <- c(parameters,"m2")} # monitor in case some bad data where missing values present
-      if( any(is.na(u2.A))) {parameters <- c(parameters,"u2.A")}
-      if( any(is.na(u2.N))) {parameters <- c(parameters,"u2.N")}
-
-
-      ## Now to create the initial values, and the data prior to call to the MCMC sampler 
-
-                                # Estimate number of wild and hatchery fish based on clip rate
-      u2.H <- u2.A/clip.frac.H  # only a portion of the hatchery fish are clipped
-      u2.W <- pmax(u2.N - u2.H*(1-clip.frac.H),0) # subtract the questimated number of hatchery fish
-      u2.H[is.na(u2.H)] <- 1  # in case of missing values
-      u2.W[is.na(u2.W)] <- 1  # in case of missing values
-
-      avg.P <- sum(m2,na.rm=TRUE)/sum(n1, na.rM=TRUE)
-      Uguess.W <- pmax((u2.W+1)*(n1+2)/(m2+1), u2.W/avg.P, 1, na.rm=TRUE)  # try and keep Uguess larger than observed values
-      Uguess.H <- pmax((u2.H+1)*(n1+2)/(m2+1), u2.H/avg.P, 1, na.rm=TRUE)
-      Uguess.H[1:hatch.after] <- 0   # no hatchery fish prior to release from hatchery
-
-      ## create the B-spline design matrix for wild and hatchery fish
-      ## The design matrix for hatchery fish will still have rows corresponding to entries PRIOR to
-      ##    the hatchery release but these are never used in the winbugs fitting routines
-      ## There is a separate (single) spline for hatchery and wild fish with NO breakpoints
-      ## The first two coefficient have a flat prior and the rest of the coefficients are modelled using
-      ##    differences between the succesive coefficients
-
-      ## Wild fish. This covers the entire experiment.
-      SplineDegree <- 3           # Degree of spline between occasions
-      knots <- seq(4,Nstrata,4)/(Nstrata+1) # a knot roughly every 4th stratum
-      SplineDesign.W <- bs((1:Nstrata)/(Nstrata+1), knots=knots, degree=SplineDegree, intercept=TRUE, Boundary.knots=c(0,1))
-      b.flat.W      <- c(1,2)
-      b.notflat.W   <- 3:(ncol(SplineDesign.W))
-      n.b.flat.W    <- length(b.flat.W)
-      n.b.notflat.W <- length(b.notflat.W)
-      n.bU.W        <- n.b.flat.W + n.b.notflat.W
-      init.bU.W   <- lm(log(Uguess.W+1) ~ SplineDesign.W-1)$coefficients  # initial values for spline coefficients
-
-      ## hatchery fish. Notice they can only enter AFTER hatch.after, The spline design matrix still has rows
-                                        # of zero for 1:hatch.after to make it easier in Bugs
-      SplineDegree <- 3           # Degree of spline between occasions
-      knots <- (seq((hatch.after+4),Nstrata-1,4)-hatch.after)/(Nstrata-hatch.after+1) # a knot roughly every 4th stratum
-      SplineDesign.H <- bs((1:(Nstrata-hatch.after))/(Nstrata-hatch.after+1), knots=knots, degree=SplineDegree, intercept=TRUE, Boundary.knots=c(0,1))
-      b.flat.H      <- c(1,2)
-      b.notflat.H   <- 3:(ncol(SplineDesign.H))
-      n.b.flat.H    <- length(b.flat.H)
-      n.b.notflat.H <- length(b.notflat.H)
-      n.bU.H        <- n.b.flat.H + n.b.notflat.H
-      init.bU.H   <- lm(log(Uguess.H[(hatch.after+1):Nstrata]+1) ~ SplineDesign.H-1)$coefficients  # initial values for spline coefficients
-                                        # patch up the initial rows of the spline design matrix
-      SplineDesign.H <- rbind(matrix(0,nrow=hatch.after, ncol=ncol(SplineDesign.H)), SplineDesign.H)
-
-      ## create an initial plot of the fit to the number of unmarked fish
-      pdf(file=paste(prefix,"-initialU.pdf",sep=""))
-      plot(time, log(Uguess.H+1),
-           main=paste(title,"\nInitial spline fit to estimated U.W[i] and U.H[i]"),
-           ylab="log(U[i])", xlab='Stratum', pch="H")  # initial points on log scale.
-      points(time, log(Uguess.W+1), pch="W")
-      lines(time, SplineDesign.W %*% init.bU.W)  # add smoothed spline through points
-      lines(time, SplineDesign.H %*% init.bU.H)  # add smoothed spline through points
-      dev.off()
+  parameters <- c("logitP", "beta.logitP", "tauP", "sigmaP",
+                  "bU.W", "bU.H", "tauU", "sigmaU",
+                  "eU.W", "eU.H", "taueU", "sigmaeU",
+                   "Utot.W", "Utot.H", "Utot", "logUne.W", "logUne.H",
+                   "etaU.W", "etaU.H", "U.W", "U.H")
+  if( any(is.na(m2))) {parameters <- c(parameters,"m2")} # monitor in case some bad data where missing values present
+  if( any(is.na(u2.A))) {parameters <- c(parameters,"u2.A")}
+  if( any(is.na(u2.N))) {parameters <- c(parameters,"u2.N")}
 
 
-                                        # get the logitP=logit(P) covariate matrix ready
-      logitP.cov <- as.matrix(logitP.cov)
-      NlogitP.cov <- ncol(as.matrix(logitP.cov))
+  ## Now to create the initial values, and the data prior to call to the MCMC sampler 
+
+  # Estimate number of wild and hatchery fish based on clip rate
+  u2.H <- u2.A/clip.frac.H  # only a portion of the hatchery fish are clipped
+  u2.W <- pmax(u2.N - u2.H*(1-clip.frac.H),0) # subtract the questimated number of hatchery fish
+  u2.H[is.na(u2.H)] <- 1  # in case of missing values
+  u2.W[is.na(u2.W)] <- 1  # in case of missing values
+
+  avg.P <- sum(m2,na.rm=TRUE)/sum(n1, na.rM=TRUE)
+  Uguess.W <- pmax((u2.W+1)*(n1+2)/(m2+1), u2.W/avg.P, 1, na.rm=TRUE)  # try and keep Uguess larger than observed values
+  Uguess.H <- pmax((u2.H+1)*(n1+2)/(m2+1), u2.H/avg.P, 1, na.rm=TRUE)
+  Uguess.H[1:hatch.after] <- 0   # no hatchery fish prior to release from hatchery
+
+  ## create the B-spline design matrix for wild and hatchery fish
+  ## The design matrix for hatchery fish will still have rows corresponding to entries PRIOR to
+  ##    the hatchery release but these are never used in the winbugs fitting routines
+  ## There is a separate (single) spline for hatchery and wild fish with NO breakpoints
+  ## The first two coefficient have a flat prior and the rest of the coefficients are modelled using
+  ##    differences between the succesive coefficients
+
+  ## Wild fish. This covers the entire experiment.
+  SplineDegree <- 3           # Degree of spline between occasions
+  knots <- seq(4,Nstrata,4)/(Nstrata+1) # a knot roughly every 4th stratum
+  SplineDesign.W <- bs((1:Nstrata)/(Nstrata+1), knots=knots, degree=SplineDegree, intercept=TRUE, Boundary.knots=c(0,1))
+  b.flat.W      <- c(1,2)
+  b.notflat.W   <- 3:(ncol(SplineDesign.W))
+  n.b.flat.W    <- length(b.flat.W)
+  n.b.notflat.W <- length(b.notflat.W)
+  n.bU.W        <- n.b.flat.W + n.b.notflat.W
+  init.bU.W   <- lm(log(Uguess.W+1) ~ SplineDesign.W-1)$coefficients  # initial values for spline coefficients
+
+  ## hatchery fish. Notice they can only enter AFTER hatch.after, The spline design matrix still has rows
+  ## of zero for 1:hatch.after to make it easier in Bugs
+  SplineDegree <- 3           # Degree of spline between occasions
+  knots <- (seq((hatch.after+4),Nstrata-1,4)-hatch.after)/(Nstrata-hatch.after+1) # a knot roughly every 4th stratum
+  SplineDesign.H <- bs((1:(Nstrata-hatch.after))/(Nstrata-hatch.after+1), knots=knots, degree=SplineDegree, intercept=TRUE, Boundary.knots=c(0,1))
+  b.flat.H      <- c(1,2)
+  b.notflat.H   <- 3:(ncol(SplineDesign.H))
+  n.b.flat.H    <- length(b.flat.H)
+  n.b.notflat.H <- length(b.notflat.H)
+  n.bU.H        <- n.b.flat.H + n.b.notflat.H
+  init.bU.H   <- lm(log(Uguess.H[(hatch.after+1):Nstrata]+1) ~ SplineDesign.H-1)$coefficients  # initial values for spline coefficients
+                                    # patch up the initial rows of the spline design matrix
+  SplineDesign.H <- rbind(matrix(0,nrow=hatch.after, ncol=ncol(SplineDesign.H)), SplineDesign.H)
+
+  ## create an initial plot of the fit to the number of unmarked fish
+  plot.data <- data.frame(time=time, 
+                        logUguess.H = log(Uguess.H+1),
+                        logUguess.W = log(Uguess.W+1),
+                        spline.H=SplineDesign.H %*% init.bU.H, 
+                        spline.W=SplineDesign.W %*% init.bU.W, stringsAsFactors=FALSE)
+
+  init.plot <- ggplot(data=plot.data, aes_(x=~time))+
+     ggtitle(title, subtitle="Initial spline fit to estimated log U[i]")+
+     geom_point(aes_(y=~logUguess.H), pch="H", color="green")+
+     geom_point(aes_(y=~logUguess.W), pch="W", color="blue")+
+     geom_line(aes_(y=~spline.H), color="green")+
+     geom_line(aes_(y=~spline.W), color="blue")+
+     xlab("Stratum")+ylab("log(U[i])")
+  if(save.output.to.files)ggsave(init.plot, filename=paste(prefix,"-initialU.pdf",sep=""), height=4, width=6, units="in")
+  #results$plots$plot.init <- init.plot  # do this after running the MCMC chain (see end of function)
 
 
-      ##  initial values for the parameters of the model
-      init.vals <- genInitVals(model="TSPDE-WHchinook",
+  # get the logitP=logit(P) covariate matrix ready
+  logitP.cov <- as.matrix(logitP.cov)
+  NlogitP.cov <- ncol(as.matrix(logitP.cov))
+
+
+  ##  initial values for the parameters of the model
+  init.vals <- genInitVals(model="TSPDE-WHchinook",
                                n1=n1,
                                m2=m2,
                                u2=list(W=u2.W,H=u2.H, A=u2.A, N=u2.N),
@@ -402,15 +357,15 @@ if(tolower(engine) %in% c("openbugs")) {
                                hatch.after=hatch.after,
                                n.chains=n.chains)
 
-      ## Generate data list
-      data.list <- list()
-      for(i in 1:length(datalist)){
-          data.list[[length(data.list)+1]] <-get(datalist[[i]])
-      }
-      names(data.list) <- as.list(datalist)
+  ## Generate data list
+  data.list <- list()
+  for(i in 1:length(datalist)){
+      data.list[[length(data.list)+1]] <-get(datalist[[i]])
+  }
+  names(data.list) <- as.list(datalist)
 
-      ## Call MCMC sampler
-      results <- run.MCMC(modelFile=model.file,
+  ## Call MCMC sampler
+  results <- run.MCMC(modelFile=model.file,
                               dataFile=data.file,
                               dataList=data.list,
                               initFiles=init.files,
@@ -423,8 +378,9 @@ if(tolower(engine) %in% c("openbugs")) {
                               overRelax=FALSE,
                               initialSeed=InitialSeed,
                               working.directory=working.directory,
-			      engine=engine,
                               debug=debug)
 
-      return(results)
-  }
+  results$plots$plot.init <- init.plot  # save initial plot to results object
+
+  return(results)
+} # end of function

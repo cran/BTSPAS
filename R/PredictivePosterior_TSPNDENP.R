@@ -1,8 +1,12 @@
+#' @rdname PredictivePosterior.TSPDE
+#' @import stats 
+
+# 2018-11-30 CJS Changed defintion of m2.expanded propogates down here
+# 2018-11-27 CJS Removed openbugs stuff
 # 2014-09-01 CJS Fixed bug when logitP.fixed is fixed in first position
-# 2014-09-01 CJS Needed to deal with different behaviour between OPENBugs and JAGS when the logitP parameters may be fixed.
-#    OpenBUGS does NOT include the fixed logits in the returned MCMC sampler; JAGS does.
-#    Consequently, the expansion of the the logitP from the samplers for the fixed logits only has to be done in OpenBugs and not JAGS
-#    There was also a subtle bug in dealing with the multinomial distribution where the length of p (that had to be padded to deal with an OpenBugs problem
+# 2014-09-01
+#    There was also a subtle bug in dealing with the multinomial distribution where the length of p 
+#    (that had to be padded to deal with an OpenBugs problem
 #    had to have the indicies explicitly stated.
 
 
@@ -13,37 +17,21 @@ PredictivePosterior.TSPNDENP <- function (n1,
                                           p,
                                           U,
                                           Theta,
-                                          Delta.max,
-					  engine) {
+                                          Delta.max) {
 #  Generate Predictive Posterior Plot (Bayesian p-value) given the data
-#  for a TimeStratified Petersen with Diagonal Elements and error
-#    n1, m2, u2  = vectors of input data
-#    p, U, Theta  = matrix of values (rows=number of posterior samples, columns=strata)
+#  for a TimeStratified Petersen with Non-Diagonal entries and a non-parametric movement model
+#    n1          - vector of number of releases
+#    m2.expanded - matrix of number of marks recovered from each value of n1
+#    u2          - vector of recovieres of unmarked fish
+#    logitP.fixed - which values of p(i) are fixed
+#    Delta.max    - maximum strata involved in movement from diagonal
+#    U, Theta  = matrix of values (rows=number of posterior samples, columns=strata)
 #                  These are returned from the call to OpenBugs/ JAGS
 #
 
-#select.m2 <- !is.na(m2)
-#select.u2 <- !is.na(u2)
 
-  #browser()
-
-  s <- length(n1)
-  t <- length(u2)
-
-  ## Interleave p and logitP.fixed, ignoring extra p's added at end
-  ## CJS - 2014-09-01 In JAGS, this is not needed because it passes the logitP matrix alread padded
-  #                   the correct dimension. Not sure why this now did this?
-  p.bkp <- p
-
-  # 2014-09-01. Fixed a problem when fixed p is in first position and 1:0 doesn't work properly
-  if(any(!is.na(logitP.fixed[1:t])) & tolower(engine)=="openbugs"  ){  # the second condition is for JAGS
-    for(j in which(!is.na(logitP.fixed[1:t]))){
-      if(j==1){ p <- cbind(expit(logitP.fixed[1]), p)}  # code below fails when j==1
-      if(j> 1){ p <- cbind(p[,1:(j-1)],  expit(logitP.fixed[j]), p[,-(1:(j-1))]) }
-    }
-  }
-# browser()
-
+s <- length(n1)
+t <- length(u2)
 
 
 ## Transform saved iterations for theta from vectors to full movement matrices
@@ -51,18 +39,15 @@ Theta.bkp <- Theta
 
 Theta <- lapply(1:nrow(Theta.bkp),function(k){
   M <- Theta.bkp[k,,]
-
   tmp <- matrix(0,nrow=s,ncol=t)
-
-  for(i in 1:length(n1))
-    tmp[i,i:min(t,i+Delta.max)] <-
-      M[i,1:min(t-i+1,Delta.max+1)]
-
+  for(i in 1:length(n1)){
+    tmp[i,i:min(t,i+Delta.max)] <- M[i,1:min(t-i+1,Delta.max+1)]
+  }
   tmp
 })
 
 ## Simulate data for each iteration
-#  browser()
+#browser()
 simData <- lapply(1:nrow(p),function(k) simTSPNDE(n1,U[k,],p[k,],Theta[[k]]))
 
 #browser()
@@ -94,7 +79,7 @@ discrep <- t(sapply(1:nrow(p),function(k){
     cellProbs <- Theta[[k]][i,] * p[k,1:t]  # 2014-09-01 need to ignore extra p's at end which were needed for OPENbugs quirk
     cellProbs <- c(cellProbs,1-sum(cellProbs))
 
-    dmultinom(m2.expanded[i,],n1[i],cellProbs,log=TRUE)
+    dmultinom(c(m2.expanded[i,1:t], n1[i]-sum(m2.expanded[i,1:t])),n1[i],cellProbs,log=TRUE)
   }))
 
   d2.u2.o <- -2 * sum(dbinom(u2,U[k,],p[k,1:t],log=TRUE))

@@ -1,4 +1,5 @@
-# 2014-09-01 CJS Converted to JAGS
+## 2018-11-26 CJS Removed all OpenBugs stuff
+## 2014-09-01 CJS Converted to JAGS
 ## 2013-12-31 CJS Tried adding u2copy to get back Matts fix for mixing
 ## 2013-09-22 SJB Changes to model for JAGS compatability:
 ##     -- Removed model name.
@@ -13,6 +14,9 @@
 # 2009-12-05 CJS added title to argument list
 # 2009-12-01 CJS (added WinBugs/OpenBugs directory to the argument list
 
+#' @import graphics grDevices splines
+#' @keywords internal
+
 TimeStratPetersenDiagError <- function(
     title,
     prefix,
@@ -21,22 +25,20 @@ TimeStratPetersenDiagError <- function(
     m2,
     u2,
     jump.after=NULL,
-    logitP.cov,
+    logitP.cov, logitP.fixed, 
     n.chains=3,
     n.iter=200000,
     n.burnin=100000,
     n.sims=2000,
-    tauU.alpha=1,
-    tauU.beta=.05,
-    taueU.alpha=1,
-    taueU.beta=.05,
+    tauU.alpha=1, tauU.beta=.05,
+    taueU.alpha=1,  taueU.beta=.05,
     mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
     tau_xiP=1/var(logit((m2+.5)/(n1+1)),na.rm=TRUE),
     tauP.alpha=.001, tauP.beta=.001,
     debug=FALSE,
     debug2=FALSE,
-    engine=c("jags","openbugs")[1],
-    InitialSeed){
+    InitialSeed,
+    save.output.to.files=TRUE){
 
 set.seed(InitialSeed)  # set prior to initial value computations
 
@@ -46,8 +48,6 @@ set.seed(InitialSeed)  # set prior to initial value computations
 #
 #  Packages Required - must be installed BEFORE calling this functin
 #
-#    R2OpenBugs  - needed for the as.bugs.array() function
-#    BRugs       - only needed if using OpenBugs
 #    rjags       - only needed if using JAGS
 #    Coda
 #    actuar
@@ -72,6 +72,7 @@ set.seed(InitialSeed)  # set prior to initial value computations
 #      jump.after - points after which the spline is allowed to jump. Specify as a list of integers in the
 #              range of 1:Nstrata. If jump.after[i]=k, then the spline is split between strata k and k+1
 #      logitP.cov - covariates for logit(P)=X beta.logitP
+#      logitP.fixed - indicator if this logitP is fixed. If NA, then not fixed; else fixed to the particular value
 
 
 #  This routine makes a call to the MCMC sampler to fit the model and then gets back the
@@ -95,10 +96,7 @@ model{
 # Time Stratified Petersen with Diagonal recapture (no spillover in subsequent weeks or marked fish)
 #    and allowing for error in the smoothed U curve.
 
-# Refer to Bonner (2008) Ph.D. thesis from Simon Fraser University available at
-#     http://www.stat.sfu.ca/people/alumni/Theses/Bonner-2008.pdf
-# The model is in Appendix B. The discussion of the model is in Chapter 2.
-
+# 
 #  Data input:
 #      Nstrata - number of strata
 #      n1         - number of marked fish released
@@ -106,6 +104,12 @@ model{
 #      u2         - number of unmarked fish captured (To be expanded to population).
 #      logitP.cov   - covariates for logitP
 #      NlogitP.cov  - number of logitP covariates
+#      Nfree.logitP - number of free logitP parameters
+#      free.logitP.index - vector of length(Nfree.logitP) for the free logitP parameters
+#      Nfixed.logitP - number of fixed logitP parameters
+#      fixed.logitP.index - vector of length(Nfixed.logitP) for the free logitP parameters
+#      fixed.logitP.value - value of fixed logit entries
+
 #      SplineDesign- spline design matrix of size [Nstrata, maxelement of n.b.notflat]
 #                   This is set up prior to the call.
 #      b.flat   - vector of strata indices where the prior for the b's will be flat.
@@ -135,57 +139,26 @@ model{
    ##### Fit the spline and specify hierarchial model for the logit(P)'s ######
    for(i in 1:Nstrata){
         logUne[i] <- inprod(SplineDesign[i,1:n.bU],bU[1:n.bU])  # spline design matrix * spline coeff
-", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
         etaU[i] ~ dnorm(logUne[i], taueU)T(,20)    # add random error
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-        etaU[i] ~ dnorm(logUne[i], taueU)C(,20)    # add random error
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
         eU[i] <- etaU[i] - logUne[i]
-        mu.logitP[i] <- inprod(logitP.cov[i,1:NlogitP.cov], beta.logitP[1:NlogitP.cov])
+   }
 
-#        logitPu[i] ~ dnorm(mu.logitP[i],tauP)       # uncontrained logitP value
-#        logitP [i] <- max(-10,min(10, logitPu[i]))  # keep the logit from wandering too far off
-
+   for(i in 1:Nfree.logitP){   # model the free capture rates using covariates
+        mu.logitP[free.logitP.index[i]] <- inprod(logitP.cov[free.logitP.index[i],1:NlogitP.cov], beta.logitP[1:NlogitP.cov])
         ## Matt's fix to improve mixing. Use u2copy to break the cycle (this doesn't work??)
-        mu.epsilon[i] <- mu.logitP[i] - log(u2copy[i] + 1) + etaU[i]   
-        epsilon[i] ~ dnorm(mu.epsilon[i],tauP)                     
-        logitP[i] <- max(-10,min(10,log(u2copy[i] + 1) - etaU[i] + epsilon[i]))  
+        mu.epsilon[free.logitP.index[i]] <- mu.logitP[free.logitP.index[i]] - log(u2copy[free.logitP.index[i]] + 1) + etaU[free.logitP.index[i]]
+        epsilon[free.logitP.index[i]] ~ dnorm(mu.epsilon[free.logitP.index[i]],tauP)
+        logitP[free.logitP.index[i]] <- max(-10, min(10,log(u2copy[free.logitP.index[i]] + 1) - etaU[free.logitP.index[i]] + epsilon[free.logitP.index[i]]))
+   }
+
+   for(i in 1:Nfixed.logitP){  # logit P parameters are fixed so we need to force epsilon to be defined.
+       epsilon[fixed.logitP.index[i]] <- 0
    }
 
    ##### Hyperpriors #####
    ## Run size - flat priors
    for(i in 1:n.b.flat){
-", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
       bU[b.flat[i]] ~ dnorm(0.0,1.0E-6) 
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-      bU[b.flat[i]] ~ dflat()
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
    }
    ## Run size - priors on the difference
    for(i in 1:n.b.notflat){
@@ -197,7 +170,7 @@ if(tolower(engine) %in% c("openbugs")) {
    taueU ~ dgamma(taueU.alpha,taueU.beta) # dgamma(100,.05) # Notice reduction from .0005 (in thesis) to .05
    sigmaeU <- 1/sqrt(taueU)
 
-   ## Capture probabilities. The logit(p[i]) are n(logitP.cov*beta.logitP.cov, sigmaP**2)
+   ## Capture probabilities covariates
    beta.logitP[1] ~ dnorm(mu_xiP,tau_xiP) # first term is usually an intercept
    for(i in 2:NlogitP.cov){
       beta.logitP[i] ~ dnorm(0, .01)   # rest of beta terms are normal 0 and a large variance
@@ -263,12 +236,25 @@ n.bU <- n.b.flat + n.b.notflat
 logitP.cov <- as.matrix(logitP.cov)
 NlogitP.cov <- ncol(as.matrix(logitP.cov))
 
+# get the logitP's ready to allow for fixed values
+logitP <- as.numeric(logitP.fixed)
+storage.mode(logitP) <- "double" # if there are no fixed logits, the default class will be logical which bombs
+free.logitP.index <- (1:Nstrata)[ is.na(logitP.fixed)]  # free values are those where NA is specifed
+Nfree.logitP <- length(free.logitP.index)
+
+fixed.logitP.index <- (1:Nstrata)[!is.na(logitP.fixed)]
+fixed.logitP.value <- logitP.fixed[ fixed.logitP.index]
+Nfixed.logitP      <- length(fixed.logitP.index)
+
+
+
 # create a copy of the u2 to improve mixing in the MCMC model
-u2copy <- spline(x=1:Nstrata, y=u2, xout=1:Nstrata)$y
-u2copy <- round(u2copy)  # round to integers
+u2copy <- exp(spline(x = 1:Nstrata, y = log(u2+1), xout = 1:Nstrata)$y)-1 # on log scale to avoid negative values
+u2copy <- round(u2copy)  # round to integersbrowser()
 
 datalist <- list("Nstrata", "n1", "m2", "u2", "u2copy", 
-		 "logitP.cov", "NlogitP.cov",
+                 "logitP", "Nfree.logitP", "free.logitP.index", "Nfixed.logitP", "fixed.logitP.index", "fixed.logitP.value",   # those indices that are fixed and free to vary
+                 "logitP.cov", "NlogitP.cov",
                  "SplineDesign",
                  "b.flat", "n.b.flat", "b.notflat", "n.b.notflat", "n.bU",
                  "tauU.alpha", "tauU.beta", "taueU.alpha", "taueU.beta",
@@ -298,13 +284,16 @@ if(debug2) {
 
 
 # create an initial plot of the fit
-pdf(file=paste(prefix,"-initialU.pdf",sep=""))
-plot(time, log(Uguess),
-    main=paste(title,"\nInitial spline fit to estimated U[i]"),
-    ylab="log(U[i])", xlab='Stratum')  # initial points on log scale.
-lines(time, SplineDesign %*% init.bU)  # add smoothed spline through points
-dev.off()
-
+plot.data <- data.frame(time=time, 
+                        logUguess=log(Uguess),
+                        spline=SplineDesign %*% init.bU, stringsAsFactors=FALSE)
+init.plot <- ggplot(data=plot.data, aes_(x=~time, y=~logUguess))+
+  ggtitle(title, subtitle="Initial spline fit to estimated log U[i]")+
+  geom_point()+
+  geom_line(aes_(y=~spline))+
+  xlab("Stratum")+ylab("log(U[i])")
+if(save.output.to.files)ggsave(init.plot, filename=paste(prefix,"-initialU.pdf",sep=""), height=4, width=6, units="in")
+#results$plots$plot.init <- init.plot  # do this after running the MCMC chain (see end of function)
 
 parameters <- c("logitP", "beta.logitP", "tauP", "sigmaP",
                 "bU", "tauU", "sigmaU",
@@ -349,10 +338,12 @@ init.vals <- genInitVals(model="TSPDE",
                          m2=m2,
                          u2=u2,
                          logitP.cov=logitP.cov,
+                         logitP.fixed=logitP.fixed,
                          SplineDesign=SplineDesign,
                          n.chains=n.chains)
 
 ## Generate data list
+
 data.list <- list()
 for(i in 1:length(datalist)){
   data.list[[length(data.list)+1]] <-get(datalist[[i]])
@@ -374,7 +365,7 @@ results <- run.MCMC(modelFile=model.file,
                             overRelax=FALSE,
                             initialSeed=InitialSeed,
                             working.directory=working.directory,
-			    engine=engine,
                             debug=debug)
+results$plots$init.plot <- init.plot
 return(results)
 }

@@ -1,3 +1,9 @@
+#' @rdname PredictivePosterior.TSPDE
+#' @import stats plyr
+
+
+# 2015-06-10 CJS Bug fix on selecting after hatch after
+
 PredictivePosterior.TSPDE.WHSteel <- function (time, n1, m2, u2.W.YoY, u2.W.1, u2.H.1, p, U.W.YoY, U.W.1, U.H.1, hatch.after) {
 #  Generate Predictive Posterior Plot (Bayesian p-value) given the data
 #  for a TimeStratified Petersen with Diagonal Elements and error
@@ -11,18 +17,18 @@ discrep <- matrix(0, nrow=0, ncol=10)
 select.m2       <- !is.na(m2)
 select.u2.W.YoY <- !is.na(u2.W.YoY)
 select.u2.W.1   <- !is.na(u2.W.1)
-select.u2.H.1   <- !is.na(u2.H.1)
+select.u2.H.1   <- !is.na(u2.H.1) & (time>hatch.after)
 
 for(i in 1:nrow(p)){
    # generate sample data
    gen.m2       <- rbinom(ncol(p), n1,          p[i,])
    gen.u2.W.YoY <- rbinom(ncol(p), U.W.YoY[i,], p[i,])  
    gen.u2.W.1   <- rbinom(ncol(p), U.W.1  [i,], p[i,])  
-   gen.u2.H.1   <- rbinom(ncol(p), U.H.1  [i,], p[i,])  
+   gen.u2.H.1   <- rbinom(ncol(p), U.H.1  [i,], p[i,])*(time>hatch.after) 
  
    # compute a discrepancy measure
    # Observed vs expected values for recaptures of marked fish
-     temp <- sqrt(m2) - sqrt(n1*p[i,])
+     temp    <- sqrt(m2) - sqrt(n1*p[i,])
      d1.m2.o <- sum( temp[select.m2]^2, na.rm=TRUE)
      temp <- sqrt(gen.m2) - sqrt(n1*p[i,])
      d1.m2.s <- sum( temp[select.m2]^2, na.rm=TRUE)
@@ -33,7 +39,6 @@ for(i in 1:nrow(p)){
      temp          <- sqrt(u2.W.1)    - sqrt(U.W.1[i,]*p[i,])
      d1.u2.W.1.o   <- sum( temp[select.u2.W.1]^2, na.rm=TRUE)
      temp          <- sqrt(u2.H.1)    - sqrt(U.H.1[i,]*p[i,])
-     temp          <- temp[time>hatch.after]  # don't include terms before the hatchery fish are released
      d1.u2.H.1.o   <- sum( temp[select.u2.H.1]^2, na.rm=TRUE)
 
    # Observed vs expected values for simulated data
@@ -41,8 +46,7 @@ for(i in 1:nrow(p)){
      d1.u2.W.YoY.s <- sum( temp[select.u2.W.YoY]^2, na.rm=TRUE)
      temp          <- sqrt(gen.u2.W.1)    - sqrt(U.W.1[i,]*p[i,])
      d1.u2.W.1.s   <- sum( temp[select.u2.W.1]^2, na.rm=TRUE)
-     temp          <- sqrt(gen.u2.H.1)    - sqrt(U.H.1[i,]*p[i,])
-     temp          <- temp[time>hatch.after]  # don't include terms before the hatchery fish are released
+     temp          <- sqrt(gen.u2.H.1)    - sqrt(U.H.1[i,]*p[i,])*(time>hatch.after)
      d1.u2.H.1.s   <- sum( temp[select.u2.H.1]^2, na.rm=TRUE)
 
 
@@ -55,7 +59,7 @@ for(i in 1:nrow(p)){
                 d1.u2.W.YoY.o, d1.u2.W.YoY.s, 
                 d1.u2.W.1.o,   d1.u2.W.1.s,    
                 d1.u2.H.1.o,   d1.u2.H.1.s,    
-                d1.o   , d1.s
+                d1.o         , d1.s
                 )) 
 }
 #browser()

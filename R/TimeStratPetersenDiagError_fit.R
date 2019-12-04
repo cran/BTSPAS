@@ -1,3 +1,11 @@
+# 2018-12-19 CJS Deprecated use of sampling.fraction
+# 2018-12-15 CJS Added ability to fix some logitP values
+# 2018-12-02 CJS Convert trace plots to ggplot
+# 2018-12-01 CJS COnvert posterior plots to ggplot
+# 2018-11-30 CJS Convert acf plot to ggplot
+# 2018-11-28 CJS Fixed problem where printing results got cutoff
+# 2018-11-25 CJS Removed all OpenBugs stuff
+# 2015-06-10 CJS Change gof plot to ggplot()
 # 2014-09-01 CJS Converted to JAGS engine from OpenBugs
 # 2013-09-04 CJS Initialized n1, m2, u2 that are NA to sensible values.
 #                Removed references to WinBugs
@@ -12,11 +20,125 @@
 # 2009-12005 CJS added title to argument list
 # 2009-12-01 CJS Added some basic error checking; added OPENBUGS/WINBUGS to argument list
 
+
+#' Wrapper (*_fit) to call the Time Stratified Petersen Estimator
+#' with Diagonal Entries function.
+#' 
+#' Takes the number of marked fish released, the number of recaptures, and the
+#' number of unmarked fish and uses Bayesian methods to fit a fit a spline
+#' through the population numbers and a hierarchical model for the trap
+#' efficiencies over time.  The output is written to files and an MCMC object
+#' is also created with samples from the posterior.
+#' 
+#' Normally, the wrapper (*_fit) function is called which then calls the
+#' fitting routine.
+#' 
+#' Use the \code{\link{TimeStratPetersenNonDiagError_fit}} function for cases
+#' where recaptures take place outside the stratum of release.
+#' 
+#' 
+#' @aliases TimeStratPetersenDiagError_fit 
+#' @param title A character string used for a title on reports and graphs
+#' @param prefix A character string used as the prefix for created files. All
+#' created graph files are of the form prefix-xxxxx.pdf.
+#' @param time A numeric vector of time used to label the strata. For example,
+#' this could be julian week for data stratified at a weekly level.
+#' @param n1 A numeric vector of the number of marked fish released in each
+#' time stratum.
+#' @param m2 A numeric vector of the number of marked fish from n1 that are
+#' recaptured in each time stratum. All recaptures take place within the
+#' stratum of release.
+#' @param u2 A numeric vector of the number of unmarked fish captured in each
+#' stratum. These will be expanded by the capture efficiency to estimate the
+#' population size in each stratum.
+#' @param sampfrac \strong{Deprecated} because it really doesn't work as intended.
+#' A numeric vector with entries between 0 and 1 indicating
+#' what fraction of the stratum was sampled. For example, if strata are
+#' calendar weeks, and sampling occurred only on 3 of the 7 days, then the
+#' value of \code{sampfrac} for that stratum would be 3/7. 
+#' @param jump.after A numeric vector with elements belonging to \code{time}.
+#' In some cases, the spline fitting the population numbers should be allowed
+#' to jump. For example, the population size could take a jump when hatchery
+#' released fish suddenly arrive at the trap. The jumps occur AFTER the strata
+#' listed in this argument.
+#' @param bad.n1 A numeric vector with elements belonging to \code{time}. In
+#' some cases, something goes wrong in the stratum, and the number of marked
+#' fish released should be ignored.  The values of \code{m2} for this stratum
+#' will also be set to NA for these strata.
+#' @param bad.m2 A numeric vector with elements belonging to \code{time}. In
+#' some cases, something goes wrong in the stratum, and the number of recovered
+#' fish should be ignored. For example, poor handling is suspected to induce
+#' handling induced mortality in the marked fish and so only very few are
+#' recovered. The values of \code{m2} will be set to NA for these strata.
+#' @param bad.u2 A numeric vector with elements belonging to \code{time}. In
+#' some cases, something goes wrong in the stratum, and the number of unmarked
+#' fish should be ignored. For example, the trap didn't work properly in this
+#' stratum.  The values of \code{u2} will be set to NA for these strata.
+#' @param logitP.cov A numeric matrix for covariates to fit the
+#' logit(catchability). Default is a single intercept, i.e. all strata have the
+#' same mean logit(catchability).
+#' @param logitP.fixed A numeric vector (could be null) of the time strata
+#' where the logit(P) would be fixed. Typically, this is used when the capture
+#' rates for some strata are 0 and logit(P) is set to -10 for these strata. The
+#' fixed values are given in \code{logitP.fixed.values}
+#' @param logitP.fixed.values A numerical vector (could be null) of the fixed
+#' values for logit(P) at strata given by logitP.fixed. Typically this is used
+#' when certain strata have a 0 capture rate and the fixed value is set to -10
+#' which on the logit scale gives p[i] essentially 0. Don't specify values such
+#' as -50 because numerical problems could occur in WinBugs/OpenBugs.
+
+#' @param n.chains Number of parallel MCMC chains to fit.
+#' @param n.iter Total number of MCMC iterations in each chain.
+#' @param n.burnin Number of burn-in iterations.
+#' @param n.sims Number of simulated values to keeps for posterior
+#' distribution.
+#' @param tauU.alpha One of the parameters along with \code{tauU.beta} for the
+#' prior for the variance of the random noise for the smoothing spline.
+#' @param tauU.beta One of the parameters along with \code{tauU.alpha} for the
+#' prior for the variance of the random noise for the smoothing spline.
+#' @param taueU.alpha One of the parameters along with \code{taueU.beta} for
+#' the prior for the variance of noise around the spline.
+#' @param taueU.beta One of the parameters along with \code{taueU.alpha} for
+#' the prior for the variance of noise around the spline.
+#' @param mu_xiP One of the parameters for the prior for the mean of the
+#' logit(catchability) across strata
+#' @param tau_xiP One of the parameter for the prior for the mean of the
+#' logit(catchability) across strata
+#' @param tauP.alpha One of the parameters for the prior for the variance in
+#' logit(catchability) among strata
+#' @param tauP.beta One of the parameters for the prior for the variance in
+#' logit(catchability) among strata
+#' @param run.prob Numeric vector indicating percentiles of run timing should
+#' be computed.
+#' @param debug Logical flag indicating if a debugging run should be made. In
+#' the debugging run, the number of samples in the posterior is reduced
+#' considerably for a quick turn around.
+#' @param debug2 Logical flag indicated if additional debugging information is
+#' produced. Normally the functions will halt at \code{browser()} calls to
+#' allow the user to peek into the internal variables. Not useful except to
+#' package developers.
+#' @param InitialSeed Numeric value used to initialize the random numbers used
+#' in the MCMC iterations.
+#' @param save.output.to.files Should the plots and text output be save to the files
+#' in addition to being stored in the MCMC object? 
+
+#' 
+#' @return An MCMC object with samples from the posterior distribution. A
+#' series of graphs and text file are also created in the working directory.
+#' @template author
+#' @template references
+#' @keywords ~models ~smooth
+#' @export TimeStratPetersenDiagError_fit
+#' 
+#' 
+
 TimeStratPetersenDiagError_fit <-
   function( title="TSDPE", prefix="TSPDE-", 
-           time, n1, m2, u2, sampfrac, jump.after=NULL, 
+           time, n1, m2, u2, sampfrac=rep(1,length(u2)), 
+           jump.after=NULL, 
            bad.n1=c(), bad.m2=c(), bad.u2=c(),
            logitP.cov=rep(1,length(n1)),
+           logitP.fixed=NULL, logitP.fixed.values=NULL,
            n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
            tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05, 
            mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
@@ -24,13 +146,13 @@ TimeStratPetersenDiagError_fit <-
            tauP.alpha=.001, tauP.beta=.001,
            run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
            debug=FALSE, debug2=FALSE,
-	   engine=c("jags","openbugs")[1],
-           InitialSeed=ceiling(runif(1,min=0, max=if(engine=="jags"){1000000}else{14}))) {
+           InitialSeed=ceiling(runif(1,min=0, max=1000000)),
+           save.output.to.files=TRUE) {
     
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2014-09-01'
+   version <- '2020-01-01'
    options(width=200)
 
 # Input parameters are
@@ -66,6 +188,7 @@ TimeStratPetersenDiagError_fit <-
 #               for the first element of the covariance matrix and 0 for the rest of the covariates.
 #               CAUTION - this MAY not be what you want to do. It is likely best to enter ALL strata
 #               if you have any covariates. The default, if not specified, is a constant (the mean logit)
+#    logitP.fixed, logitP.fixed.values - if you are fixing any of the logit P and at what values. 
 #    tauU.alpha, tauU.beta   - parameters for the prior on variance in spline coefficients
 #    taueU.alpha, taueU.beta - parameters for the prior on variance in log(U) around fitted spline 
 #    mu_xiP, tau_xiP         - parameters for the prior on mean logit(P)'s [The intercept term]
@@ -111,10 +234,30 @@ if(!all(jump.after %in% time, na.rm=TRUE)){
    cat("***** ERROR ***** jump.after must be elements of strata identifiers. You entered \n jump.after:",jump.after,"\n Strata identifiers are \n time:",time, "\n")
    return()}
 
+#  4. check that index of logitP.fixed belong to time
+if(!all(logitP.fixed %in% time,na.rm=TRUE)){
+   cat("***** ERROR ***** logitP.fixed must be elements of strata identifiers. You entered \n logitP.fixed:",logitP.fixed,"\n Strata identifiers are \n time:",time, "\n")
+   return()}
+if(length(logitP.fixed)!=length(logitP.fixed.values)){
+   cat("***** ERROR ***** Lengths of logitP.fixed and logitP.fixed.values must all be equal. They are:",
+        length(logitP.fixed),length(logitP.fixed.values),"\n")
+   return()}
+
+# Deprecation of sampling fraction.
+if(any(sampfrac != 1)){
+   cat("***** ERROR ***** Sampling fraction is deprecated for any values other than 1. DO NOT USE ANYMORE. ")
+   return()
+}
+
+
 results.filename <- paste(prefix,"-results.txt",sep="")   
 
-   
-sink(results.filename)
+# Create the report
+stdout <- vector('character')
+report <- textConnection('stdout', 'wr', local = TRUE)
+ 
+sink(report)
+#sink(results.filename)
 cat(paste("Time Stratified Petersen with Diagonal recaptures and error in smoothed U - ", date()))
 cat("\nVersion:", version, "\n\n")
 
@@ -129,6 +272,11 @@ cat("\n\n")
 cat("Jump point are after strata: ", jump.after)
 if(length(jump.after)==0) cat("none - A single spline is fit")
 
+cat("\nFixed logitP indices are:", logitP.fixed)
+if(length(logitP.fixed)==0) cat("none - NO fixed values")
+cat("\nFixed logitP values  are:", logitP.fixed.values)
+if(length(logitP.fixed)==0) cat("none - NO fixed values")
+
 cat("\n\nValues of bad.n1 are : ", bad.n1, ". The value of n1 will be set to 1 and m2 to NA for these strata")
 if(length(bad.n1)==0) cat("none.")
 cat(  "\nValues of bad.m2 are : ", bad.m2, ". The value of m2 will be set to NA for these strata")
@@ -141,7 +289,8 @@ cat("\n\n*** Pooled Petersen Estimate based on pooling over ALL strata")
 cat("\nValues of u2 are adjusting for sampling fraction \n\n")
 cat("Total n1=", sum(n1, na.rm=TRUE),";  m2=",sum(m2, na.rm=TRUE),";  u2=",sum(u2/sampfrac, na.rm=TRUE),"\n\n")
 pp <- SimplePetersen(sum(n1, na.rm=TRUE), sum(m2, na.rm=TRUE), sum(u2/sampfrac, na.rm=TRUE))
-cat("Est U(total) ", format(round(pp$est),big.mark=","),"  (SE ", format(round(pp$se), big.mark=","), ")\n\n\n")
+cat("Est U(total) ", format(round(pp$U.est),big.mark=","),"  (SE ", format(round(pp$U.se), big.mark=","), ")\n")
+cat("Est N(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round(pp$N.se), big.mark=","), ")\n\n\n")
 
 
 # Obtain the Pooled Petersen estimator after EXCLUDING strata with missing data or strata that are flagged as having bad.n1, bad.m2, and bad.u2  values
@@ -164,7 +313,8 @@ temp.sampfrac <- sampfrac[select]
 
 cat("Total n1=", sum(temp.n1),";  m2=",sum(temp.m2),";  u2=",sum(temp.u2/temp.sampfrac),"\n\n")
 pp <- SimplePetersen(sum(temp.n1), sum(temp.m2), sum(temp.u2/temp.sampfrac))
-cat("Est U(total) ", format(round(pp$est),big.mark=","),"  (SE ", format(round(pp$se), big.mark=","), ")\n\n\n")
+cat("Est U(total) ", format(round(pp$U.est),big.mark=","),"  (SE ", format(round(pp$U.se), big.mark=","), ")\n")
+cat("Est N(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round(pp$N.se), big.mark=","), ")\n\n\n")
 
    
 # Obtain Petersen estimator for each stratum prior to excluding any strata flagged as bad values
@@ -174,12 +324,12 @@ temp.n1 <- n1
 temp.m2 <- m2
 temp.u2 <- u2/sampfrac
 sp <- SimplePetersen(temp.n1, temp.m2, temp.u2)
-temp <- cbind(time, temp.n1, temp.m2, temp.u2, round(sp$est), round(sp$se))
+temp <- cbind(time, temp.n1, temp.m2, temp.u2, round(sp$U.est), round(sp$U.se))
 colnames(temp) <- c('time', 'n1','m2','u2', 'U[i]', 'SE(U[i])')
 print(temp)
 cat("\n")
-cat("Est U(total) ", format(round(sum(sp$est, na.rm=TRUE)),big.mark=","),
-    "  (SE ", format(round(sqrt(sum(sp$se^2, na.rm=TRUE))), big.mark=","), ")\n\n\n")
+cat("Est U(total) ", format(round(sum(sp$U.est, na.rm=TRUE)),big.mark=","),
+    "  (SE ", format(round(sqrt(sum(sp$U.se^2, na.rm=TRUE))), big.mark=","), ")\n\n\n")
 
 
 # Obtain Petersen estimator for each stratum after excluding strata where n1=0, or flagged by bad.n1,  bad.m2, or bad.u2
@@ -200,12 +350,12 @@ temp.u2[match(bad.m2,time)] <- NA
 temp.u2[match(bad.u2,time)] <- NA
 temp.u2 <- temp.u2/sampfrac
 sp <- SimplePetersen(temp.n1, temp.m2, temp.u2)
-temp <- cbind(time, temp.n1, temp.m2, temp.u2, round(sp$est), round(sp$se))
+temp <- cbind(time, temp.n1, temp.m2, temp.u2, round(sp$U.est), round(sp$U.se))
 colnames(temp) <- c('time', 'n1','m2','u2', 'U[i]', 'SE(U[i])')
 print(temp)
 cat("\n")
-cat("Est U(total) ", format(round(sum(sp$est, na.rm=TRUE)),big.mark=","),
-    "  (SE ", format(round(sqrt(sum(sp$se^2, na.rm=TRUE))), big.mark=","), ")\n\n\n")
+cat("Est U(total) ", format(round(sum(sp$U.est, na.rm=TRUE)),big.mark=","),
+    "  (SE ", format(round(sqrt(sum(sp$U.se^2, na.rm=TRUE))), big.mark=","), ")\n\n\n")
 
 # Test if pooling can be done
 cat("*** Test if pooled Petersen is allowable on strata without problems in n1 or m2. [Check if marked fractions are equal] ***\n\n")
@@ -274,6 +424,12 @@ temp<- data.frame(time=new.time, n1=new.n1, m2=new.m2, u2=new.u2,
 print(temp) 
 cat("\n\n")
 
+
+# assign the logitP fixed values etc.
+new.logitP.fixed <- rep(NA, length(new.u2))
+new.logitP.fixed[match(logitP.fixed, time)] <- logitP.fixed.values
+
+
 # Print out information on the prior distributions used
 cat("\n\n*** Information on priors *** \n")
 cat("   Parameters for prior on tauU (variance in spline coefficients: ", tauU.alpha, tauU.beta, 
@@ -301,122 +457,122 @@ if (debug)
    {results <- TimeStratPetersenDiagError(title=title, prefix=prefix, 
             time=new.time, n1=new.n1, m2=new.m2, u2=new.u2,
             jump.after=jump.after-min(time)+1,
-            logitP.cov=new.logitP.cov,
+            logitP.cov=new.logitP.cov, logitP.fixed=new.logitP.fixed,
             n.chains=3, n.iter=10000, n.burnin=5000, n.sims=500,  # set to low values for debugging purposes only
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
-            debug=debug, debug2=debug2, engine=engine, InitialSeed=InitialSeed)
+            debug=debug, debug2=debug2, InitialSeed=InitialSeed, save.output.to.files=save.output.to.files)
    } else #notice R syntax requires { before the else
    {results <- TimeStratPetersenDiagError(title=title, prefix=prefix, 
             time=new.time, n1=new.n1, m2=new.m2, u2=new.u2, 
-            jump.after=jump.after-min(time)+1, logitP.cov=new.logitP.cov,
+            jump.after=jump.after-min(time)+1, 
+            logitP.cov=new.logitP.cov, logitP.fixed=new.logitP.fixed,
             n.chains=n.chains, n.iter=n.iter, n.burnin=n.burnin, n.sims=n.sims,
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
-            debug=debug, debug2=debug2,engine=engine, InitialSeed=InitialSeed)
+            debug=debug, debug2=debug2, InitialSeed=InitialSeed, save.output.to.files=save.output.to.files)
    }
 
 # Now to create the various summary tables of the results
 
 # A plot of the observered log(U) on the log scale, and the final mean log(U)
-plot_logU <- function(title, time, n1, m2, u2, results){
-#  Plot the observed and fitted logU values along with posterior limits
-#  n1, m2, u2 are the raw data
-#  results is the summary table 
+# Create the data frame needed for ggplot. 
+# In the diagonal case, time, n1, m2, u2 are the same length
 
-   Nstrata <- length(n1)
-   Uguess <- (u2+1)*(n1+2)/(m2+1)  # try and keep Uguess larger than observed values
+  plot.df   <- data.frame(time =new.time)
+  plot.df$logUi <- log((new.u2+1)*(new.n1+2)/(new.m2+1)) # initial guess for logU
 
-   min_logU <- min( log(Uguess), na.rm=TRUE)
-   max_logU <- max( log(Uguess), na.rm=TRUE)
+# extract the fitted U values
+  results.row.names <- rownames(results$summary)
+  etaU.row.index    <- grep("etaU", results.row.names)
+  etaU<- results$summary[etaU.row.index,]
+  plot.df$logU =etaU[,"mean"]
+  plot.df$lcl =etaU[,"2.5%"]
+  plot.df$ucl =etaU[,"97.5%"]
 
-   # which rows contain the etaU[xx] ?
-   results.row.names <- rownames(results$summary)
-   etaU.row.index    <- grep("etaU", results.row.names)
-   etaU<- results$summary[etaU.row.index,]
-   min_logU <- min( c(min_logU, etaU[,"mean"]), na.rm=TRUE)
-   max_logU <- max( c(max_logU, etaU[,"mean"]), na.rm=TRUE)
-   min_logU <- min( c(min_logU, etaU[,"2.5%"]), na.rm=TRUE)
-   max_logU <- max( c(max_logU, etaU[,"2.5%"]), na.rm=TRUE)
-   min_logU <- min( c(min_logU, etaU[,"97.5%"]),na.rm=TRUE)
-   max_logU <- max( c(max_logU, etaU[,"97.5%"]),na.rm=TRUE)
-
-   # plot the raw log(U) values
-   plot(time, log(Uguess), type="p", 
-        main=paste(title,"\nFitted spline curve to raw U[i] with 95% credible intervals"),
-        sub='Open/closed circles - initial and final estimates',
-        ylab='log(U[i])',
-        xlab='Time Index', ylim=c(min_logU,max_logU))  # initial points on log scale.
-
-   # plot the mean of the etaU
-   points(time, etaU[,"mean"], type="p", pch=19)  # fitted values
-   lines(time, etaU[,"mean"])  # add smoothed spline through points
-   # plot the 2.5 -> 97.5 posterior values
-   segments(time, etaU[,"2.5%"], time, etaU[,"97.5%"])
-
-   # plot the spline curve before the error term is added.
-   # extract the bU coefficients
+# extract the spline values
    logUne.row.index <- grep("logUne", results.row.names)
    logUne<- results$summary[logUne.row.index,"mean"]
-   points(time, logUne, type="p", pch=20)
-   lines(time, logUne, lty=2)  # plot the curve
-}
+   plot.df$spline <- results$summary[logUne.row.index,"mean"]
 
-pdf(file=paste(prefix,"-logU.pdf",sep=""))
-plot_logU(title=title, time=new.time, n1=new.n1, m2=new.m2, u2=new.u2, results=results)
-dev.off()
+fit.plot <- ggplot(data=plot.df, aes_(x=~new.time))+
+   ggtitle(title, subtitle="Fitted spline curve with 95% credible intervals for estimated log(U[i])")+
+   geom_point(aes_(y=~logUi), color="red", shape=1)+  # open circle
+   xlab("Time Index\nOpen/closed circles - initial and final estimates")+ylab("log(U[i])")+
+   geom_point(aes_(y=~logU), color="black", shape=19)+
+   geom_line (aes_(y=~logU), color="black")+
+   geom_errorbar(aes_(ymin=~lcl, ymax=~ucl), width=.1)+
+   geom_line(aes_(y=~spline),linetype="dashed")
 
+if(save.output.to.files)ggsave(plot=fit.plot, filename=paste(prefix,"-fit.pdf",sep=""), height=6, width=10, units="in")
+results$plots$fit.plot <- fit.plot
+
+# plot logit(P) over time
 logitP.plot <- plot_logitP(title=title, time=new.time, n1=new.n1, m2=new.m2, u2=new.u2, logitP.cov=new.logitP.cov, results=results)
-ggsave(plot=logitP.plot, filename=paste(prefix,"-logitP.pdf",sep=""), height=6, width=10, units="in")
+if(save.output.to.files)ggsave(plot=logitP.plot, filename=paste(prefix,"-logitP.pdf",sep=""), height=6, width=10, units="in")
 results$plots$logitP.plot <- logitP.plot
 
-# Look at autocorrelation function for Ntot
-pdf(file=paste(prefix,"-Utot-acf.pdf",sep=""))
-acf(results$sims.matrix[,"Utot"], main=paste(title,"\nAutocorrelation function for U total"))
-dev.off()
+# Look at autocorrelation function for Utot
+mcmc.sample <- data.frame(parm="Utot", sample=results$sims.matrix[,"Utot"], stringsAsFactors=FALSE)
+acf.Utot.plot <- plot_acf(mcmc.sample)
+if(save.output.to.files)ggsave(plot=acf.Utot.plot, filename=paste(prefix,"-Utot-acf.pdf",sep=""), height=4, width=6, units="in")
+results$plots$acf.Utot.plot <- acf.Utot.plot
+
 
 # Look at the shape of the posterior distribution
-pdf(file=paste(prefix,"-Ntot-posterior.pdf",sep=""))
-plot( x=density(as.vector(results$sims.array[,,"Ntot"])), 
-    main=paste(title,'\nPosterior density plot of N-total'),
-    sub ="Vertical lines mark 2.5th and 97.5th percentile")
-abline(v=results$summary["Ntot",c("2.5%","97.5%")])  # add vertical reference lines
-dev.off()
+mcmc.sample1 <- data.frame(parm="Utot", sample=results$sims.matrix[,"Utot"], stringsAsFactors=FALSE)
+mcmc.sample2 <- data.frame(parm="Ntot", sample=results$sims.matrix[,"Ntot"], stringsAsFactors=FALSE)
+mcmc.sample <- rbind(mcmc.sample1, mcmc.sample2)
+post.UNtot.plot <- plot_posterior(mcmc.sample)
+post.UNtot.plot
+if(save.output.to.files)ggsave(plot=post.UNtot.plot, filename=paste(prefix,"-UNtot-posterior.pdf",sep=""),
+                               height=ifelse(length(unique(mcmc.sample$parm))==1,4,6), width=6, units="in")
+results$plots$post.UNtot.plot <- post.UNtot.plot
 
-pdf(file=paste(prefix,"-Utot-posterior.pdf",sep=""))
-plot( x=density(as.vector(results$sims.array[,,"Utot"])), 
-    main=paste(title,'\nPosterior density plot of U-total'),
-    sub ="Vertical lines mark 2.5th and 97.5th percentile")
-abline(v=results$summary["Utot",c("2.5%","97.5%")])  # add vertical reference lines
-dev.off()
 
 #save the Bayesian predictive distribution (Bayesian p-value plots)
-pdf(file=paste(prefix,"-GOF.pdf",sep=""))
 #browser()
-discrep <-PredictivePosterior.TSPDE (new.n1, new.m2, new.u2, expit(results$sims.list$logitP), round(results$sims.list$U))
+discrep <-PredictivePosterior.TSPDE (new.n1, new.m2, new.u2,
+             new.logitP.fixed,
+				     expit(results$sims.list$logitP),
+				     round(results$sims.list$U))
 gof <- PredictivePosteriorPlot.TSPDE (discrep)  # get the bayesian p-values
-dev.off()
+if(save.output.to.files)ggsave(gof[[1]],filename=paste(prefix,"-GOF.pdf",sep=""),   height=8, width=8, units="in", dpi=300 )
+results$plots$gof.plot <- gof
+
 
 # create traceplots of logU, U, and logitP (along with R value) to look for non-convergence
+# the plot_trace will return a list of plots (one for each page as needed)
 varnames <- names(results$sims.array[1,1,])  # extract the names of the variables 
-# First do the trace plots of logitP
-pdf(file=paste(prefix,"-trace-logitP.pdf",sep=""))
-parm.names <- varnames[grep("^logitP", varnames)]
-trace_plot(title=title, results=results, 
-    parms_to_plot=parm.names, panels=c(3,2))
-dev.off()
+
+# Trace plots of logitP
+trace.plot <- plot_trace(title=title, results=results, parms_to_plot=varnames[grep("^logitP", varnames)])
+if(save.output.to.files){
+   pdf(file=paste(prefix,"-trace-logitP.pdf",sep=""))
+   l_ply(trace.plot, function(x){plot(x)})
+   dev.off()
+}
+results$plots$trace.logitP.plot <- trace.plot
 
 # now for the traceplots of logU (etaU), Utot, and Ntot
-pdf(file=paste(prefix,"-trace-logU.pdf",sep=""))
-parm.names <- varnames[c(grep("Utot",varnames), grep("Ntot",varnames), grep("^etaU", varnames))]
-trace_plot(title=title, results=results, 
-    parms_to_plot=parm.names, panels=c(3,2))
-dev.off()
+trace.plot <- plot_trace(title=title, results=results, parms_to_plot=varnames[c(grep("Utot",varnames), grep("Ntot",varnames), grep("^etaU", varnames))])
+if(save.output.to.files){
+   pdf(file=paste(prefix,"-trace-logU.pdf",sep=""))
+   l_ply(trace.plot, function(x){plot(x)})
+   dev.off()
+}
+results$plots$trace.logU.plot <- trace.plot
 
 
-sink(results.filename, append=TRUE)
 
+#sink(results.filename, append=TRUE)
+sink(report, append=TRUE)
 # Global summary of results
 cat("\n\n*** Summary of MCMC results *** \n\n")
-print(results, digits.summary=3)
+  save.max.print <- getOption("max.print")
+  options(max.print=.Machine$integer.max)
+  
+  print(results, digits.summary=3)#, max=.Machine$integer.max)
+  
+  options(max.print=save.max.print)
 
 # Give an alternate computation of DIC based on the variance of the deviance
 # Refer to http://www.mrc-bsu.cam.ac.uk/bugs/winbugs/DIC-slides.pdf for derivation and why
@@ -453,12 +609,18 @@ temp <- rbind(apply(q,2,mean), apply(q,2,sd))
 rownames(temp) <- c("Mean", "Sd")
 print(round(temp,2))
 
+# Add the runtiming to the output object
+results$runTime <- temp
+
 
 cat("\n\n")
 cat(paste("*** end of fit *** ", date()))
 
 sink()
 
+# save the report to a files?
+if(save.output.to.files)writeLines(stdout, results.filename)
+results$report <- stdout
 
 # add some of the raw data to the bugs object for simplicity in referencing it later
 results$data <- list( time=time, n1=n1, m2=m2, u2=u2, sampfrac=sampfrac, 
@@ -466,7 +628,6 @@ results$data <- list( time=time, n1=n1, m2=m2, u2=u2, sampfrac=sampfrac,
                       bad.n1=bad.n1, bad.m2=bad.m2, bad.u2=bad.u2, 
                       logitP.cov=logitP.cov, version=version, date_run=date(),
                       title=title)
-results$gof  <- gof
 
 return(results)
 } # end of function

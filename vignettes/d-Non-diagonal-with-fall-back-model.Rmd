@@ -1,0 +1,343 @@
+---
+title: "Non-Diagonal Fall-Back Model"
+author: "Carl James Schwarz"
+date: "`r Sys.Date()`"
+output: 
+  html_vignette: 
+    toc: true # table of content true
+    toc_depth: 3  # up to three depths of headings (specified by #, ## and ###)
+    number_sections: true  ## if you want number sections at each table header
+#vignette: >
+#  %\VignetteIndexEntry{04 - Non Diagonal Fall-Back Model}
+#  %\VignetteEncoding{UTF-8}
+#  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include = FALSE,message=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(binom)
+library(BTSPAS)
+library(ggplot2)
+max.width=70
+```
+# Location of vignette source and code.
+Because of the length of time needed to run the vignettes, only
+static vignettes have been included with this package.
+
+The original of the vignettes and the code can be obtained from 
+the GitHub site at
+https://github.com/cschwarz-stat-sfu-ca/BTSPAS
+
+
+# Introduction
+
+## Experimental set-up
+This case represents a generalization of the non-diagonal case considered in a separate
+vignette. Now we allow some fish (marked and unmarked) to approach the second trap, but fall back and
+never pass the trap. Schwarz and Bonner (2011) considered this model to estimate the number of
+steelhead that passed upstream of Moricetown Canyon.
+
+The experimental setup is the same as the non-diagonal case.
+Consider an experiment to estimate the number of outgoing smolts on a small river. The 
+run of smolts extends over several weeks. As smolts migrate, they are captured and marked
+with individually numbered tags and released at the first capture location using, for example, a
+fishwheel. The migration continues, and a second fishwheel takes a second sample several
+kilometers down stream. At the second fishwheel, the captures consist of a mixture of marked
+(from the first fishwheel) and unmarked fish.
+
+The efficiency of the fishwheels varies over time in response to stream flow, run size passing
+the wheel and other uncontrollable events. So it is unlikely that the capture probabilities are
+equal over time at either location, i.e. are heterogeneous over time. 
+
+We suppose that we can temporally stratify the data into, for example, weeks, where the
+capture-probabilities are (mostly) homogeneous at each wheel in each week.
+
+But now, we allow
+tagged animals to be captured in several recovery strata. 
+For example, 
+suppose that in each julian week $j$, $n1[j]$ fish are marked and released above the rotary screw trap.
+Of these, $m2[j,j]$ are recaptured in julian week $j$;
+$m2[j,j+1]$ are recaptured in julian week $j+1$;
+$m2[j,j+2]$ are recaptured in julian week $j+2$ and so on.
+
+At the same time, $u2[j]$ unmarked fish are captured at the screw trap.
+
+This implies that the data can be structured
+as a **non-diagonal** array similar to:
+
+```{}
+Recovery Stratum
+               tagged    rs1      rs2     rs3 ...rs4                 rsk  rs(k+1)
+Marking   ms1    n1[1]  m2[1,1] m2[1,2] m2[1,3] m2[1,4]      0  ...   0      0 
+Stratum   ms2    n1[2]   0      m2[2,2] m2[2,3] m2[2,4] .... 0  ...   0      0 
+          ms3    n1[3]   0       0      m2[3,3] m2[3,4] ...  0  ...   0      0  
+          ...  
+          msk    n1[k]   0       0      0  ...  0            0    m2[k,k] m2[k,k+1]  
+Newly  
+Untagged               u2[1]   u2[2]   u2[3]  ...                 u2[k]   u2[k,k+1]
+captured  
+```
+Here the tagging and recapture events have been stratified in to $k$ temporal strata.
+Marked fish from one stratum tend to spread out and are recaptured over multiple strata.
+Several additional recovery strata are needed at the end of the experiment to fully
+capture the final release stratum.
+
+Because the lower diagonal of the recovery matrix is zero, the data can be entered
+in a shorthand fashion by showing the recoveries in the same stratum as release,
+the next stratum, etc, up to a maximum number of recovery strata per release.
+
+## Fall-back information
+This information is obtained by also marking radio-tagged fish whose ultimate fate
+(i.e. did they pass the second trap nor not) can be determined. 
+We measure:
+
+* $marked\_available\_n$ representing the number of radio-tagged fish.
+* $marked\_available\_x$ representing the number of radio tagged fish that **PASSED** the
+second trap.The $n$ and $x$ are modelled using a
+binomial distribution for information on the fraction of tagged fish that DO NOT fall back, i.e.
+are available at the second trap. For
+example, if $n=66$ and $x=40$, then you estimate that about $40/66=61$% of tagged and untagged fish
+pass the second trap and that $39$% of fish fall back never to pass the second trap.
+
+Notice we don't really care about unmarked fish that fall back as we only estimate the number of
+unmarked fish that pass the second trap, which by definition exclude those fish that never
+make it to second trap. We need to worry about **marked** fish that never make it to the second trap because
+the fish that fall back will lead to underestimates of the trap-efficiency
+and over-estimates of unmarked fish that pass the second trap.
+
+This model could also be used for mortality between the marking and recovery trap. 
+
+
+
+# Example of  non-diagonal model with fall-back.
+## Reading in the data
+Here is an example of some raw data that is read in:
+```{r}
+demo.data.csv <- textConnection("
+jweek,n1,    X0,X1 ,X2 ,X3,X4,X5,X6,X7 
+29 ,  1 ,    0 , 0 , 0 ,0 ,0 ,0 ,0 ,0 
+30 , 35 ,    0 , 5 , 7 ,2 ,0 ,0 ,0 ,0 
+31 ,186 ,    1 ,35 ,11 ,4 ,0 ,0 ,0 ,0  
+32 ,292 ,    9 ,33 ,16 ,6 ,0 ,0 ,0 ,0  
+33 ,460 ,    6 ,41 ,16 ,9 ,3 ,0 ,2 ,1  
+34 ,397 ,    4 ,44 , 7 ,5 ,1 ,1 ,0 ,1  
+35 ,492 ,    7 ,31 ,12 ,1 ,4 ,1 ,1 ,0 
+36 ,151 ,    3 , 6 , 2 ,1 ,1 ,0 ,0 ,0 
+37 ,130 ,    3 , 2 , 2 ,0 ,0 ,1 ,0 ,0 
+38 ,557 ,    8 ,27 ,11 ,2 ,5 ,0 ,0 ,0 
+39 , 46 ,    0 , 7 , 0 ,0 ,0 ,0 ,0 ,0 
+40 ,143 ,   14 , 6 , 3 ,0 ,0 ,0 ,0 ,0  
+41 , 26 ,    2 , 1 , 0 ,0 ,0 ,0 ,0 ,0")  
+
+# Read data
+demo.data <- read.csv(demo.data.csv, header=TRUE, as.is=TRUE, strip.white=TRUE)
+
+print(demo.data)
+```
+There are `r nrow(demo.data)` release strata.
+In the first release stratum, a total of `r demo.data[1,"n1"]` fish were tagged and released.
+No recoveries occurred.
+
+Because the recoveries take place in more strata than releases, the $u2$ vector is read in separately. Note that is must be sufficiently long
+to account for the number of releases plus potential movement:
+```{r }
+demo.data.u2 <- c(  2,  65,  325,  873,  976,  761,  869,  473,  332,  197,
+                  177, 282,   82,  100)
+```
+
+We also separate out the recoveries $m2$ into a matrix
+```{r }
+demo.data.m2 <- as.matrix(demo.data[,c("X0","X1","X2","X3","X4","X5","X6","X7")])
+```
+
+A separate radio-telemetry study found that of 66 fish released, 40 passed the second trap:
+```{r }
+demo.mark.available.n <- 66
+demo.mark.available.x <- 40
+```
+
+## Fitting the BTSPAS non-diagonal model with fall-back model with a non-parametric movement distribution. 
+
+Schwarz and Bonner (2011) extended Bonner and Schwarz (2011) with a model with the following features.
+
+* Non-parametric distribution of the distribution of times between release and availability at the second
+trap.
+* A spline is used to smooth the total number of unmarked fish presenting themselves at the second trap
+over the strata
+* A hierarchical model for the capture-probabilities is assumed where individual stratum capture
+probabilities are assumed to vary around a common mean.
+* A binomial distribution is assumed for the number of marked fish that do not fall back and pass the second trap
+to estimate the trap efficiency. 
+
+The model also allows the user to use covariates to explain some of the variation in the 
+capture probabilities in much the same way as the diagonal case.
+
+The $BTSPAS$ package also has additional features and options:
+
+* if $u2$ is missing for any stratum, the program will use the spline to interpolate for the
+missing stratum.
+* if $n1$ and/or the entire corresponding row of $m2$ are missing, the program will use the hierarchical model to interpolate the capture
+probabilities for the missing strata.
+* the program allows you specify break points in the underlying spline to account
+for external events.
+* sometimes bad thing happen.  The vector $bad.m2$ indicates which julian weeks something went wrong. In the above example, the
+number of recoveries in julian week 41 is far below expectations and leads to impossible
+Petersen estimate for julian week 41. Similarly, the vector $bad.u2$ indicates which julian weeks, the number of unmarked fish is suspect.
+In both cases, the suspect values of $m2$ and $u2$ are set to missing.
+Alternatively, the user can set the $m2$ and $u2$ values to missing in the data input directly.
+I arbitrarily chose the third julian week to demonstrate this feature.
+
+The $BTSPAS$ function also allows you specify
+
+* The prefix is used to identify the output files for this run.
+* The title  is used to title the output.
+* Various parameters to control the Bayesian MCMC phase of model fitting. Please contact us for help in setting these
+if problem arise.
+
+We already read in the data above. Here we set the rest of the parameters. Don't forget to set the working directory as appropriate
+```{r }
+library("BTSPAS")  
+demo.prefix <- "FB-"
+demo.title  <- "Fall-back demo"
+
+
+demo.jump.after <- NULL 
+
+## Identify spurious values in n1, m2, and u2 that should be removed
+demo.bad.n1     <- c()     # list sample times of bad n1 values
+demo.bad.m2     <- c()     # list sample times of bad m2 values
+demo.bad.u2     <- c()     # list sample times of bad u2 values
+
+## Fix capture probabilities for strata when traps not operated
+demo.logitP.fixed <- NULL
+demo.logitP.fixed.values <- rep(-10,length(demo.logitP.fixed))
+
+demo.fit <- TimeStratPetersenNonDiagErrorNPMarkAvail_fit(
+                  title=      demo.title,
+                  prefix=     demo.prefix,
+                  time=       demo.data$jweek[1]:(demo.data$jweek[1]+length(demo.data.u2)-1),
+                  n1=         demo.data$n1, 
+                  m2=         demo.data.m2, 
+                  u2=         demo.data.u2,
+                  jump.after= demo.jump.after,
+                  bad.n1=     demo.bad.n1,
+                  bad.m2=     demo.bad.m2,
+                  bad.u2=     demo.bad.u2,
+                  logitP.fixed=demo.logitP.fixed,
+                  logitP.fixed.values=demo.logitP.fixed.values,
+                  marked_available_n=demo.mark.available.n,
+                  marked_available_x=demo.mark.available.x,  # 40/66 fish did NOT fall back
+                  debug=TRUE,
+                  save.output.to.files=FALSE)
+
+```
+ 
+
+```{r deletefiles2,echo=FALSE,results="hide" }
+# delete extra files that were created
+file.remove("data.txt"       )       
+file.remove("CODAindex.txt"  )
+file.remove("CODAchain1.txt" )
+file.remove("CODAchain2.txt" )
+file.remove("CODAchain3.txt" )
+file.remove("inits1.txt"     )
+file.remove("inits2.txt"     )
+file.remove("inits3.txt"     )
+file.remove("model.txt"      )
+
+```
+
+
+## The output from the fit
+
+Here is the fitted spline curve to the number of unmarked fish available in each recovery stratum at the second trap
+```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted spline curve")}
+demo.fit$plots$fit.plot
+```
+
+
+The distribution of the posterior sample for the total number unmarked and total abundance that pass the second trap is available.
+Note this include the sum of the unmarked shown in the previous plot, plus a binomial distribution on the number
+of marked fish released that pass the second trap. 
+```{r fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Distribution of posterior samples")}
+demo.fit$plots$post.UNtot.plot
+```
+
+
+A plot of the $logit(P)$ is 
+```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
+demo.fit$plots$logitP.plot
+```
+In cases where there is little information, $BTSPAS$ has shared information based on the distribution of catchability
+in the other strata.
+
+A summary of the posterior for each parameter is also available. In particular, here are the
+summary statistics on the posterior sample for the total number unmarked and total abundance
+**THAT PASS THE SECOND TRAP**:
+```{r}
+demo.fit$summary[ row.names(demo.fit$summary) %in% c("Ntot","Utot"),]
+```
+This also includes the Rubin-Brooks-Gelman statistic ($Rhat$) on mixing of the chains and the effective sample size 
+of the posterior (after
+accounting for autocorrelation).
+
+The estimated total abundance is 
+`r formatC(round(demo.fit$summary[ "Ntot","mean"]), big.mark=",", digits=0, format="f")` (SD 
+`r formatC(round(demo.fit$summary[ "Ntot","sd"  ]), big.mark=",", digits=0, format="f")` ) fish.
+
+The estimated distribution function is allowed by vary by release stratum around a common "mean" distribution.
+```{r }
+probs <- demo.fit$summary[grepl("movep", row.names(demo.fit$summary)),  ]
+round(probs,3)
+```
+So we expect that about `r round(probs[1,"mean"]*100,0)`% of fish will migrate to the second trap in the day of release;
+about `r round(probs[2,"mean"]*100,0)`% of fish will migrate to the second trap in the second day after release etc.
+
+The movement for each release stratum varies around this base distribution.
+It is also possible to see the probability of moving from release stratum $i$ to recovery stratum $j$ by looking
+at the $Theta[i,j]$ values. Here are the transition probabilities for the first release stratum:
+```{r}
+round(demo.fit$summary[ grepl("Theta[1,", row.names(demo.fit$summary),fixed=TRUE),],3)
+```
+
+The probabilities should also sum to 1 for each release group.
+
+As with the other non-parametric non-diagonal model, you can specify a prior distribution for the
+movement probabilities.
+
+The sample of the posterior-distribution for the proportion of fish that DO NOT FALL back
+is
+```{r}
+round(demo.fit$summary[ grepl("ma.p", row.names(demo.fit$summary),fixed=TRUE),],3)
+```
+
+
+It is always important to do model assessment before accepting the results from the model fit. 
+Please contact me for details on how to interpret
+the goodness of fit, trace, and autocorrelation plots. 
+
+
+
+# References
+
+Bonner, S. J., & Schwarz, C. J. (2011). 
+Smoothing population size estimates for Time-Stratified Mark–Recapture experiments Using Bayesian P-Splines. 
+Biometrics, 67, 1498–1507. 
+https://doi.org/10.1111/j.1541-0420.2011.01599.x
+
+Schwarz, C. J. and Bonner, S. B. (2011).
+A spline-based capture-mark-recapture model applied to estimating the
+number of steelhead within the Bulkley River passing the Moricetown Canyon
+in 2001-2010. Prepared for the B.C. Ministry of Environment.
+http://www.stat.sfu.ca/~cschwarz/Consulting/Moricetown/Report-2011-06-01.pdf
+
+Schwarz, C. J., & Dempson, J. B. (1994).
+Mark-recapture estimation of a salmon smolt population. 
+Biometrics, 50, 98–108.
+
+

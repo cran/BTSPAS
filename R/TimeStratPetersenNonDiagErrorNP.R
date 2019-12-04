@@ -1,3 +1,5 @@
+# 2018-12-06 CJS converted initial plot to ggplot2
+# 2018-11-25 CJS Remove all references to OpenBugs
 # 2014-09-01 CJS converstion to JAGS
 #                - no model name
 #                - C(,20) -> T(,20)
@@ -12,6 +14,9 @@
 # 2010-04-25 CJS fixed problems of init.logitP=+infinity if n1=m2=k which crapped out the lm() call
 # 2010-03-11 Added fixed values of logitP[j] to be provided by user.
 # 2010-03-02 SJB Created file.
+
+#' @keywords internal
+
 
 TimeStratPetersenNonDiagErrorNP <- function(title,
                                             prefix,
@@ -41,8 +46,8 @@ TimeStratPetersenNonDiagErrorNP <- function(title,
                                             tauP.beta=.001,
                                             debug=FALSE,
                                             debug2=FALSE,
-					    engine=c('jags','openbugs')[1],
-                                            InitialSeed){
+                                            InitialSeed,
+                                            save.output.to.files=TRUE){
 
 set.seed(InitialSeed)  # set prior to initial value computations
 
@@ -99,10 +104,7 @@ model {
 # Time Stratified Petersen with NON Diagonal recapture and allowing for error in the smoothed U curve.
 # Non-parametric estimateion of travel times for marked individuals.
 #
-# Refer to Bonner and Schwarz (2010) Smoothed Estimates
-#   for Time-Stratified Mark-Recapture Experiments using Bayesian
-#   P-Splines
-#
+
 #  Data input:
 #      Nstrata.rel - number of strata where fish are releases
 #      Nstrata.cap - number of (future strata) where fish are recaptured.
@@ -152,24 +154,7 @@ model {
    for(i in 1:(Nstrata.cap)){
         ## Model for U's
         logUne[i] <- inprod(SplineDesign[i,1:n.bU],bU[1:n.bU])  # spline design matrix * spline coeff
-", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
         etaU[i] ~ dnorm(logUne[i], taueU)T(,20)              # add random error but keep from getting too large
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-        etaU[i] ~ dnorm(logUne[i], taueU)C(,20)              # add random error but keep from getting too large
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
         eU[i] <- etaU[i] - logUne[i]
    }
 
@@ -181,58 +166,48 @@ if(tolower(engine) %in% c("openbugs")) {
 
         logitP[free.logitP.index[i]] <- log(u2copy[free.logitP.index[i]] + 1) - etaU[free.logitP.index[i]] + epsilon[free.logitP.index[i]]
    }
+   # define the last epsilon (including the extra needed for m2)
+   for(i in Extra.strata.cap){
+      epsilon[ Nstrata.cap + i] <- 0  # forces definition of epsilon1 ...epsilon[Nstrata.cap -> Extra.strata.cap]
+   }
 
    ##### Priors and hyperpriors #####
    ## Transition probabilities -- continuation ratio model
    for(i in 1:Nstrata.rel){
-        ## delta[i,j] is the probability that a marked fish released on day i passes the second trap
-        ## on day i+j-1 given that it does not pass the on days i,...,i+j-2. r[i,j]=logit(delta[i,j])
-        ## is assumed to have a normal distribution with mean muTT[j] and precision tauTT.
+     ## delta[i,j] is the probability that a marked fish released on day i passes the second trap
+     ## on day i+j-1 given that it does not pass the on days i,...,i+j-2. r[i,j]=logit(delta[i,j])
+     ## is assumed to have a normal distribution with mean muTT[j] and precision tauTT.
+     r[i,1] ~ dnorm(muTT[1],tauTT)
 
-        r[i,1] ~ dnorm(muTT[1],tauTT)
+     logit(Theta[i,1] ) <- r[i,1]
 
-	logit(Theta[i,1] ) <- r[i,1]
-
-	for(j in 2:Delta.max){
-		r[i,j] ~ dnorm(muTT[j],tauTT)
-
-		logit(delta[i,j]) <- r[i,j]
-
-		Theta[i,j] <- delta[i,j] * (1 - sum(Theta[i,1:(j-1)]))
-	}
-	Theta[i,Delta.max+1] <- 1- sum(Theta[i,1:Delta.max])
+     for(j in 2:Delta.max){
+       r[i,j] ~ dnorm(muTT[j],tauTT)
+       logit(delta[i,j]) <- r[i,j]
+       Theta[i,j] <- delta[i,j] * (1 - sum(Theta[i,1:(j-1)]))
+     }
+     Theta[i,Delta.max+1] <- 1- sum(Theta[i,1:Delta.max])
    }
+
+#  derived parameters on actual movement probabilities
+   logit(movep[1]) <- muTT[1]
+   for(j in 2:Delta.max){
+      movep[j] <- ilogit(muTT[j]) *(1- sum(movep[1:(j-1)]))
+   }
+   movep[Delta.max+1] <- 1- sum(movep[1:Delta.max])
 
 #  prior on the movement rates. These are specified using the make.muTT.prior function
    for(j in 1:Delta.max){
-	muTT[j] ~ dnorm(mean.muTT[j],tau.muTT[j])
+     muTT[j] ~ dnorm(mean.muTT[j],tau.muTT[j])
    }
    tauTT~ dgamma(tauTT.alpha,tauTT.beta)
    sdTT <- 1/sqrt(tauTT)
 
    ## Run size - flat priors
-   ", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
    for(i in 1:n.b.flat){
       bU[b.flat[i]] ~ dnorm(0, 1E-6)
    }
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-   for(i in 1:n.b.flat){
-      bU[b.flat[i]] ~ dflat()
-   }
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
+
    ## Run size - priors on the difference
    for(i in 1:n.b.notflat){
       xiU[b.notflat[i]] <- 2*bU[b.notflat[i]-1] - bU[b.notflat[i]-2]
@@ -341,7 +316,7 @@ Nfree.logitP <- length(free.logitP.index)
 tau.muTT <- 1/sd.muTT**2  # convert from sd to precision = 1/variance
 
 # make a copy of u2 to improve mixing
-u2copy <- spline(x=1:length(u2), y=u2, xout=1:length(u2))$y
+u2copy <- exp(spline(x = 1:length(u2), y = log(u2+1), xout = 1:length(u2))$y)-1 # on log scale to avoid negative values
 u2copy <- round(u2copy) # round to integers
 
 datalist <- list("Nstrata.rel", "Nstrata.cap","Extra.strata.cap",
@@ -381,18 +356,23 @@ if(debug2) {
 
 
 # create an initial plot of the fit
-pdf(file=paste(prefix,"-initialU.pdf",sep=""))
-plot(time, log(Uguess[1:Nstrata.cap]),
-    main=paste(title,"\nInitial spline fit to estimated U[i]"),
-    ylab="log(U[i])", xlab='Stratum')  # initial points on log scale.
-lines(time, SplineDesign %*% init.bU)  # add smoothed spline through points
-dev.off()
+plot.data <- data.frame(time=time, 
+                        logUguess=log(Uguess[1:Nstrata.cap]),
+                        spline=SplineDesign %*% init.bU, stringsAsFactors=FALSE)
+init.plot <- ggplot(data=plot.data, aes_(x=~time, y=~logUguess))+
+  ggtitle(title, subtitle="Initial spline fit to estimated log U[i]")+
+  geom_point()+
+  geom_line(aes_(y=~spline))+
+  xlab("Stratum")+ylab("log(U[i])")
+if(save.output.to.files)ggsave(init.plot, filename=paste(prefix,"-initialU.pdf",sep=""), height=4, width=6, units="in")
+#results$plots$plot.init <- init.plot  # do this after running the MCMC chain (see end of function)
+
 
 parameters <- c("logitP", "beta.logitP", "tauP", "sigmaP",
                 "bU", "tauU", "sigmaU",
                 "eU", "taueU", "sigmaeU",
                 "Ntot", "Utot", "logUne", "etaU", "U",
-                 "muTT","sdTT","Theta")
+                 "muTT","sdTT","Theta","movep")
 
 if( any(is.na(m2))) {parameters <- c(parameters,"m2")} # monitor in case some bad data where missing values present
 if( any(is.na(u2))) {parameters <- c(parameters,"u2")}
@@ -427,8 +407,9 @@ results <- run.MCMC(modelFile=model.file,
                         overRelax=FALSE,
                         initialSeed=InitialSeed,
                         working.directory=working.directory,
-			engine=engine,
                         debug=debug)
+
+results$plots$plot.init <- init.plot  # save initial plot to results object
 
 return(results)
 }

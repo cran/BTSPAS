@@ -15,6 +15,52 @@
 %   }
 %}
 
+\section{CHANGES IN VERSION 2020.1.1}{
+  \subsection{USER-VISIBLE CHANGES}{
+    \itemize{
+      \item Runtimings now added to output object.
+      \item More testing of fall back options.
+     }
+   }
+}
+
+
+\section{CHANGES IN VERSION 2019.0101}{
+  \subsection{USER-VISIBLE CHANGES}{
+    \itemize{
+      \item sampfrac argument deprecated. Only values of 1 now accepted. This never did work properly and will be
+            removed in future releases.
+      \item OpenBugs no longer supported.
+      \item Diagonal model now allows you to fix some P's -- typically used when second trap is not running.
+      \item All plots converted to ggplot format and stored in the plots object in the final result. An argument is available in the 
+      fitting routines to stop saving output to files. 
+      \item Bayesian p.value plot created for MarkAvail routines (issue #17) 
+      \item Several vignettes created to replace and enhance demo files.
+    }
+  }
+   \subsection{BUG FIX}{
+     \itemize{
+       \item  Corrected error in creating u2copy to improve mixing. Issue #18..
+       \item  Corrected error where output of Theta in non-diagonal cases was stored incorrectly in sims.matrix and sim.array objects. Code used sim.list where Theta were stored correctly, so no effect on fitting.
+     }
+   }
+}
+
+
+\section{CHANGES IN VERSION 2015.0702}{
+  \subsection{USER-VISIBLE CHANGES}{
+    \itemize{
+      \item Bayesian P-values plots are now created using ggplot() and saved in results.
+    }
+  }
+   \subsection{BUG FIX}{
+     \itemize{
+       \item  Bayesian p-value plots were incorrect for hatchery/wild mixtures.
+       \item  Updated Imports/Suggests to conform to latest CRAN standards
+     }
+   }
+}
+
 \section{CHANGES IN VERSION 2014.0901}{
   \subsection{USER-VISIBLE CHANGES}{
     \itemize{

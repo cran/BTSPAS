@@ -1,3 +1,5 @@
+# 2018-12-06 CJS converted initial plot to ggplot2
+# 2018-11-25 CJS removed all openbugs references
 # 2013-12-31 CJS conversion to JAGS
 #                - no model name
 #                - C(,20) -> T(,20)
@@ -13,6 +15,8 @@
 # 2010-11-25 CJS add output to track progress of sampling through burnin and post-burnin
 # 2010-04-26 CJS fixed problem where init.logitP failed when n1=m2 (logit=infinite) and lm() failed.
 # 2010-03-29 CJS Created first release
+
+#' @keywords internal
 
 # This DIFFERS from the TimeStratPetersenDiagErrorWHChinook routine in the following ways.
 #   YoY chinook are separated from age 1 chinook
@@ -33,8 +37,8 @@ TimeStratPetersenDiagErrorWHChinook2 <-
                 tau_xiP=1/var(logit((m2+.5)/(n1+1)), na.rm=TRUE), 
                 tauP.alpha=.001, tauP.beta=.001, 
                 debug=FALSE, debug2=FALSE,
-		engine=c('jags','openbugs')[1],
-                InitialSeed){
+                InitialSeed,
+                save.output.to.files=TRUE){
 
 set.seed(InitialSeed)  # set prior to initial value computations
 
@@ -166,93 +170,25 @@ model {
    ##### Fit the spline for YoY wildfish - this covers the entire experiment ######
    for(i in 1:Nstrata){
         logUne.W.YoY[i] <- inprod(SplineDesign.W.YoY[i,1:n.bU.W.YoY],bU.W.YoY[1:n.bU.W.YoY])  # spline design matrix * spline coeff 
-", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
         etaU.W.YoY[i] ~ dnorm(logUne.W.YoY[i], taueU)T(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-        etaU.W.YoY[i] ~ dnorm(logUne.W.YoY[i], taueU)C(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
         eU.W.YoY  [i] <- etaU.W.YoY[i] - logUne.W.YoY[i]
    }
    ##### Fit the spline for YoY hatchery fish - these fish only enter AFTER hatch.after.YoY ######
    for(i in (hatch.after.YoY+1):Nstrata){
         logUne.H.YoY[i] <- inprod(SplineDesign.H.YoY[i,1:n.bU.H.YoY],bU.H.YoY[1:n.bU.H.YoY])  # spline design matrix * spline coeff 
-  ", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
         etaU.H.YoY[i] ~ dnorm(logUne.H.YoY[i], taueU)T(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-        etaU.H.YoY[i] ~ dnorm(logUne.H.YoY[i], taueU)C(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
         eU.H.YoY  [i] <- etaU.H.YoY[i] - logUne.H.YoY[i]
    }
    ##### Fit the spline for Age1 wildfish - this covers the entire experiment ######
    for(i in 1:Nstrata){
         logUne.W.1[i] <- inprod(SplineDesign.W.1[i,1:n.bU.W.1],bU.W.1[1:n.bU.W.1])  # spline design matrix * spline coeff 
-     ", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
         etaU.W.1[i] ~ dnorm(logUne.W.1[i], taueU)T(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-        etaU.W.1[i] ~ dnorm(logUne.W.1[i], taueU)C(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
         eU.W.1  [i] <- etaU.W.1[i] - logUne.W.1[i]
    }
    ##### Fit the spline for Age1 hatchery fish - this covers the entire experiment because the have residualized from last year
    for(i in 1:Nstrata){
         logUne.H.1[i] <- inprod(SplineDesign.H.1[i,1:n.bU.H.1],bU.H.1[1:n.bU.H.1])  # spline design matrix * spline coeff 
-     ", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
-      etaU.H.1[i] ~ dnorm(logUne.H.1[i], taueU)T(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-      etaU.H.1[i] ~ dnorm(logUne.H.1[i], taueU)C(,20)              # add random error
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
+        etaU.H.1[i] ~ dnorm(logUne.H.1[i], taueU)T(,20)              # add random error
         eU.H.1  [i] <- etaU.H.1[i] - logUne.H.1[i]
    }
 
@@ -264,11 +200,6 @@ if(tolower(engine) %in% c("openbugs")) {
         logitP[i] ~ dnorm(mu.logitP[i],tauP)
    }
 
-   ", fill=TRUE)
-sink()  # Temporary end of saving bugs program
-if(tolower(engine)=="jags") {
-   sink("model.txt", append=TRUE)
-   cat("
    ##### Hyperpriors #####
    ## Run size - wild and hatchery fish - flat priors
    for(i in 1:n.b.flat.W.YoY){
@@ -283,31 +214,6 @@ if(tolower(engine)=="jags") {
    for(i in 1:n.b.flat.H.1){
       bU.H.1[b.flat.H.1[i]] ~ dnorm(0, 1E-6)
    }
-   ",fill=TRUE)
-   sink()
-}
-if(tolower(engine) %in% c("openbugs")) {
-   sink("model.txt", append=TRUE)
-   cat("
-   ##### Hyperpriors #####
-   ## Run size - wild and hatchery fish - flat priors
-   for(i in 1:n.b.flat.W.YoY){
-      bU.W.YoY[b.flat.W.YoY[i]] ~ dflat()
-   }
-   for(i in 1:n.b.flat.H.YoY){
-      bU.H.YoY[b.flat.H.YoY[i]] ~ dflat()
-   }
-   for(i in 1:n.b.flat.W.1){
-      bU.W.1[b.flat.W.1[i]] ~ dflat()
-   }
-   for(i in 1:n.b.flat.H.1){
-      bU.H.1[b.flat.H.1[i]] ~ dflat()
-   }
-   ",fill=TRUE)
-   sink()
-}
-   sink("model.txt", append=TRUE)
-   cat("
 
    ## Run size - priors on the difference for YoY wild and hatchery fish
    for(i in 1:n.b.notflat.W.YoY){
@@ -524,24 +430,29 @@ n.bU.H.1          <- n.b.flat.H.1 + n.b.notflat.H.1
 init.bU.H.1   <- lm(log(Uguess.H.1+1) ~ SplineDesign.H.1-1)$coefficients  # initial values for spline coefficients
 
 
-
-
 # create an initial plot of the fit to the number of YoY and Age1 unmarked fish
-pdf(file=paste(prefix,"-initialU.pdf",sep=""))
-ylim <- c( min( c(log(Uguess.H.YoY+1),log(Uguess.W.YoY+1),log(Uguess.H.1+1),log(Uguess.W.1+1)), na.rm=TRUE),
-           max( c(log(Uguess.H.YoY+1),log(Uguess.W.YoY+1),log(Uguess.H.1+1),log(Uguess.W.1+1)), na.rm=TRUE))
-plot(time, log(Uguess.H.YoY+1), 
-    main=paste(title,"\nInitial spline fit to estimated U.W[i] and U.H[i]"),
-    sub="h,w = YoY, H,W=Age 1",
-    ylab="log(U[i])", xlab='Stratum', pch="h", ylime=ylim)  # initial points on log scale.
-points(time, log(Uguess.W.YoY+1), pch="w")
-points(time, log(Uguess.H.1+1), pch="H")  # age1 fish
-points(time, log(Uguess.W.1+1), pch="W")
-lines(time, SplineDesign.W.YoY %*% init.bU.W.YoY)  # add smoothed spline through points
-lines(time, SplineDesign.H.YoY %*% init.bU.H.YoY)  # add smoothed spline through points
-lines(time, SplineDesign.W.1   %*% init.bU.W.1  )  # add smoothed spline through points
-lines(time, SplineDesign.H.1   %*% init.bU.H.1  )  # add smoothed spline through points
-dev.off()
+  plot.data <- rbind(data.frame(time=time, group="H.1", pch="H",
+                                logUguess = log(Uguess.H.1+1),
+                                spline=SplineDesign.H.1 %*% init.bU.H.1, stringsAsFactors=FALSE),
+                     data.frame(time=time, group="H.YoY", pch="h",
+                                logUguess = log(Uguess.H.YoY+1),
+                                spline=SplineDesign.H.YoY %*% init.bU.H.YoY, stringsAsFactors=FALSE),
+                     data.frame(time=time, group="W.1", pch="W",
+                                logUguess = log(Uguess.W.1+1),
+                                spline=SplineDesign.W.1 %*% init.bU.W.1, stringsAsFactors=FALSE),
+                     data.frame(time=time, group="W.YoY", pch="w",
+                                logUguess = log(Uguess.W.YoY+1),
+                                spline=SplineDesign.W.YoY %*% init.bU.W.YoY, stringsAsFactors=FALSE))
+  plot.data$logUguess[ plot.data$group=="H.YoY" & time <= (hatch.after.YoY+min(plot.data$time))] <- NA
+  plot.data$spline   [ plot.data$group=="H.YoY" & time <= (hatch.after.YoY+min(plot.data$time))] <- NA
+  init.plot <- ggplot(data=plot.data, aes_(x=~time, color=~group, shape=~group))+
+     ggtitle(title, subtitle="Initial spline fit to estimated log U[i] for W and H and age 1 and YoY")+
+     geom_point(aes_(y=~logUguess), position=position_dodge(width=0.2))+
+     geom_line(aes_(y=~spline),     position=position_dodge(width=0.2))+
+     xlab("Stratum")+ylab("log(U[i])")+
+     theme(legend.position=c(0,0), legend.justification=c(0,0))
+  if(save.output.to.files)ggsave(init.plot, filename=paste(prefix,"-initialU.pdf",sep=""), height=4, width=6, units="in")
+  #results$plots$plot.init <- init.plot  # do this after running the MCMC chain (see end of function)
 
 #browser()
 
@@ -638,8 +549,9 @@ results <- run.MCMC(modelFile=model.file,
                         overRelax=FALSE,
                         initialSeed=InitialSeed,
                         working.directory=working.directory,
-			engine=engine,
                         debug=debug)
+
+results$plots$plot.init <- init.plot  # save initial plot to results object
 
 return(results)
 }
