@@ -23,7 +23,7 @@ PredictivePosterior.TSPNDE <- function (n1,
 #  for a TimeStratified Petersen with NonDiagonal Elements and error
 #    n1, m2, u2  = vectors of input data
 #    p, U,mu,sigma  = matrix of values (rows=number of posterior samples, columns=strata)
-#                  These are returned from the call to OpenBugs/ WinBugs
+#                  These are returned from the call to JAGS
 #
 
 #select.m2 <- !is.na(m2)

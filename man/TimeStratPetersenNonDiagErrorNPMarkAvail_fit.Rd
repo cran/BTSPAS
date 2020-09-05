@@ -110,7 +110,7 @@ fixed values are given in \code{logitP.fixed.values}}
 values for logit(P) at strata given by logitP.fixed. Typically this is used
 when certain strata have a 0 capture rate and the fixed value is set to -10
 which on the logit scale gives p[i] essentially 0. Don't specify values such
-as -50 because numerical problems could occur in WinBugs/OpenBugs.}
+as -50 because numerical problems could occur in JAGS.}
 
 \item{marked_available_n}{Information, usually from prior studies, on the
 fraction of marks that will be available. The *_n and *_x are used to create
@@ -219,8 +219,10 @@ Schwarz, C. J., & Dempson, J. B. (1994).
 Mark-recapture estimation of a salmon smolt population. 
 Biometrics, 50, 98-108.
 
-Schwarz, C.J. et al. (2009) Trinity River Restoration Project Report available at
-\url{http://www.stat.sfu.ca/~cschwarz/Consulting/Trinity/Phase2}
+Schwarz, C.J., D. Pickard, K. Marine and S.J. Bonner. 2009. Juvenile Salmonid Outmigrant
+Monitoring Evaluation, Phase II - December 2009. Final Technical Memorandum for the Trinity River
+Restoration Program, Weaverville, CA. 155 pp. + appendices available at
+\url{https://www.fws.gov/arcata/fisheries/reports/technical/TR_Final_Report.pdf}
 }
 \author{
 Bonner, S.J. \email{sbonner6@uwo.ca} and 

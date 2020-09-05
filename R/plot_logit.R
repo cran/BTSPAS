@@ -10,7 +10,7 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
   #  Plot the observed and fitted logit(p) values along with posterior limits 
   #  n1, m2, u2 are the raw data (u2 has been adjusted upward for sampling fraction < 1 prior to call)
   #  logitP.cov is the covariate matrix for modelling the logit(P)'s
-  #  results is the summary table from WinBugs
+  #  results is the summary table from JAGS
   #
 
   Nstrata.rel <- length(n1)
@@ -50,7 +50,9 @@ plot_logitP <- function(title, time, n1, m2, u2, logitP.cov, results){
     xlab(xtitle)+ylab("logit(p) + 95% credible interval")+
     geom_point(size=3)+
     geom_line()+
-    geom_errorbar(aes(ymin=lcl, ymax=ucl), width=.1)
+    geom_errorbar(aes(ymin=lcl, ymax=ucl), width=.1)+
+    scale_x_continuous(breaks=min(logitP.res$time):max(logitP.res$time))+
+    scale_y_continuous(sec.axis = sec_axis(~ 1/(1+exp(-.)), name="p + 95% credible interval"))
 
   # If this is a non-diagonal case, also plot the raw logits
   if(!is.matrix(m2)){

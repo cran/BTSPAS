@@ -16,8 +16,7 @@ plot_trace(
 \arguments{
 \item{title}{A character string used for a title on reports and graphs}
 
-\item{results}{The MCMC object containing the results from the call to
-WinBugs/OpenBugs}
+\item{results}{The MCMC object containing the results from the call to JAGS}
 
 \item{parms_to_plot}{A character vector of names of parameters to plot.
 These must match exactly to the parameter names used in the simulation.}
@@ -44,7 +43,7 @@ trace.plot <- plot_trace(title=title,
                          parms_to_plot=varnames[grep("^logitP", varnames)])
 if(save.output.to.files){
   pdf(file=paste(prefix,"-trace-logitP.pdf",sep=""))
-  l_ply(trace.plot, function(x){plot(x)})
+  plyr::l_ply(trace.plot, function(x){plot(x)})
   dev.off()
 }
 } \% end of dontrun

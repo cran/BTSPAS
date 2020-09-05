@@ -99,7 +99,7 @@
 #' values for logit(P) at strata given by logitP.fixed. Typically this is used
 #' when certain strata have a 0 capture rate and the fixed value is set to -10
 #' which on the logit scale gives p[i] essentially 0. Don't specify values such
-#' as -50 because numerical problems could occur in WinBugs/OpenBugs.
+#' as -50 because numerical problems could occur in JAGS.
 #' @param n.chains Number of parallel MCMC chains to fit.
 #' @param n.iter Total number of MCMC iterations in each chain.
 #' @param n.burnin Number of burn-in iterations.
@@ -168,7 +168,7 @@ TimeStratPetersenNonDiagError_fit <-
 # This is the classical stratified Petersen model where the recoveries can take place for this and multiple
 # strata later
 #
-    version <- '2020-01-01'
+    version <- '2020-09-01'
     options(width=200)
 
 # Input parameters are
@@ -200,7 +200,7 @@ TimeStratPetersenNonDiagError_fit <-
 #    bad.n1  - vector of stratum numbers where the value of n1 is suspect.
 #    bad.m2  - vector of stratum numbers where the value of m2 is suspect.
 #              For example, the capture rate could be extremely low.
-#              These are set to NA prior to the call to  OpenBugs
+#              These are set to NA prior to the call to  JAGS
 #    bad.u2  - vector of stratum numbers where the value of u2 is suspect.
 #    logitP.cov - matrix of covariates for logit(P). If the strata times are "missing" some values, an intercept is assumed
 #               for the first element of the covariance matrix and 0 for the rest of the covariates.
@@ -216,7 +216,7 @@ TimeStratPetersenNonDiagError_fit <-
 #    tauP.alpha, tauP.beta   - parameters for the prior on 1/var of residual error in logit(P)'s
 #    run.prob  - percentiles of run timing wanted
 #    debug  - if TRUE, then this is a test run with very small MCMC chains run to test out the data
-#             and OpenBUGS will run and stop waiting for your to exit and complete
+#             and JAGS will run and stop waiting for your to exit and complete
 
 # force input vectors to be vectors as needed. Note that m2 is NOT a vector!
 time     <- as.vector(time)
@@ -473,14 +473,26 @@ logUne.row.index <- grep("logUne", results.row.names)
 logUne<- results$summary[logUne.row.index,"mean"]
 plot.df$spline <- results$summary[logUne.row.index,"mean"]
 
-fit.plot <- ggplot(data=plot.df, aes_(x=~new.time))+
+fit.plot <- ggplot(data=plot.df, aes_(x=~time))+
      ggtitle(title, subtitle="Fitted spline curve with 95% credible intervals for estimated log(U[i])")+
      geom_point(aes_(y=~logUi), color="red", shape=1)+  # open circle
-     xlab("Time Index\nOpen/closed circles - initial and final estimates")+ylab("log(U[i])")+
+     xlab("Time Index\nOpen/closed circles - initial and final estimates")+
+     ylab("log(U[i]) + 95% credible interval")+
      geom_point(aes_(y=~logU), color="black", shape=19)+
      geom_line (aes_(y=~logU), color="black")+
      geom_errorbar(aes_(ymin=~lcl, ymax=~ucl), width=.1)+
-     geom_line(aes_(y=~spline),linetype="dashed")
+     geom_line(aes_(y=~spline),linetype="dashed")+
+     scale_x_continuous(breaks=seq(min(plot.df$time, na.rm=TRUE),max(plot.df$time, na.rm=TRUE),2))+
+     scale_y_continuous(sec.axis = sec_axis(~ exp(.), name="U + 95% credible interval",
+                      breaks=c(1,10,20,50,
+                                 100,200,500,
+                                 1000,2000,5000,
+                                 10000,20000, 50000,
+                                 100000,200000, 500000,
+                                 1000000,2000000,5000000,10000000),
+                      labels = scales::comma))
+
+
 
 if(save.output.to.files)ggsave(plot=fit.plot, filename=paste(prefix,"-fit.pdf",sep=""), height=6, width=10, units="in")
 results$plots$fit.plot <- fit.plot
@@ -557,11 +569,12 @@ results$plots$gof.plot <- gof
 # the plot_trace will return a list of plots (one for each page as needed)
 varnames <- names(results$sims.array[1,1,])  # extract the names of the variables 
 
+#browser()
 # Trace plots of logitP
 trace.plot <- plot_trace(title=title, results=results, parms_to_plot=varnames[grep("^logitP", varnames)])
 if(save.output.to.files){
    pdf(file=paste(prefix,"-trace-logitP.pdf",sep=""))
-   l_ply(trace.plot, function(x){plot(x)})
+   plyr::l_ply(trace.plot, function(x){plot(x)})
    dev.off()
 }
 results$plots$trace.logitP.plot <- trace.plot
@@ -570,7 +583,7 @@ results$plots$trace.logitP.plot <- trace.plot
 trace.plot <- plot_trace(title=title, results=results, parms_to_plot=varnames[c(grep("Utot",varnames), grep("Ntot",varnames), grep("^etaU", varnames))])
 if(save.output.to.files){
    pdf(file=paste(prefix,"-trace-logU.pdf",sep=""))
-   l_ply(trace.plot, function(x){plot(x)})
+   plyr::l_ply(trace.plot, function(x){plot(x)})
    dev.off()
 }
 results$plots$trace.logU.plot <- trace.plot

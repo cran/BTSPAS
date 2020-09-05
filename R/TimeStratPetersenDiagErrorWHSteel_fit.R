@@ -140,7 +140,7 @@ TimeStratPetersenDiagErrorWHSteel_fit <-
 # The steelhead are nice because 100% of hatchery fish are adipose fin clipped and no wild fish are adipose fin clipped
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2020-01-01'
+   version <- '2020-09-01'
    options(width=200)
 
 # Input parameters are
@@ -165,11 +165,11 @@ TimeStratPetersenDiagErrorWHSteel_fit <-
 #    hatch.after - julian week AFTER which hatchery fish are released 
 #    bad.m2  - list of julian numbers where the value of m2 is suspect.
 #              For example, the capture rate could be extremely low.
-#              These are set to NA prior to the call to OpenBugs
+#              These are set to NA prior to the call to JAGS
 #    bad.u2.W.YoY
 #    bad.u2.W.1
 #    bad.u2.H.1 - list of julian weeks where the values of u2.* are suspect. 
-#                 These are set to NA prior to the call to OpenBugs
+#                 These are set to NA prior to the call to JAGS
 #    logitP.cov - matrix of covariates for logit(P). If the strata times are "missing" some values, an intercept is assumed
 #               for the first element of the covariance matrix and 0 for the rest of the covariates.
 #               CAUTION - this MAY not be what you want to do. It is likely best to enter ALL strata
@@ -181,7 +181,7 @@ TimeStratPetersenDiagErrorWHSteel_fit <-
 #    tauP.alpha, tauP.beta   - parameters for the prior on 1/var of residual error in logit(P)'s
 #    run.prob  - percentiles of run timing wanted 
 #    debug  - if TRUE, then this is a test run with very small MCMC chains run to test out the data
-#             and OpenBUGS will run and stop waiting for your to exit and complete
+#             and JAGS will run and stop waiting for your to exit and complete
 
 # force input vectors to be vectors
 time      <- as.vector(time)
@@ -640,9 +640,21 @@ if (debug)
      geom_line (aes_(y=~logU), position=position_dodge(width=.2))+
      geom_errorbar(aes_(ymin=~logUlcl, ymax=~logUucl), width=.1, position=position_dodge(width=.2))+
      geom_line(aes_(y=~spline),linetype="dashed", position=position_dodge(width=.2)) + 
-     xlab("Time Index\nFitted/Smoothed/Raw values plotted for W(black) and H(blue)")+ylab("log(U[i])")+
+     xlab("Time Index\nFitted/Smoothed/Raw values plotted for W(black) and H(blue)")+
+     ylab("log(U[i]) + 95% credible interval")+
      theme(legend.justification = c(0, 0), legend.position = c(0, 0))+
-     scale_color_discrete(name="Group")
+     scale_color_discrete(name="Group")+
+     scale_x_continuous(breaks=seq(min(plot.data$time, na.rm=TRUE),max(plot.data$time, na.rm=TRUE),2))+
+     scale_y_continuous(sec.axis = sec_axis(~ exp(.), name="U + 95% credible interval",
+                      breaks=c(1,10,20,50,
+                                 100,200,500,
+                                 1000,2000,5000,
+                                 10000,20000, 50000,
+                                 100000,200000, 500000,
+                                 1000000,2000000,5000000,10000000),
+                      labels = scales::comma))
+
+
 
 if(save.output.to.files)ggsave(plot=fit.plot, filename=paste(prefix,"-fit.pdf",sep=""), height=6, width=10, units="in")
 results$plots$fit.plot <- fit.plot
@@ -695,7 +707,7 @@ varnames <- names(results$sims.array[1,1,])  # extract the names of the variable
 trace.plot <- plot_trace(title=title, results=results, parms_to_plot=varnames[grep("^logitP", varnames)])
 if(save.output.to.files){
    pdf(file=paste(prefix,"-trace-logitP.pdf",sep=""))
-   l_ply(trace.plot, function(x){plot(x)})
+   plyr::l_ply(trace.plot, function(x){plot(x)})
    dev.off()
 }
 results$plots$trace.logitP.plot <- trace.plot
@@ -704,7 +716,7 @@ results$plots$trace.logitP.plot <- trace.plot
 trace.plot <- plot_trace(title=title, results=results, parms_to_plot=varnames[c(grep("Utot",varnames), grep("Ntot",varnames), grep("^etaU", varnames))])
 if(save.output.to.files){
    pdf(file=paste(prefix,"-trace-logU.pdf",sep=""))
-   l_ply(trace.plot, function(x){plot(x)})
+   plyr::l_ply(trace.plot, function(x){plot(x)})
    dev.off()
 }
 results$plots$trace.logU.plot <- trace.plot

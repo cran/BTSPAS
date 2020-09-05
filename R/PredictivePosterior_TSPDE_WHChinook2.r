@@ -13,7 +13,7 @@ PredictivePosterior.TSPDE.WHCH2 <- function (time, n1, m2,
 #  Generate Predictive Posterior Plot (Bayesian p-value)
 #    n1, m2, u2.A.YoY, u2.N.YoY, u2.A.1, u2.N.1  = vectors of input data
 #    p, U.W.YoY, U.H.YoY, U.W.1, U.H.1          = matrix of values (rows=number of posterior samples, columns=strata)
-#               These are returned from the call to OpenBugs/ WinBugs
+#               These are returned from the call to JAGS
 #
 #cat("Call to PredictivePosterior for Wild vs Hatchery and YoY vs Age1 \n")
 #browser()

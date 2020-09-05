@@ -26,7 +26,7 @@ PredictivePosterior.TSPDE <- function (n1, m2, u2,
 #  for a TimeStratified Petersen with Diagonal Elements and error
 #    n1, m2, u2  = vectors of input data
 #    p, U        = matrix of values (rows=number of posterior samples, columns=strata)
-#                  These are returned from the call to OpenBugs/ WinBugs
+#                  These are returned from the call to JAGS
 #
 #cat("Call to PredictivePosterior\n")
 #browser()

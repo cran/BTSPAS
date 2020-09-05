@@ -5,7 +5,7 @@
 ## 2013-12-18 CJS Any init.epsilon that correspond to logitP.fixed (typically to -10 or 0 on the p scale) must be set to NA
 ## 2013-09-04 CJS if any init.epsilon are NA, then set it to the mean of the non-missing values.
 ##                If any of n1, m2, u2 are missing set to average (but m2 <= n1). This tries to keep
-##                OpenBugs from wandering off too far and generating nonsense values.
+##                JAGS from wandering off too far and generating nonsense values.
 ## 2012-02-01 CJS added na.rm=TRUE in computation of pScale to avoid passing NA
 ## 2011-05-15 CJS limited the etaU=log(U) to a maximum of 15 which corresponds to around 400,000,000 fish. 
 ## 2011-05-09 CJS subtle bug with initial values of epsilon where if fixed values for logitP at the end of the

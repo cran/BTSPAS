@@ -26,7 +26,7 @@ PredictivePosterior.TSPNDENP <- function (n1,
 #    logitP.fixed - which values of p(i) are fixed
 #    Delta.max    - maximum strata involved in movement from diagonal
 #    U, Theta  = matrix of values (rows=number of posterior samples, columns=strata)
-#                  These are returned from the call to OpenBugs/ JAGS
+#                  These are returned from the call to  JAGS
 #
 
 

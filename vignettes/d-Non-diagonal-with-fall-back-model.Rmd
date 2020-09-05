@@ -334,7 +334,7 @@ Schwarz, C. J. and Bonner, S. B. (2011).
 A spline-based capture-mark-recapture model applied to estimating the
 number of steelhead within the Bulkley River passing the Moricetown Canyon
 in 2001-2010. Prepared for the B.C. Ministry of Environment.
-http://www.stat.sfu.ca/~cschwarz/Consulting/Moricetown/Report-2011-06-01.pdf
+<!---http://www.stat.sfu.ca/~cschwarz/Consulting/Moricetown/Report-2011-06-01.pdf --->
 
 Schwarz, C. J., & Dempson, J. B. (1994).
 Mark-recapture estimation of a salmon smolt population. 

@@ -181,8 +181,10 @@ Schwarz, C. J., & Dempson, J. B. (1994).
 Mark-recapture estimation of a salmon smolt population. 
 Biometrics, 50, 98-108.
 
-Schwarz, C.J. et al. (2009) Trinity River Restoration Project Report available at
-\url{http://www.stat.sfu.ca/~cschwarz/Consulting/Trinity/Phase2}
+Schwarz, C.J., D. Pickard, K. Marine and S.J. Bonner. 2009. Juvenile Salmonid Outmigrant
+Monitoring Evaluation, Phase II - December 2009. Final Technical Memorandum for the Trinity River
+Restoration Program, Weaverville, CA. 155 pp. + appendices available at
+\url{https://www.fws.gov/arcata/fisheries/reports/technical/TR_Final_Report.pdf}
 }
 \author{
 Bonner, S.J. \email{sbonner6@uwo.ca} and 

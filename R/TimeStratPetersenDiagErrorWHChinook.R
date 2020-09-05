@@ -337,7 +337,9 @@ model {
      geom_point(aes_(y=~logUguess.W), pch="W", color="blue")+
      geom_line(aes_(y=~spline.H), color="green")+
      geom_line(aes_(y=~spline.W), color="blue")+
-     xlab("Stratum")+ylab("log(U[i])")
+     xlab("Stratum")+ylab("log(U[i])")+
+     scale_x_continuous(breaks=seq(min(plot.data$time, na.rm=TRUE),max(plot.data$time, na.rm=TRUE),2))
+
   if(save.output.to.files)ggsave(init.plot, filename=paste(prefix,"-initialU.pdf",sep=""), height=4, width=6, units="in")
   #results$plots$plot.init <- init.plot  # do this after running the MCMC chain (see end of function)
 

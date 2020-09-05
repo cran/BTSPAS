@@ -37,14 +37,15 @@ PredictivePosteriorPlot.TSPDE.WHCH2 <- function( discrep, ncol=2, nrow=2 ) {
                                     variable.name="Statistic",
                                     variable.factor=FALSE)
 
-  titles <- data.frame(Statistic=as.character(1:8), Title=c("Freeman-Tukey for m2", 
-            "Freeman-Tukey for u2.A.YoY", 
-            "Freeman-Tukey for u2.N.YoY", 
-            "Freeman-Tukey for u2.A.1", 
-            "Freeman-Tukey for u2.N.1", 
-            "Freeman-Tukey for YoY",
-            "Freeman-Tukey for Age 1",
-            "Total Freeman-Tukey"), stringsAsFactors=FALSE)
+  titles <- data.frame(Statistic=as.character(1:8), 
+                       Title=c("Freeman-Tukey for m2", 
+                               "Freeman-Tukey for u2.A.YoY", 
+                               "Freeman-Tukey for u2.N.YoY", 
+                               "Freeman-Tukey for u2.A.1", 
+                               "Freeman-Tukey for u2.N.1", 
+                               "Freeman-Tukey for YoY",
+                               "Freeman-Tukey for Age 1",
+                               "Total Freeman-Tukey"), stringsAsFactors=FALSE)
   discrep.long <- merge(discrep.long, titles)
  
   # compute the bayesian p-values         
@@ -59,7 +60,7 @@ PredictivePosteriorPlot.TSPDE.WHCH2 <- function( discrep, ncol=2, nrow=2 ) {
        geom_point()+
        geom_abline(intercept=0, slope=1)+
        geom_text(data=p_values, x=Inf,y=-Inf, hjust=1, vjust=0, label=p_values$label)+
-       facet_wrap_paginate(~Title, ncol=ncol, nrow=nrow, page=page, scales="free")
+       ggforce::facet_wrap_paginate(~Title, ncol=ncol, nrow=nrow, page=page, scales="free")
   })
   gof
 }  # end of function

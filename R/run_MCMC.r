@@ -1,4 +1,4 @@
-# 2018-11-27 CJS - removed call to OpenBugs. Left this here in case we want to change samplers in the future.
+# 2018-11-27 CJS - removed call to OpenBugs. Left function here in case we want to change samplers in the future.
 # 2013-12-30 CJS - function to switch between the three samplers as needed. 
 #                  This way we wont't have to modify much code (hopefully)
 

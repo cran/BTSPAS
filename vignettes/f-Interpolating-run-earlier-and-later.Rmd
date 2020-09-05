@@ -1,0 +1,276 @@
+---
+title: "Interpolating run early and late"
+author: "Carl James Schwarz"
+date: "`r Sys.Date()`"
+output: 
+  html_vignette: 
+    toc: true # table of content true
+    toc_depth: 3  # upto three depths of headings (specified by #, ## and ###)
+    number_sections: true  ## if you want number sections at each table header
+#vignette: >
+#  %\VignetteIndexEntry{06 - Interpolating run early and late}
+#  %\VignetteEncoding{UTF-8}
+#  %\VignetteEngine{knitr::rmarkdown_notangle}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(BTSPAS)
+library(ggplot2)
+library(plyr)
+
+rec.matrix.csv <- textConnection(
+"Tagging,SW22,SW23,SW24,SW25,SW26,SW27,SW28,SW29,SW30,SW31,SW32,SW33,SW34,SW35,SW36,SW37,SW38,SW39,SW40,SW41,Recovered,Applied,PropRecovered
+SW22,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,10,0.100
+SW23,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7,100,0.070
+SW24,0,0,0,51,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,56,525,0.107
+SW25,0,0,0,10,45,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,55,403,0.136
+SW26,0,0,0,0,169,64,9,0,0,0,0,0,0,0,0,0,0,0,0,0,242,849,0.285
+SW27,0,0,0,0,0,139,41,5,0,0,0,0,0,0,0,0,0,0,0,0,185,742,0.249
+SW28,0,0,0,0,0,0,155,31,3,1,0,0,0,0,0,0,0,0,0,0,190,675,0.281
+SW29,0,0,0,0,0,0,0,266,32,5,0,0,0,0,0,0,0,0,0,0,303,916,0.331
+SW30,0,0,0,0,0,0,0,0,33,49,3,0,0,0,0,0,0,0,0,0,85,371,0.229
+SW31,0,0,0,0,0,0,0,0,0,33,36,0,0,0,1,0,0,0,0,0,70,296,0.236
+SW32,0,0,0,0,0,0,0,0,0,0,39,8,1,0,0,0,0,0,0,0,48,234,0.205
+SW33,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,39,0.026
+SW34,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,97,0.000
+SW35,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,0,0,0,0,0,3,61,0.049
+SW36,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,2,26,0.077
+SW37,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0.000
+CatchComm,0,0,0,1869,5394,5131,5668,6733,1780,1828,2493,157,0,0,0,0,0,0,0,0,31053,NA,NA")
+
+rec.matrix <- read.csv(rec.matrix.csv, header=TRUE, as.is=TRUE, strip.white=TRUE)
+rec.matrix$Recovered     <- NULL
+rec.matrix$PropRecovered <- NULL
+rec.matrix$SW38 <- NULL
+rec.matrix$SW39 <- NULL
+rec.matrix$SW40 <- NULL
+rec.matrix$SW41 <- NULL
+rec.matrix$SW34 <- 0
+rec.matrix$SW35 <- 0
+rec.matrix$SW36 <- 0
+
+```
+
+# Introduction
+In some studies, harvest (recovery strata) start after the run has started and 
+terminate prior to the run ending. For example, consider the following
+recovery matrix where releases and recoveries have been stratified on
+a weekly basis:
+
+```{r echo=FALSE}
+rec.matrix
+```
+
+The bottom line is the total recoveries (tagged and untagged) from a commercial harvest.
+In this case, the commerical harvest did not start until 
+statistical week SW25 and ended in SW33 but
+the run started earlier and ended later than the commerical harvest.
+
+
+```{r echo=FALSE}
+  # convert the recovery matrix to BTSPAS input
+
+  # get the stat weeks of releases from the first column
+  stat.week.rel <- rec.matrix$StatWeek[1:(nrow(rec.matrix)-1)]
+  
+  # get the stat week of recoveries from the first row
+  stat.week.rec <- names(rec.matrix)[ grepl("SW",names(rec.matrix))]
+
+  # get the number of releases
+  n1.df <- data.frame(rel.index=1:(nrow(rec.matrix)-1), 
+                      n1 = rec.matrix$Applied[1:(nrow(rec.matrix)-1)])
+  
+  # get the full recovery matrix
+  m2.full <- rec.matrix[1:(nrow(rec.matrix)-1), names(rec.matrix)[grepl("SW",names(rec.matrix))]]
+  # Now to compute the reduced recovery matrix  by shifting rows to the left 
+    
+  # get the total number of recoveries
+  n2 <- rec.matrix[ nrow(rec.matrix), -c(1,ncol(rec.matrix))]
+  
+  u2 <- as.numeric(n2-apply(m2.full,2,sum ))
+  
+```
+
+## Fit with the current data.
+We now fit the BTSPAS model using the current data
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library("BTSPAS")  
+
+  red.m2 <- plyr::aaply(as.matrix(cbind(1:nrow(n1.df),m2.full)), 
+                        1, function(x){
+        #browser()
+        rot.vec <- c((x[1]+1):length(x), 2:(x[1]+1))
+        x <- x[rot.vec]
+        #print(x)
+        x[-length(x)]
+  })
+  # remove columns at the right that are all zero
+  all.zero <- apply(red.m2==0, 2, all)
+  remove.right <- rev(cumprod(rev(all.zero)))
+  red.m2 <- red.m2[, !remove.right]
+
+
+
+# Make the call to fit the model and generate the output files
+red.fit <- TimeStratPetersenNonDiagErrorNP_fit(  # notice change in function name
+                  title=      "Original data",
+                  prefix=     "red",
+                  time=       1:nrow(n1.df),
+                  n1=         n1.df$n1, 
+                  m2=         red.m2, 
+                  u2=         u2,
+                  jump.after= NULL,
+                  bad.n1=     NULL,
+                  bad.m2=     NULL,
+                  bad.u2=     NULL,
+                  debug=FALSE,             # save time by reducing number of MCMC iterations
+                  save.output.to.files=FALSE)
+
+file.remove("data.txt"       )       
+file.remove("CODAindex.txt"  )
+file.remove("CODAchain1.txt" )
+file.remove("CODAchain2.txt" )
+file.remove("CODAchain3.txt" )
+file.remove("inits1.txt"     )
+file.remove("inits2.txt"     )
+file.remove("inits3.txt"     )
+file.remove("model.txt"      )
+
+# need to delete the *.txt files
+
+```
+
+On the surface, the fit looks fine:
+
+```{r echo=FALSE,warning=FALSE, message=FALSE}
+red.fit$plots$fit.plot
+```
+but the spline remains very large in the first 3 weeks leading to unrealistic estimates
+of the run in the first 3 weeks and an unrealistic estimate of the total run:
+
+```{r echo=FALSE}
+select <- grepl("Ntot",    row.names(red.fit$summary)) |
+          grepl("Utot",    row.names(red.fit$summary)) |
+          grepl("^U\\[",   row.names(red.fit$summary)) 
+
+round(red.fit$summary[select,c("mean","sd","2.5%","97.5%")],0)
+```
+
+The problem is that without a commercial catch in the first 3 and last 3 weeks, there is no information
+about the probability of capture for those weeks and BTSPAS simply interpolates the
+spline from the middle of the data to the first 3 and last 3 weeks. The interpolation for the 
+last 3 weeks isn't too bad -- the spline is already on a downwards trend and so this is continued.
+However, the interpolation back for the first 3 weeks is not very realistic
+
+## Forcing the run curve to zero.
+It is possible to "force" BTSPAS to interpolate the first 3 and last 3 weeks down to zero
+by adding ``fake'' data. In particular, we pretend that in the first 3 and last 3 weeks, that
+a commercial catch of 1 fish occurred and it was tagged. You also need to ensure that
+enough fish were tagged and released to accomodate the fake data.
+
+The revised recovery matrix is:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+rec.matrix2 <- rec.matrix
+rec.matrix2[1,2] <- 1
+rec.matrix2[2,3] <- 1
+rec.matrix2[3,4] <- 1
+rec.matrix2[nrow(rec.matrix2),2:4] <- 1
+
+rec.matrix2[13,14] <- 1
+rec.matrix2[14,15] <- 1
+rec.matrix2[15,16] <- 1
+rec.matrix2[16,17] <- 1
+rec.matrix2[17,14:17] <- 1
+rec.matrix2
+```
+Notice how "fake" recoveries were added to the diagonal entries for the first and final weeks
+of the data including "fake" harvest.
+
+Because the fake data values are very small, it has little impact on the total run size,
+but a recovery of 1 tagged fish in a commerical harvest of 1 fish is not consistent 
+with a very large run size and so this forces the run curve down at these points as 
+seen in the revised fit:
+
+```{r echo=FALSE}
+  # convert the recovery matrix to BTSPAS input
+
+  # get the stat weeks of releases from the first column
+  stat.week.rel <- rec.matrix2$StatWeek[1:(nrow(rec.matrix2)-1)]
+  
+  # get the stat week of recoveries from the first row
+  stat.week.rec <- names(rec.matrix2)[ grepl("SW",names(rec.matrix2))]
+
+  # get the number of releases
+  n1.df <- data.frame(rel.index=1:(nrow(rec.matrix2)-1), 
+                      n1 = rec.matrix2$Applied[1:(nrow(rec.matrix2)-1)])
+  
+  # get the full recovery matrix
+  m2.full <- rec.matrix2[1:(nrow(rec.matrix2)-1), names(rec.matrix2)[grepl("SW",names(rec.matrix2))]]
+  # Now to compute the reduced recovery matrix  by shifting rows to the left 
+    
+  # get the total number of recoveries
+  n2 <- rec.matrix2[ nrow(rec.matrix2), -c(1,ncol(rec.matrix2))]
+  
+  u2 <- as.numeric(n2-apply(m2.full,2,sum ))
+  
+  red.m2 <- plyr::aaply(as.matrix(cbind(1:nrow(n1.df),m2.full)), 
+                        1, function(x){
+        #browser()
+        rot.vec <- c((x[1]+1):length(x), 2:(x[1]+1))
+        x <- x[rot.vec]
+        #print(x)
+        x[-length(x)]
+  })
+  # remove columns at the right that are all zero
+  all.zero <- apply(red.m2==0, 2, all)
+  remove.right <- rev(cumprod(rev(all.zero)))
+  red.m2 <- red.m2[, !remove.right]
+
+
+
+# Make the call to fit the model and generate the output files
+red.fit2 <- TimeStratPetersenNonDiagErrorNP_fit(  # notice change in function name
+                  title=      "Adding fake data at start and end",
+                  prefix=     "red",
+                  time=       1:nrow(n1.df),
+                  n1=         n1.df$n1, 
+                  m2=         red.m2, 
+                  u2=         u2,
+                  jump.after= NULL,
+                  bad.n1=     NULL,
+                  bad.m2=     NULL,
+                  bad.u2=     NULL,
+                  debug=FALSE,             # save time by reducing number of MCMC iterations
+                  save.output.to.files=FALSE)
+
+file.remove("data.txt"       )       
+file.remove("CODAindex.txt"  )
+file.remove("CODAchain1.txt" )
+file.remove("CODAchain2.txt" )
+file.remove("CODAchain3.txt" )
+file.remove("inits1.txt"     )
+file.remove("inits2.txt"     )
+file.remove("inits3.txt"     )
+file.remove("model.txt"      )
+
+# need to delete the *.txt files
+
+```
+Notice that in the revised fit, the run curve is forced to 0 at the start
+and end of the study:
+```{r echo=FALSE,message=FALSE,warnings=FALSE}
+red.fit2$plots$fit.plot+coord_cartesian(ylim=c(-20,15))
+```
+The estimates of total run size and the weekly estimates of the runsize are also more sensible:
+```{r echo=FALSE}
+select <- grepl("Ntot",    row.names(red.fit2$summary)) |
+          grepl("Utot",    row.names(red.fit2$summary)) |
+          grepl("^U\\[",   row.names(red.fit2$summary)) 
+
+round(red.fit2$summary[select,c("mean","sd","2.5%","97.5%")],0)
+```
+

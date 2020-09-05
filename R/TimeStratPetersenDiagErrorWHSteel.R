@@ -386,7 +386,9 @@ SplineDesign.H.1 <- rbind(matrix(0,nrow=hatch.after, ncol=ncol(SplineDesign.H.1)
      geom_point(aes_(y=~logUguess), position=position_dodge(width=0.2))+
      geom_line(aes_(y=~spline),     position=position_dodge(width=0.2))+
      xlab("Stratum")+ylab("log(U[i])")+
-     theme(legend.position=c(0,0), legend.justification=c(0,0))
+     theme(legend.position=c(0,0), legend.justification=c(0,0))+
+     scale_x_continuous(breaks=seq(min(plot.data$time,na.rm=TRUE),max(plot.data$time,na.rm=TRUE),2))
+
   if(save.output.to.files)ggsave(init.plot, filename=paste(prefix,"-initialU.pdf",sep=""), height=4, width=6, units="in")
   #results$plots$plot.init <- init.plot  # do this after running the MCMC chain (see end of function)
 

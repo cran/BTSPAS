@@ -5,7 +5,7 @@
 #' @param ncol Number of columns in the plot (default=1).
 #' @return Posterior plot(s) as an ggplot2 object 
 #' @keywords internal
-#' @import plyr ggplot2
+#' @import plyr ggplot2 scales
 #'
 #'
 
@@ -27,7 +27,8 @@ plot_posterior <- function(mcmc.sample, alpha=0.05, ncol=1){
      geom_density()+
      facet_wrap(~parm, ncol=ncol,scales="free")+xlab("Value of parameter")+
      geom_text(data=post_stat, aes_(x=Inf, y=Inf, label=~paste("Posterior mean: ",post.mean,"\nPosterior sd  : ",post.sd,sep=""),
-                                   vjust=1, hjust=1))
+                                   vjust=1, hjust=1))+
+     scale_x_continuous(labels=scales::comma)
   postplot
 }
 

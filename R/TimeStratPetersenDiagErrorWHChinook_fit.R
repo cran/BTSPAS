@@ -157,7 +157,7 @@ TimeStratPetersenDiagErrorWHChinook_fit<-
 # covariates for the the capture probabilities, and separating the wild vs hatchery fish
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2020-01-01'
+   version <- '2020-09-01'
    options(width=200)
 
 # Input parameters are
@@ -186,11 +186,11 @@ TimeStratPetersenDiagErrorWHChinook_fit<-
 #    hatch.after - julian week AFTER which hatchery fish are released 
 #    bad.m2  - list of julian numbers where the value of m2 is suspect.
 #              For example, the capture rate could be extremely low.
-#              These are set to NA prior to the call to OpenBugs
+#              These are set to NA prior to the call to JAGS
 #    bad.u2.A - list of julian weeks where the value of u2.A is suspect. 
-#               These are set to NA prior to the call to OpenBugs
+#               These are set to NA prior to the call to JAGS
 #    bad.u2.N - list of julian weeks where the value of u2.N is suspect.
-#               These are set to NA prior to the call to OpenBugs
+#               These are set to NA prior to the call to JAGS
 #    logitP.cov - matrix of covariates for logit(P). If the strata times are "missing" some values, an intercept is assumed
 #               for the first element of the covariance matrix and 0 for the rest of the covariates.
 #               CAUTION - this MAY not be what you want to do. It is likely best to enter ALL strata
@@ -202,7 +202,7 @@ TimeStratPetersenDiagErrorWHChinook_fit<-
 #    tauP.alpha, tauP.beta   - parameters for the prior on 1/var of residual error in logit(P)'s
 #    run.prob  - percentiles of run timing wanted 
 #    debug  - if TRUE, then this is a test run with very small MCMC chains run to test out the data
-#             and OpenBUGS will run and stop waiting for your to exit and complete
+#             and JAGS will run and stop waiting for your to exit and complete
 
 # force the input vectors to be vectors
 time      <- as.vector(time)
@@ -686,11 +686,11 @@ if (debug2) {
   plot.df$spline.H  <- results$summary[logUne.H.row.index,"mean"]
   plot.df$spline.H [1:(hatch.after - min(time)+1)] <- NA # no hatchery fish until release at hatch.after
 
-fit.plot <- ggplot(data=plot.df, aes_(x=~new.time))+
+fit.plot <- ggplot(data=plot.df, aes_(x=~time))+
    ggtitle(title, subtitle="Fitted spline curve to raw U.W[i] U.H[i] with 95% credible intervals")+
    geom_point(aes_(y=~logUguess.W), color="red",  shape="w")+  # guesses for wild file
    geom_point(aes_(y=~logUguess.H), color="green", shape="h")+  # guesses for hatchery fish
-   xlab("Time Index\nFitted/Smoothed/Raw values plotted for W(black) and H(blue)")+ylab("log(U[i])")+
+   xlab("Time Index\nFitted/Smoothed/Raw values plotted for W(black) and H(blue)")+ylab("log(U[i]) + 95% credible interval")+
    geom_point(aes_(y=~logU.W), color="black", shape=19)+
    geom_line (aes_(y=~logU.W), color="black")+
    geom_errorbar(aes_(ymin=~lcl.W, ymax=~ucl.W), width=.1)+
@@ -699,7 +699,18 @@ fit.plot <- ggplot(data=plot.df, aes_(x=~new.time))+
    geom_line (aes_(y=~logU.H), color="blue")+
    geom_errorbar(aes_(ymin=~lcl.H, ymax=~ucl.H), width=.1, color="blue")+
    geom_line(aes_(y=~spline.H),linetype="dashed",color="blue")+
-   ylim(c(-2,NA))
+   ylim(c(-2,NA))+
+   scale_x_continuous(breaks=seq(min(plot.df$time, na.rm=TRUE),max(plot.df$time, na.rm=TRUE),2))+
+   scale_y_continuous(sec.axis = sec_axis(~ exp(.), name="U + 95% credible interval",
+                      breaks=c(1,10,20,50,
+                                 100,200,500,
+                                 1000,2000,5000,
+                                 10000,20000, 50000,
+                                 100000,200000, 500000,
+                                 1000000,2000000,5000000,10000000),
+                      labels = scales::comma))
+
+
  
 if(save.output.to.files)ggsave(plot=fit.plot, filename=paste(prefix,"-fit.pdf",sep=""), height=6, width=10, units="in")
 results$plots$fit.plot <- fit.plot
@@ -746,7 +757,7 @@ varnames <- names(results$sims.array[1,1,])  # extract the names of the variable
 trace.plot <- plot_trace(title=title, results=results, parms_to_plot=varnames[grep("^logitP", varnames)])
 if(save.output.to.files){
    pdf(file=paste(prefix,"-trace-logitP.pdf",sep=""))
-   l_ply(trace.plot, function(x){plot(x)})
+   plyr::l_ply(trace.plot, function(x){plot(x)})
    dev.off()
 }
 results$plots$trace.logitP.plot <- trace.plot
@@ -755,7 +766,7 @@ results$plots$trace.logitP.plot <- trace.plot
 trace.plot <- plot_trace(title=title, results=results, parms_to_plot=varnames[c(grep("Utot",varnames), grep("Ntot",varnames), grep("^etaU", varnames))])
 if(save.output.to.files){
    pdf(file=paste(prefix,"-trace-logU.pdf",sep=""))
-   l_ply(trace.plot, function(x){plot(x)})
+   plyr::l_ply(trace.plot, function(x){plot(x)})
    dev.off()
 }
 results$plots$trace.logU.plot <- trace.plot
