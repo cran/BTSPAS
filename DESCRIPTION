@@ -1,6 +1,6 @@
 Package: BTSPAS
-Version: 2020.9.1
-Date: 2020-09-01
+Version: 2021.1.1
+Date: 2021-01-01
 Title: Bayesian Time-Stratified Population Analysis
 Author: Carl J Schwarz <cschwarz.stat.sfu.ca@gmail.com> and
 	Simon J Bonner <sbonner6@uwo.ca>
@@ -20,6 +20,6 @@ RoxygenNote: 7.1.1
 Suggests: R.rsp
 VignetteBuilder: R.rsp
 NeedsCompilation: no
-Packaged: 2020-09-05 05:45:04 UTC; cschwarz
+Packaged: 2020-12-16 07:57:52 UTC; cschwarz
 Repository: CRAN
-Date/Publication: 2020-09-05 06:00:02 UTC
+Date/Publication: 2020-12-16 10:40:10 UTC

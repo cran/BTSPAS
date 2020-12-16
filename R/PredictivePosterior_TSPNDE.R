@@ -1,14 +1,8 @@
+# 2020-12-15 CJS If u2 is missing, then some of the test statistics must be modified to exclude
+#                any contribution from the simulated data when u2 is missing
+
 #' @rdname PredictivePosterior.TSPDE
 #' @import stats plyr
-
-
-
-# 2014-09-01 CJS Needed to deal with different behaviour between OPENBugs and JAGS when the logitP parameters may be fixed.
-#    OpenBUGS does NOT includ the fixed logits in the returned MCMC sampler; JAGS does.
-#    Consequently, the expansion of the the logitP from the samplers for the fixed logits only has to be done in OpenBugs and not JAGS
-#    There was also a subtle bug in dealing with the multinomial distribution where the length of p (that had to be padded to deal with an OpenBugs problem
-#    had to have the indicies explicitly stated.
-
 
 
 PredictivePosterior.TSPNDE <- function (n1,
@@ -25,9 +19,6 @@ PredictivePosterior.TSPNDE <- function (n1,
 #    p, U,mu,sigma  = matrix of values (rows=number of posterior samples, columns=strata)
 #                  These are returned from the call to JAGS
 #
-
-#select.m2 <- !is.na(m2)
-#select.u2 <- !is.na(u2)
 
   s <- length(n1)
   t <- length(u2)
@@ -58,20 +49,23 @@ discrep <- t(sapply(1:nrow(p),function(k){
   ## 1) Observed vs expected values for recaptures of marked fish
   ## a) Observed data
   temp1.o <- sqrt(m2[,1:t]) - sqrt(n1 * t(t(Theta[[k]]) * p[k,1:t]))
+  notmissing <- !is.na(temp1.o)
   d1.m2.o <- sum(temp1.o^2,na.rm=TRUE)
 
-  ## b) Simulate data
+  ## b) Simulated data
   temp1.s <- sqrt(simData[[k]]$m2[,1:t]) - sqrt(n1 * t(t(Theta[[k]]) * p[k,1:t]))
-  d1.m2.s <- sum(temp1.s^2,na.rm=TRUE)
+  d1.m2.s <- sum(temp1.s[notmissing]^2,na.rm=TRUE)
 
   ## 2) Observed vs expected values for captures of unmarked fish
   ## a) Observed data
+  #browser()
   temp2.o <- sqrt(u2) - sqrt(U[k,] * p[k,1:t])
+  notmissing <- !is.na(temp2.o)
   d1.u2.o <- sum(temp2.o^2,na.rm=TRUE)
 
-  ## b) Simulate data
+  ## b) Simulated data
   temp2.s <- sqrt(simData[[k]]$u2) - sqrt(U[k,] * p[k,1:t])
-  d1.u2.s <- sum(temp2.s^2,na.rm=TRUE)
+  d1.u2.s <- sum(temp2.s[notmissing]^2,na.rm=TRUE)
 
   ## 3) Deviance (-2*log-likelihood)
   ## a) Observed data
@@ -81,8 +75,9 @@ discrep <- t(sapply(1:nrow(p),function(k){
 
     dmultinom(m2[i,],n1[i],cellProbs,log=TRUE)
   }))
-
-  d2.u2.o <- -2 * sum(dbinom(u2,U[k,],p[k,1:t],log=TRUE))
+  
+  notmissing <- !is.na(u2)  # need to ignore contributions from missing u2 values
+  d2.u2.o <- -2 * sum(dbinom(u2[notmissing],U[k,notmissing],p[k,notmissing],log=TRUE))
 
   d2.o <- d2.m2.o + d2.u2.o
 
@@ -95,7 +90,7 @@ discrep <- t(sapply(1:nrow(p),function(k){
     dmultinom(simData[[k]]$m2[i,],n1[i],cellProbs,log=TRUE)
   }))
 
-  d2.u2.s <- -2 * sum(dbinom(simData[[k]]$u2,U[k,],p[k,1:t],log=TRUE))
+  d2.u2.s <- -2 * sum(dbinom(simData[[k]]$u2[notmissing],U[k,notmissing],p[k,notmissing],log=TRUE))
 
   d2.s <- d2.m2.s + d2.u2.s
 

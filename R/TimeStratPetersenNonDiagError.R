@@ -1,3 +1,4 @@
+## 2020-11-07 CJS Allow user to specify prior for beta parameters for covariates on logitP
 # 2018-12-06 CJS saved initial plot to ggplots format
 # 2018-11-26 CJS Removed all references to OpenBugs
 # 2014-09-01 CJS conversion to JAGS
@@ -27,7 +28,7 @@ TimeStratPetersenNonDiagError <- function(title,
                                           m2,
                                           u2,
                                           jump.after=NULL,
-                                          logitP.cov=rep(1,length(u2)),
+                                          logitP.cov=as.matrix(rep(1,length(u2))),
                                           logitP.fixed=rep(NA,length(u2)),
                                           n.chains=3,
                                           n.iter=200000,
@@ -37,8 +38,8 @@ TimeStratPetersenNonDiagError <- function(title,
                                           tauU.beta=.05,
                                           taueU.alpha=1,
                                           taueU.beta=.05,
-                                          mu_xiP=-2,
-                                          tau_xiP=.6666,
+                                          prior.beta.logitP.mean = c(logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),rep(0,  ncol(as.matrix(logitP.cov))-1)),
+                                          prior.beta.logitP.sd   = c(2,                                           rep(10, ncol(as.matrix(logitP.cov))-1)), 
                                           tauP.alpha=.001,
                                           tauP.beta=.001,
                                           debug=FALSE,
@@ -121,8 +122,7 @@ model {
 #      n.b.notflat- number of b coefficients that do not have a flat prior
 #      tauU.alpha, tauU.beta - parameters for prior on tauU
 #      taueU.alpha, taueU.beta - parameters for prior on taueU
-#      mu_xiP, tau_xiP  - parameters for prior on mean logit(P)'s [The intercept term]
-#                       - the other beta terms are given a prior of a N(mu=0, variance=1000)
+#      prior.beta.logitP.mean, prior.beta.logitP.sd  - parameters for prior of coefficient of covariates for logitP
 #      tauP.alpha, tauP.beta - parameter for prior on tauP (residual variance of logit(P)'s after adjusting for
 #                         covariates)
 #      xiMu, tauMu  - mean and precision (1/variance) for prior on mean(log travel-times)
@@ -131,9 +131,7 @@ model {
 #  Parameters of the model are:
 #      p[i]
 #       logitP[i]  = logit(p[i]) = logitP.cov*beta.logitP
-#         The first beta.logitP has a prior from N(xiP, tauP)
-#            and xiP and tauP are currently set internally
-#         The remaining beta's are assigned a wider prior N(mu=0, var=1000).
+#         The beta coefficients have a prior that is N(mean= prior.beta.logitP.mean, sd= prior.beta.logitP.sd)
 #      U[i]
 #       etaU[i]  = log(U[i])
 #         which comes from spline with parameters bU[1... Knots+q]
@@ -189,10 +187,9 @@ model {
    taueU ~ dgamma(taueU.alpha,taueU.beta) # dgamma(100,.05) # Notice reduction from .0005 (in thesis) to .05
    sigmaeU <- 1/sqrt(taueU)
 
-   ## Capture probabilities. The logit(p[i]) are n(logitP.cov*beta.logitP.cov, sigmaP**2)
-   beta.logitP[1] ~ dnorm(mu_xiP,tau_xiP) # first term is usually an intercept
-   for(i in 2:NlogitP.cov){
-      beta.logitP[i] ~ dnorm(0, .01)   # rest of beta terms are normal 0 and a large variance
+   ## Capture probabilities covariates
+   for(i in 1:NlogitP.cov){
+      beta.logitP[i] ~ dnorm(prior.beta.logitP.mean[i], 1/prior.beta.logitP.sd[i]^2)  # rest of beta terms are normal 0 and a large variance
    }
    beta.logitP[NlogitP.cov+1] ~ dnorm(0, .01) # dummy so that covariates of length 1 function properly
    tauP ~ dgamma(tauP.alpha,tauP.beta)
@@ -264,7 +261,7 @@ Nstrata.cap <- ncol(m2)-1  # remember last column of m2 has the number of fish N
 Uguess <- pmax(c((u2[1:Nstrata.rel]+1)*(n1+2)/
                  (apply(m2[,1:Nstrata.cap],1,sum)+1),
                  rep(1,Nstrata.cap-Nstrata.rel)),
-               (u2+1)/expit(mu_xiP))  # try and keep Uguess larger than observed values
+               (u2+1)/expit(prior.beta.logitP.mean[1]))  # try and keep Uguess larger than observed values
 Uguess[which(is.na(Uguess))] <- mean(Uguess,na.rm=TRUE)
 
 
@@ -328,7 +325,8 @@ datalist <- list("Nstrata.rel", "Nstrata.cap", "n1", "m2", "u2", "u2copy",
                  "SplineDesign",
                  "b.flat", "n.b.flat", "b.notflat", "n.b.notflat", "n.bU",
                  "tauU.alpha", "tauU.beta", "taueU.alpha", "taueU.beta",
-                 "mu_xiP", "tau_xiP", "tauP.alpha", "tauP.beta")
+                 "prior.beta.logitP.mean", "prior.beta.logitP.sd", 
+                 "tauP.alpha", "tauP.beta")
 
 
 ## Generate best guess initial values
@@ -338,7 +336,7 @@ datalist <- list("Nstrata.rel", "Nstrata.cap", "n1", "m2", "u2", "u2copy",
 Uguess <- pmax(c((u2[1:Nstrata.rel]+1)*(n1+2)/
                  (apply(m2[,1:Nstrata.cap],1,sum)+1),
                  rep(1,Nstrata.cap-Nstrata.rel)),
-               (u2+1)/expit(mu_xiP), na.rm=TRUE)  # try and keep Uguess larger than observed values
+                 (u2+1)/expit(prior.beta.logitP.mean[1]), na.rm=TRUE)  # try and keep Uguess larger than observed values
 Uguess[which(is.na(Uguess))] <- mean(Uguess,na.rm=TRUE)
 
 init.bU   <- lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
@@ -348,7 +346,7 @@ if(debug2) {
 }
 
 logitPguess <- c(logit(pmax(0.05,pmin(.95,(apply(m2[,1:Nstrata.cap],1,sum,na.rm=TRUE)+1)/(n1+1))))
-                 ,rep(mu_xiP,Nstrata.cap-Nstrata.rel))
+                 ,rep(prior.beta.logitP.mean[1],Nstrata.cap-Nstrata.rel))
 #browser()
 init.beta.logitP <- as.vector(lm( logitPguess ~ logitP.cov-1)$coefficients)
 if(debug2) {
@@ -381,49 +379,6 @@ parameters <- c("logitP", "beta.logitP", "tauP", "sigmaP",
                  "muLogTT", "sdLogTT")      #  mean and sd of log(travel times)
 if( any(is.na(m2))) {parameters <- c(parameters,"m2")} # monitor in case some bad data where missing values present
 if( any(is.na(u2))) {parameters <- c(parameters,"u2")}
-
-## init.vals <- function(){
-
-##    init.logitP <- c(logit((apply(m2[,1:Nstrata.cap],1,sum)+1)/(n1+1)),rep(mu_xiP,Nstrata.cap-Nstrata.rel))         # initial capture rates based on observed recaptures
-##    init.logitP <- pmin(10,pmax(-10,init.logitP))
-##    init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
-##    init.logitP[!is.na(logitP.fixed)]<- NA        # no need to initialize the fixed values
-##    init.beta.logitP <- as.vector(lm( init.logitP ~ logitP.cov-1)$coefficients)
-##    init.beta.logitP[is.na(init.beta.logitP)] <- 0
-##    init.beta.logitP <- c(init.beta.logitP, 0)   # add one extra element so that single beta is still written as a
-##                                              # vector in the init files etc.
-##    init.tauP <- 1/var(init.logitP, na.rm=TRUE)     # 1/variance of logit(p)'s (ignoring the covariates for now)
-
-##    init.bU   <- lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
-##    init.eU   <- as.vector(log(Uguess)-SplineDesign%*%init.bU)  # error terms set as differ between obs and pred
-##    init.etaU <- log(Uguess)
-
-##    # variance of spline difference
-##    sigmaU <- sd( init.bU[b.notflat]-2*init.bU[b.notflat-1]+init.bU[b.notflat-2], na.rm=TRUE)
-##    init.tauU <- 1/sigmaU^2
-
-##    # variance of error in the U over and above the spline fit
-##    sigmaeU <- sd(init.eU, na.rm=TRUE)
-##    init.taueU <- 1/sigmaeU^2
-
-##    # initialize the u2 where missing
-##    init.u2    <- u2
-##    init.u2[ is.na(u2)] <- 100
-##    init.u2[!is.na(u2)] <- NA
-
-##    # mean log(travel time) and sd log(travel time)
-##    init.muLogTT <- as.vector(log(pmax(
-##                    (m2[,1:Nstrata.cap] %*% 1:Nstrata.cap)/(1+apply(m2[,1:Nstrata.cap],1,sum)) - 1:Nstrata.rel,
-##                     1, na.rm=TRUE)))
-##    init.muLogTT <- as.vector(init.muLogTT)
-##    init.etasdLogTT <- log(rep(.5,Nstrata.rel))  # note that log (sd(log travel time)) is being modelled
-
-##    list(logitP=init.logitP, beta.logitP=init.beta.logitP, tauP=init.tauP,
-##         bU=init.bU,  tauU=init.tauU, taueU=init.taueU, etaU=init.etaU,
-##         muLogTT=init.muLogTT, etasdLogTT=init.etasdLogTT)
-## }
-
-#browser()
 
 ## Generate initial values
 init.vals <- genInitVals(model="TSPNDE",

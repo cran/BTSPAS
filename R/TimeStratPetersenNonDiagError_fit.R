@@ -1,3 +1,7 @@
+# 2020-12-15 CJS Removed sampfrac from code
+# 2020-12-14 CJS All bad.n1 or bad.m2 are set to 0. No NA allows for n1 or m2
+#                Fixed problem with some u2=NA in the GOF computations and plots
+# 2020-11-07 CJS Allowed user to specify prior for beta coefficient for logitP
 # 2108-12-19 CJS deprecate of use of sampling fraction
 # 2018-12-15 CJS converted the muTT and sdTT plots to ggplot objects
 # 2018-12-15 CJS tested fixing logitP to certain values especially at the end of the sampling chain
@@ -65,29 +69,15 @@
 #' @param u2 A numeric vector of the number of unmarked fish captured in each
 #' stratum.  These will be expanded by the capture efficiency to estimate the
 #' population size in each stratum. The length of u2 should be between the length of n1 and length n1 + number of columns in m2 -1
-#' @param sampfrac \strong{Deprecated} DO NOT USE ANYMORE. A numeric vector with entries between 0 and 1 indicating
-#' what fraction of the stratum was sampled. For example, if strata are
-#' calendar weeks, and sampling occurred only on 3 of the 7 days, then the
-#' value of \code{sampfrac} for that stratum would be 3/7.
+#' @template sampfrac
 #' @param jump.after A numeric vector with elements belonging to \code{time}.
 #' In some cases, the spline fitting the population numbers should be allowed
 #' to jump.  For example, the population size could take a jump when hatchery
 #' released fish suddenly arrive at the trap.  The jumps occur AFTER the strata
 #' listed in this argument.
-#' @param bad.n1 A numeric vector with elements belonging to \code{time}.  In
-#' some cases, something goes wrong in the stratum, and the number of marked
-#' fish releases should be discarded.  The values of \code{n1} will be set to
-#' NA for these strata.
-#' @param bad.m2 A numeric vector with elements belonging to \code{time}.  In
-#' some cases, something goes wrong in the stratum, and the number of recovered
-#' marked fish should be ignored. For example, poor handling is suspected to
-#' induce handling induced mortality in the marked fish and so only very few
-#' are recovered.  The values of \code{m2} in the entire row will be set to NA
-#' for these strata.
-#' @param bad.u2 A numeric vector with elements belonging to \code{time}.  In
-#' some cases, something goes wrong in the stratum, and the number of unmarked
-#' fish captured should be ignored.  The values of \code{u2} in the entire row
-#' will be set to NA for these strata.
+#' @template bad.n1
+#' @template bad.m2 
+#' @template bad.u2 
 #' @param logitP.cov A numeric matrix for covariates to fit the
 #' logit(catchability).  Default is a single intercept, i.e. all strata have
 #' the same mean logit(catchability).
@@ -113,9 +103,9 @@
 #' the prior for the variance of noise around the spline.
 #' @param taueU.beta One of the parameters along with \code{taueU.alpha} for
 #' the prior for the variance of noise around the spline.
-#' @param mu_xiP One of the parameters for the prior for the mean of the
+#' @param prior.beta.logitP.mean Mean of the prior normal distribution for
 #' logit(catchability) across strata
-#' @param tau_xiP One of the parameter for the prior for the mean of the
+#' @param prior.beta.logitP.sd   SD of the prior normal distribution for
 #' logit(catchability) across strata
 #' @param tauP.alpha One of the parameters for the prior for the variance in
 #' logit(catchability) among strata
@@ -151,13 +141,13 @@ TimeStratPetersenNonDiagError_fit <-
            prefix="TSPNDE-", time, n1, m2, u2,
            sampfrac=rep(1,length(u2)), jump.after=NULL,
            bad.n1=c(), bad.m2=c(), bad.u2=c(),
-           logitP.cov=rep(1,length(u2)),
+           logitP.cov=as.matrix(rep(1,length(u2))),
            logitP.fixed=NULL, logitP.fixed.values=NULL, 
            n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
            tauU.alpha=1,tauU.beta=.05,
            taueU.alpha=1, taueU.beta=.05,
-           mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
-           tau_xiP=.6666, # need a better initial value for variation in catchability
+           prior.beta.logitP.mean = c(logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),rep(0,  ncol(as.matrix(logitP.cov))-1)),
+           prior.beta.logitP.sd   = c(2,                                           rep(10, ncol(as.matrix(logitP.cov))-1)), 
            tauP.alpha=.001,
            tauP.beta=.001,
            run.prob=seq(0,1,.1), # what percentiles of run timing are wanted
@@ -168,7 +158,7 @@ TimeStratPetersenNonDiagError_fit <-
 # This is the classical stratified Petersen model where the recoveries can take place for this and multiple
 # strata later
 #
-    version <- '2020-09-01'
+    version <- '2021-01-01'
     options(width=200)
 
 # Input parameters are
@@ -187,11 +177,7 @@ TimeStratPetersenNonDiagError_fit <-
 #             The vector u2 should be long enough to account for any fish that are recaptured later on
 #             from releases late in the season. The bottom right diagonal of m2 may be all zeros - that is ok
 #             Notice that length(u2) can be longer than length(n1)+nrow(m2).
-#    sampfrac - Deprecated. DO NOT USE ANYMORE. sampling fraction to adjust for how many days of the week was the trap operating
-#              This is expressed as fraction i.e. 3 days out of 7 is expressed as 3/7=.42 etc.
-#              If the trap was operating ALL days, then the SampFrac = 1. It is possible for the sampling
-#              fraction to be > 1 (e.g. a mark is used for 8 days instead of 7. The data are adjusted
-#              back to a 7 day week as well.  This is vector of length(u2)
+#    sampfrac - Deprecated. DO NOT USE ANYMORE. 
 #    jump.after - in some cases, a single spline is still not flexible enough to cope with rapid
 #                 changes in the run curve. For example, in the Trinity River project, a larger
 #                 hatchery release occurs around stratum 14. This is a vector indicating the
@@ -211,8 +197,8 @@ TimeStratPetersenNonDiagError_fit <-
 #    logitP.fixed.values - vector of fixed values (on the logit scale). Use -10 for p[i] <- 0, and 10 for p[i] <- 1
 #    tauU.alpha, tauU.beta   - parameters for the prior on variance in spline coefficients
 #    taueU.alpha, taueU.beta - parameters for the prior on variance in log(U) around fitted spline
-#    mu_xiP, tau_xiP         - parameters for the prior on mean logit(P)'s [The intercept term]
-#                              The other covariates are assigned priors of a mean of 0 and a variance of 1000
+#    prior.beta.logitP.mean, prior.beta.logitP.sd   - parameters for the prior on mean logit(P)'s [The intercept term]
+#                              The other covariates are assigned priors of a mean of 0 and a sd of 30
 #    tauP.alpha, tauP.beta   - parameters for the prior on 1/var of residual error in logit(P)'s
 #    run.prob  - percentiles of run timing wanted
 #    debug  - if TRUE, then this is a test run with very small MCMC chains run to test out the data
@@ -230,6 +216,18 @@ sampfrac <- as.vector(sampfrac)
 if(length(n1)!=nrow(m2)){
    cat("***** ERROR ***** Length of n1 and number of rows of m2 must be equal. They are:",
         length(n1)," ",nrow(u2),"\n")
+   return()}
+if(!is.numeric(n1)){
+   cat("***** ERROR ***** n1 must be numeric. You have:",
+        paste(n1,collapse=", "),"\n")
+   return()} 
+if(any(is.na(n1))){
+  cat("***** ERROR ***** All values of n1 must not be missing. You have: ",
+        paste(n1,collapse=", "),"\n")
+   return()}
+if(any(n1 < 0, na.rm=TRUE)){
+  cat("***** ERROR ***** All values of n1 must be non-negative. You have: ",
+        paste(n1,collapse=", "),"\n")
    return()}
 if(var(c(length(u2),length(sampfrac),length(time)))>0){
    cat("***** ERROR ***** Lengths of u2, sampfrac, time must all be equal. They are:",
@@ -278,6 +276,18 @@ if(length(logitP.fixed)!=length(logitP.fixed.values)){
         length(logitP.fixed)," ",length(logitP.fixed.values),"\n")
    return()}
 
+# Check that that the prior.beta.logitP.mean and prior.beta.logitP.sd length=number of columns of covariates
+logitP.cov <- as.matrix(logitP.cov)
+if(!is.vector(prior.beta.logitP.mean) | !is.vector(prior.beta.logitP.sd)){
+   stop("prior.beta.logitP.mean and prior.beta.logitP.sd must be vectors")
+}
+if(!is.numeric(prior.beta.logitP.mean) | !is.numeric(prior.beta.logitP.sd)){
+   stop("prior.beta.logitP.mean and prior.beta.logitP.sd must be numeric")
+}
+if(length(prior.beta.logitP.mean) != ncol(logitP.cov) | length(prior.beta.logitP.sd) != ncol(logitP.cov)){
+   stop("prior.beta.logitP.mean and prior.beta.logitP.sd must be same length as number columns in covariate matrix")
+}
+
 # Deprecation of sampling fraction.
 if(any(sampfrac != 1)){
   cat("***** ERROR ***** Sampling fraction is deprecated for any values other than 1. DO NOT USE ANYMORE. ")
@@ -295,16 +305,13 @@ cat("\nVersion: ", version)
 
 cat("\n\n", title, "Results \n\n")
 
-# length(sampfrac) =length(u2)
-# m2(i,+) < n1(i)
-# 0 < sampfrac < 1
 
 cat("*** Raw data *** (padded to match length of u2) \n")
 jump.indicator <- rep('   ', length(u2))
 jump.indicator[time %in% jump.after]<- '***'
 ex.n1 <- c(n1, rep(NA, length(u2)-length(n1)))
 ex.m2 <- rbind(m2,matrix(NA, nrow=length(u2)-length(n1), ncol=ncol(m2)))
-temp<- data.frame(time=time, n1=ex.n1, m2=ex.m2, u2=u2, sampfrac=round(sampfrac,digits=2), logitP.cov=logitP.cov, jump=jump.indicator)
+temp<- data.frame(time=time, n1=ex.n1, m2=ex.m2, u2=u2, logitP.cov=logitP.cov, jump=jump.indicator)
 print(temp)
 cat("\n\n")
 cat("Jump point are after strata: ", jump.after)
@@ -316,7 +323,7 @@ if(length(logitP.fixed)==0) cat("none - NO fixed values")
 
 
 # Obtain the Pooled Petersen estimator prior to fixup of bad.n1, bad.m2, and bad.u2 values
-cat("\n\n*** Pooled Petersen Estimate prior to fixing bad n1, m2, or u2 values  CHECK - CHECK - CHECK - CHECK ***\n\n")
+cat("\n\n*** Pooled Petersen Estimate prior to fixing bad n1, m2, or u2 values ***\n\n")
 temp.n1 <- n1
 temp.m2 <- m2
 temp.u2 <- u2
@@ -326,16 +333,19 @@ pp <- SimplePetersen(sum(temp.n1,na.rm=TRUE), sum(temp.m2,na.rm=TRUE), sum(temp.
 cat("Est U(total) ", format(round(pp$U.est),big.mark=","),"  (SE ", format(round(pp$U.se), big.mark=","), ")\n")
 cat("Est N(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round(pp$N.se), big.mark=","), ")\n\n\n")
 .
-# Obtain the Pooled Petersen estimator after removal of entries with bad.n1, m2, or u2 values
-# select <- !(time %in% bad.n1 | time %in% bad.m2 | time %in% bad.u2)
-select <- (temp.n1>0) & (!is.na(n1)) & (!apply(is.na(temp.m2),1,any)) & (!is.na(temp.u2[1:length(n1)]))
-cat("\n\n*** Pooled Petersen Estimate after fixing bad m2 values  CHECK - CHECK - CHECK - CHECK ***\n\n")
-cat("The following strata were excluded:",
-     if(length(time[!select])>0){time[!select]} else {" NONE"}, "\n")
 
-temp.n1 <- n1[select]
-temp.m2 <- m2[select]
-temp.u2 <- u2[select]
+# Obtain the Pooled Petersen estimator after removal of entries with bad.n1, m2, or u2 values
+select.rel <- !(time[1:length(n1)] %in% bad.n1 | time[1:length(n1)] %in% bad.m2 )
+select.rec <- ! time %in% bad.u2
+cat("\n\n*** Pooled Petersen Estimate after removing release and recovery strata flagged as bad ***\n\n")
+cat("The following release strata were excluded:",
+     if(length(time[!select.rel])>0){time[!select.rel]} else {" NONE"}, "\n")
+cat("The following recovery strata were excluded:",
+     if(length(time[!select.rec])>0){time[!select.rec]} else {" NONE"}, "\n")
+
+temp.n1 <- n1[select.rel]
+temp.m2 <- m2[select.rel]
+temp.u2 <- u2[select.rec]
 
 cat("Total n1=", sum(temp.n1,na.rm=TRUE),";  m2=",sum(temp.m2,na.rm=TRUE),";  u2=",sum(temp.u2, na.rm=TRUE),"\n\n")
 pp <- SimplePetersen(sum(temp.n1,na.rm=TRUE), sum(temp.m2,na.rm=TRUE), sum(temp.u2,na.rm=TRUE))
@@ -346,12 +356,14 @@ cat("Est N(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round
 
 
 # Test if pooling can be done
+# We only do the release strata that are not flagged as bad and have no missing values
 
-cat("*** Test if pooled Petersen is allowable. [Check if equal recovery from each stratum] ***\n\n")
-select <- (n1>0) & (!is.na(n1)) & (!is.na(apply(m2,1,sum)))
-temp.n1 <- n1[select]
-temp.m2 <- m2[select,]
-test <- TestIfPool( temp.n1, apply(temp.m2,1,sum))
+cat("*** Test if pooled Petersen is allowable. [Check if equal recovery from each stratum not flagged and without missing recoveries] ***\n\n")
+#browser()
+select <- select.rel  & (!is.na(apply(m2,1,sum)))
+temp.n1 <- n1[select.rel]
+temp.m2 <- m2[select.rel,]
+test <- TestIfPool( temp.n1, apply(temp.m2,1,sum, na.rm=TRUE))
 cat("(Large Sample) Chi-square test statistic ", test$chi$statistic," has p-value", test$chi$p.value,"\n\n")
 temp <- cbind(time[1:length(n1)][select],test$chi$observed, round(test$chi$expected,1), round(test$chi$residuals^2,1))
 colnames(temp) <- c('time','n1-m2','m2','E[n1-m2]','E[m2]','X2[n1-m2]','X2[m2]')
@@ -359,12 +371,11 @@ print(temp)
 cat("\n Be cautious of using this test in cases of small expected values. \n\n")
 
 
-# Adjust the data for the explicity bad values or other problems
+# Adjust the data for the explicitly bad values or other problems
 new.time <- time
 new.n1   <- n1
 new.m2   <- m2
 new.u2   <- u2
-new.sampfrac <- sampfrac
 new.logitP.cov <- logitP.cov
 
 
@@ -376,12 +387,12 @@ new.m2[time[1:length(n1)] %in% c(bad.m2,bad.n1),]  <- 0
 new.u2[time %in% bad.u2]                <- NA
 
 # Print out the revised data
-cat("\n\n*** Revised data *** \n")
+cat("\n\n*** Revised data after setting flagged strata to 0 (releases) or NA (recoveries) *** \n")
 jump.indicator <- rep('   ', length(u2))
 jump.indicator[time %in% jump.after]<- '***'
 ex.n1 <- c(new.n1, rep(NA, length(new.u2)-length(new.n1)))
 ex.m2 <- rbind(new.m2,matrix(NA, nrow=length(new.u2)-length(new.n1), ncol=ncol(new.m2)))
-temp<- data.frame(time=new.time, n1=ex.n1, m2=ex.m2, u2=new.u2, sampfrac=round(new.sampfrac,digits=2), logitP.cov=new.logitP.cov,
+temp<- data.frame(time=new.time, n1=ex.n1, m2=ex.m2, u2=new.u2, logitP.cov=new.logitP.cov,
        jump.after=jump.indicator)
 print(temp)
 cat("\n\n")
@@ -416,8 +427,7 @@ cat("   Parameters for prior on tauU (variance in spline coefficients: ", tauU.a
 cat("   Parameters for prior on taueU (variance of log(U) about spline: ",taueU.alpha, taueU.beta,
     " which corresponds to a mean/std dev of 1/var of:",
     round(taueU.alpha/taueU.beta,2),round(sqrt(taueU.alpha/taueU.beta^2),2),"\n")
-cat("   Parameters for prior on beta.logitP[1] (intercept) (mean, 1/var):", round(mu_xiP,3), round(tau_xiP,5),
-    " which corresponds to a median P of ", round(expit(mu_xiP),3), "\n")
+cat("   Parameters for prior on beta.logitP[1] (intercept) (mean, sd): \n", cbind(round(prior.beta.logitP.mean,3), round(prior.beta.logitP.sd,5)),"\n")
 cat("   Parameters for prior on tauP (residual variance of logit(P) after adjusting for covariates: ",tauP.alpha, tauP.beta,
     " which corresponds to a mean/std dev of 1/var of:",
     round(tauP.alpha/tauP.beta,2),round(sqrt(tauP.alpha/tauP.beta^2),2),"\n")
@@ -433,22 +443,28 @@ if (debug2) {
 }
 
 if (debug)
-  {results <- TimeStratPetersenNonDiagError(title=title, prefix=prefix,
-                                            time=new.time, n1=new.n1, m2=expanded.m2, u2=new.u2,
-                                            jump.after=(1:length(u2))[time %in% jump.after],
-                                            logitP.cov=new.logitP.cov, logitP.fixed=new.logitP.fixed,
-                                            n.chains=3, n.iter=10000, n.burnin=5000, n.sims=500,  # set to small values for debugging only
-                                            tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
-                                            debug=debug, debug2=debug2, InitialSeed=InitialSeed, save.output.to.files=save.output.to.files)
+  {results <- TimeStratPetersenNonDiagError(
+        title=title, prefix=prefix,
+        time=new.time, n1=new.n1, m2=expanded.m2, u2=new.u2,
+        jump.after=(1:length(u2))[time %in% jump.after],
+        logitP.cov=new.logitP.cov, logitP.fixed=new.logitP.fixed,
+        n.chains=3, n.iter=10000, n.burnin=5000, n.sims=500,  # set to small values for debugging only
+        prior.beta.logitP.mean=prior.beta.logitP.mean, 
+        prior.beta.logitP.sd  =prior.beta.logitP.sd,
+        tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
+        debug=debug, debug2=debug2, InitialSeed=InitialSeed, save.output.to.files=save.output.to.files)
  }
 else #notice R syntax requires { before the else
-  {results <- TimeStratPetersenNonDiagError(title=title, prefix=prefix,
-                                            time=new.time, n1=new.n1, m2=expanded.m2, u2=new.u2,
-                                            jump.after=(1:length(u2))[time %in% jump.after],
-                                            logitP.cov=new.logitP.cov, logitP.fixed=new.logitP.fixed,
-                                            n.chains=n.chains, n.iter=n.iter, n.burnin=n.burnin, n.sims=n.sims,
-                                            tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
-                                            debug=debug, debug2=debug2, InitialSeed=InitialSeed, save.output.to.files=save.output.to.files)
+  {results <- TimeStratPetersenNonDiagError(
+        title=title, prefix=prefix,
+        time=new.time, n1=new.n1, m2=expanded.m2, u2=new.u2,
+        jump.after=(1:length(u2))[time %in% jump.after],
+        logitP.cov=new.logitP.cov, logitP.fixed=new.logitP.fixed,
+        n.chains=n.chains, n.iter=n.iter, n.burnin=n.burnin, n.sims=n.sims,
+        prior.beta.logitP.mean=prior.beta.logitP.mean, 
+        prior.beta.logitP.sd  =prior.beta.logitP.sd,
+        tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
+        debug=debug, debug2=debug2, InitialSeed=InitialSeed, save.output.to.files=save.output.to.files)
  }
 
 # Now to create the various summary tables of the results
@@ -648,7 +664,7 @@ if(save.output.to.files)writeLines(stdout, results.filename)
 results$report <- stdout
 
 # add some of the raw data to the bugs object for simplicity in referencing it later
-results$data <- list( time=time, n1=n1, m2=m2, u2=u2, sampfrac=sampfrac,
+results$data <- list( time=time, n1=n1, m2=m2, u2=u2,
                       jump.after=jump.after,
                       bad.n1=bad.n1, bad.m2=bad.m2, bad.u2=bad.u2,
                       logitP.cov=logitP.cov,

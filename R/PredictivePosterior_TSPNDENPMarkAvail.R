@@ -33,6 +33,7 @@ PredictivePosterior.TSPNDENPMarkAvail <- function (n1,
 s <- length(n1)
 t <- length(u2)
 
+select.u2 <- !is.na(u2)
 
 ## Transform saved iterations for theta from vectors to full movement matrices
 Theta.bkp <- Theta
@@ -66,11 +67,11 @@ discrep <- t(sapply(1:nrow(p),function(k){
   ## 2) Observed vs expected values for captures of unmarked fish
   ## a) Observed data
   temp2.o <- sqrt(u2) - sqrt(U[k,] * p[k,1:t])
-  d1.u2.o <- sum(temp2.o^2,na.rm=TRUE)
+  d1.u2.o <- sum(temp2.o[select.u2]^2,na.rm=TRUE)
 
   ## b) Simulate data
   temp2.s <- sqrt(simData[[k]]$u2) - sqrt(U[k,] * p[k,1:t])
-  d1.u2.s <- sum(temp2.s^2,na.rm=TRUE)
+  d1.u2.s <- sum(temp2.s[select.u2]^2,na.rm=TRUE)
 
   ## 3) Deviance (-2*log-likelihood)
   ## a) Observed data
@@ -78,11 +79,10 @@ discrep <- t(sapply(1:nrow(p),function(k){
   d2.m2.o <- -2 * sum(sapply(1:length(n1),function(i){
     cellProbs <- Theta[[k]][i,] * p[k,1:t]  # 2014-09-01 need to ignore extra p's at end which were needed for OPENbugs quirk
     cellProbs <- c(cellProbs,1-sum(cellProbs))
-
     dmultinom(c(m2.expanded[i,1:t], n1[i]-sum(m2.expanded[i,1:t])),n1[i],cellProbs,log=TRUE)
   }))
 
-  d2.u2.o <- -2 * sum(dbinom(u2,U[k,],p[k,1:t],log=TRUE))
+  d2.u2.o <- -2 * sum(dbinom(u2[select.u2],U[k,select.u2],p[k,select.u2],log=TRUE), na.rm=TRUE)
 
   d2.o <- d2.m2.o + d2.u2.o
 
@@ -90,12 +90,10 @@ discrep <- t(sapply(1:nrow(p),function(k){
   d2.m2.s <- -2 * sum(sapply(1:length(n1),function(i){
     cellProbs <- Theta[[k]][i,] * p[k,1:t]  # 2014-09-01 ditto to previous fix
     cellProbs <- c(cellProbs,1-sum(cellProbs))
-
-
     dmultinom(simData[[k]]$m2[i,],n1[i],cellProbs,log=TRUE)
   }))
 
-  d2.u2.s <- -2 * sum(dbinom(simData[[k]]$u2,U[k,],p[k,1:t],log=TRUE))
+  d2.u2.s <- -2 * sum(dbinom(simData[[k]]$u2[select.u2],U[k,select.u2],p[k,select.u2],log=TRUE), na.rm=TRUE)
 
   d2.s <- d2.m2.s + d2.u2.s
 

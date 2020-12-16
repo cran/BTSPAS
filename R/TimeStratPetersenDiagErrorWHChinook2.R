@@ -1,3 +1,4 @@
+## 2020-11-07 CJS Allow user to specify prior for beta parameters for covariates on logitP
 # 2018-12-06 CJS converted initial plot to ggplot2
 # 2018-11-25 CJS removed all openbugs references
 # 2013-12-31 CJS conversion to JAGS
@@ -30,11 +31,11 @@ TimeStratPetersenDiagErrorWHChinook2 <-
                 u2.A.YoY, u2.N.YoY, u2.A.1, u2.N.1,
                 hatch.after.YoY=NULL, 
                 clip.frac.H.YoY=.25, clip.frac.H.1 = .25,
-                logitP.cov,
+                logitP.cov=as.matrix(rep(1,length(u2.A.YoY))),
                 n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
                 tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
-                mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)), 
-                tau_xiP=1/var(logit((m2+.5)/(n1+1)), na.rm=TRUE), 
+                prior.beta.logitP.mean = c(logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),rep(0,  ncol(as.matrix(logitP.cov))-1)),
+                prior.beta.logitP.sd   = c(sd(logit((m2+.5)/(n1+1)),na.rm=TRUE),        rep(10, ncol(as.matrix(logitP.cov))-1)), 
                 tauP.alpha=.001, tauP.beta=.001, 
                 debug=FALSE, debug2=FALSE,
                 InitialSeed,
@@ -141,8 +142,7 @@ model {
 #      n.b.notflat.H.1   - number of b coefficients that do not have a flat prior - Age1 hatchery fish
 #      tauU.alpha, tauU.beta   - parameters for prior on tauU
 #      taueU.alpha, taueU.beta - parameters for prior on taueU
-#      mu_xiP, tau_xiP  - parameters for prior on mean logit(P)'s [The intercept term]
-#                       - the other beta terms are given a prior of a N(mu=0, variance=1000)
+#      prior.beta.logitP.mean, prior.beta.logitP.sd  - parameters for prior of coefficient of covariates for logitP
 #      tauP.alpha, tauP.beta - parameter for prior on tauP (residual variance of logit(P)'s after adjusting for
 #                         covariates)
 #      clip.frac.H.YoY   - what fraction of YoY  hatchery fish are clipped (KNOWN in advance)
@@ -151,9 +151,7 @@ model {
 #  Parameters of the model are:
 #      p[i]
 #       logitP[i]  = logit(p[i]) = logitP.cov*beta.logitP
-#         The first beta.logitP has a prior from N(xiP, tauP)
-#            and xiP and tauP are currently set internally
-#         The remaining beta's are assigned a wider prior N(mu=0, var=1000).
+#         The beta coefficients have a prior that is N(mean= prior.beta.logitP.mean, sd= prior.beta.logitP.sd)
 #      U.W.YoY[i] - number of YoY unmarked wild     fish passing stratam i in population
 #      U.H.YoY[i] - number of YoY unmarked hatchery fish passing stratum i in population
 #       etaU.W.YoY[i]  = log(U.W.YoY[i])
@@ -240,10 +238,9 @@ model {
    taueU ~ dgamma(taueU.alpha,taueU.beta) # dgamma(100,.05) # Notice reduction from .0005 (in thesis) to .05
    sigmaeU <- 1/sqrt(taueU)
 
-   ## Capture probabilities. The logit(p[i]) are n(logitP.cov*beta.logitP.cov, sigmaP**2)
-   beta.logitP[1] ~ dnorm(mu_xiP,tau_xiP) # first term is usually an intercept
-   for(i in 2:NlogitP.cov){
-      beta.logitP[i] ~ dnorm(0, .01)   # rest of beta terms are normal 0 and a large variance
+   ## Capture probabilities covariates
+   for(i in 1:NlogitP.cov){
+      beta.logitP[i] ~ dnorm(prior.beta.logitP.mean[i], 1/prior.beta.logitP.sd[i]^2)  # rest of beta terms are normal 0 and a large variance
    }
    beta.logitP[NlogitP.cov+1] ~ dnorm(0, .01) # dummy so that covariates of length 1 function properly
    tauP ~ dgamma(tauP.alpha,tauP.beta)
@@ -334,7 +331,8 @@ datalist <- list("Nstrata", "n1", "m2",
                  "SplineDesign.H.1",
                  "b.flat.H.1", "n.b.flat.H.1", "b.notflat.H.1", "n.b.notflat.H.1", "n.bU.H.1",
                  "tauU.alpha", "tauU.beta", "taueU.alpha", "taueU.beta",
-                 "mu_xiP", "tau_xiP", "tauP.alpha", "tauP.beta")
+                 "prior.beta.logitP.mean", "prior.beta.logitP.sd", 
+                 "tauP.alpha", "tauP.beta")
 
 parameters <- c("logitP", "beta.logitP", "tauP", "sigmaP",
                 "bU.W.YoY", "bU.H.YoY", "tauU", "sigmaU", 

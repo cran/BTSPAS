@@ -1,5 +1,6 @@
 #' @rdname PredictivePosterior.TSPDE
 
+# 2020-12-15 CJS Fixed problem with u2=NA that causes the plot fail
 # 2019-02-13 CJS convert from arrangeGrob to facet_wrap because arrangeGrob dosn't work in paralle.
 # 2015-06-10 CJS convert to ggplot()
 # 2014-09-01 CJS dealing with Inf and -Inf in the discrepancy measures
@@ -17,8 +18,9 @@ PredictivePosteriorPlot.TSPNDE <- function( discrep  ) {
 #     11-12  o,s Deviance for m2+u2
 
 # Change any Inf to NA
-temp <- discrep == Inf | discrep == -Inf
-if(sum(temp)>0){cat(sum(temp), " infinite discrepancy measures set to NA\n")}
+#browser()
+temp <- is.infinite(discrep) & !is.na(discrep) 
+if(sum(temp, na.rm=TRUE)>0){cat(sum(temp, na.rm=TRUE), " infinite discrepancy measures set to NA\n")}
 discrep[ temp ] <- NA
 
 discrep.long <- data.table::melt( data.table::as.data.table(discrep), 
@@ -38,7 +40,7 @@ discrep.long <- merge(discrep.long, titles)
 
 # compute the bayesian p-values
 p_values <-plyr::ddply(discrep.long, c("Statistic","Title"), function(x){
-       p.value=mean(x$Observed < x$Simulated)
+       p.value=mean(x$Observed < x$Simulated, na.rm=TRUE)
        data.frame(p.value=p.value)
 })
 p_values$label = paste("Bayesian GOF P:",formatC(p_values$p.value, digits=2, format="f"))

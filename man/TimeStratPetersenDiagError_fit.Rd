@@ -17,7 +17,7 @@ TimeStratPetersenDiagError_fit(
   bad.n1 = c(),
   bad.m2 = c(),
   bad.u2 = c(),
-  logitP.cov = rep(1, length(n1)),
+  logitP.cov = as.matrix(rep(1, length(n1))),
   logitP.fixed = NULL,
   logitP.fixed.values = NULL,
   n.chains = 3,
@@ -28,8 +28,10 @@ TimeStratPetersenDiagError_fit(
   tauU.beta = 0.05,
   taueU.alpha = 1,
   taueU.beta = 0.05,
-  mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)),
-  tau_xiP = 1/var(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE),
+  prior.beta.logitP.mean = c(logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)), rep(0,
+    ncol(as.matrix(logitP.cov)) - 1)),
+  prior.beta.logitP.sd = c(sd(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE), rep(10,
+    ncol(as.matrix(logitP.cov)) - 1)),
   tauP.alpha = 0.001,
   tauP.beta = 0.001,
   run.prob = seq(0, 1, 0.1),
@@ -60,10 +62,8 @@ stratum. These will be expanded by the capture efficiency to estimate the
 population size in each stratum.}
 
 \item{sampfrac}{\strong{Deprecated} because it really doesn't work as intended.
-A numeric vector with entries between 0 and 1 indicating
-what fraction of the stratum was sampled. For example, if strata are
-calendar weeks, and sampling occurred only on 3 of the 7 days, then the
-value of \code{sampfrac} for that stratum would be 3/7.}
+You must remove all references to sampfrac from your code. Contact \email{cschwarz.stat.sfu.ca@gmail.com}
+for more information.}
 
 \item{jump.after}{A numeric vector with elements belonging to \code{time}.
 In some cases, the spline fitting the population numbers should be allowed
@@ -71,21 +71,23 @@ to jump. For example, the population size could take a jump when hatchery
 released fish suddenly arrive at the trap. The jumps occur AFTER the strata
 listed in this argument.}
 
-\item{bad.n1}{A numeric vector with elements belonging to \code{time}. In
+\item{bad.n1}{A numeric vector with elements belonging to \code{time}.  In
 some cases, something goes wrong in the stratum, and the number of marked
-fish released should be ignored.  The values of \code{m2} for this stratum
-will also be set to NA for these strata.}
+fish releases should be discarded.  The values of \code{n1} and \code{m2} will be set to
+0 for these strata.}
 
-\item{bad.m2}{A numeric vector with elements belonging to \code{time}. In
+\item{bad.m2}{A numeric vector with elements belonging to \code{time}.  In
 some cases, something goes wrong in the stratum, and the number of recovered
-fish should be ignored. For example, poor handling is suspected to induce
-handling induced mortality in the marked fish and so only very few are
-recovered. The values of \code{m2} will be set to NA for these strata.}
+marked fish should be ignored. For example, poor handling is suspected to
+induce handling induced mortality in the marked fish and so only very few
+are recovered.  The values of \code{n1} and \code{m2} will be set to 0
+for these strata.}
 
-\item{bad.u2}{A numeric vector with elements belonging to \code{time}. In
+\item{bad.u2}{A numeric vector with elements belonging to \code{time}.  In
 some cases, something goes wrong in the stratum, and the number of unmarked
-fish should be ignored. For example, the trap didn't work properly in this
-stratum.  The values of \code{u2} will be set to NA for these strata.}
+fish captured should be ignored.  The values of \code{u2} in the entire row
+will be set to NA for these strata. DO NOT SET the value of u2 to 0 because
+this indicates that the trap was operating and captured no fish.}
 
 \item{logitP.cov}{A numeric matrix for covariates to fit the
 logit(catchability). Default is a single intercept, i.e. all strata have the
@@ -123,10 +125,10 @@ the prior for the variance of noise around the spline.}
 \item{taueU.beta}{One of the parameters along with \code{taueU.alpha} for
 the prior for the variance of noise around the spline.}
 
-\item{mu_xiP}{One of the parameters for the prior for the mean of the
+\item{prior.beta.logitP.mean}{Mean of the prior normal distribution for
 logit(catchability) across strata}
 
-\item{tau_xiP}{One of the parameter for the prior for the mean of the
+\item{prior.beta.logitP.sd}{SD of the prior normal distribution for
 logit(catchability) across strata}
 
 \item{tauP.alpha}{One of the parameters for the prior for the variance in

@@ -21,6 +21,7 @@ discrep <- matrix(0, nrow=0, ncol=8)
 select.m2   <- !is.na(m2)
 select.u2.A <- !is.na(u2.A) & (time>hatch.after)
 select.u2.N <- !is.na(u2.N)
+
 #browser()
 for(i in 1:nrow(p)){
    # generate sample data

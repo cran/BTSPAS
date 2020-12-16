@@ -23,9 +23,14 @@ knitr::opts_chunk$set(
 library(binom)
 library(BTSPAS)
 library(ggplot2)
+library(gridExtra)
+library(kableExtra)
+library(knitr)
 max.width=70
 ```
+
 # Location of vignette source and code.
+
 Because of the length of time needed to run the vignettes, only
 static vignettes have been included with this package.
 
@@ -61,6 +66,7 @@ of a study area), or temporal (e.g. when captured). The $BTSPAS$ package deals w
 temporal stratification.
 
 # Experimental Protocol
+
 Consider an experiment to estimate the number of outgoing smolts on a small river. The 
 run of smolts extends over several weeks. As smolts migrate, they are captured and marked
 with individually numbered tags and released at the first capture location using, for example, a
@@ -98,6 +104,7 @@ Newly
 Untagged               u2[1]  u2[2] u2[3]  ... u2[k]  
 captured  
 ```
+
 Here the tagging and recapture events have been stratified into $k$ temporal strata.
 Marked fish from one stratum tend to move at similar rates and so are recaptured
 together with unmarked fish.
@@ -105,10 +112,13 @@ Recaptures of marked fish take place along the "diagonal."
 
 
 # Example of basic BTSPAS fit.
+
 ## Reading in the data
+
 Because the matrix is diagonal, and because the $u2$ vector is the same length as
 the $n1$ and $m2$ vectors, the data can be entered as several columns.
 Here is an example of some raw data:
+
 ```{r}
 demo.data.csv <- textConnection(
 'jweek, n1, m2, u2
@@ -168,6 +178,7 @@ In the next week,  `r demo.data$n1[2]` fish were captured, tagged, and released,
 ```{r pp,message=FALSE,echo=FALSE}
 Nhat <-BTSPAS::SimplePetersen( sum(demo.data$n1), sum(demo.data$n2), sum(demo.data$u2))
 ```
+
 ## Preliminary screening of the data
 
 A pooled-Petersen estimator would add all of the marked, recaptured and unmarked fish
@@ -209,6 +220,7 @@ fish were captured in these strata, so the actual efficiency must have been non-
 lead to estimates with poor precision.
 
 Similarly, let us look at the pattern of unmarked fish captured at the second trap:
+
 ```{r unmarked, echo=FALSE, fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Observed number of unmarked recaptures"), warning=FALSE}
 ggplot(data=demo.data, aes(x=jweek, y=log(u2)))+
   ggtitle("Number of unmarked fish captured by julian week")+
@@ -246,6 +258,7 @@ followed by a steady decline.
 
 
 ## Fitting the basic BTSPAS diagonal model
+
 The $BTSPAS$ package attempts to strike a balance between the completely pooled Petersen estimator and the completely stratified Petersen estimator.
 In the former, capture probabilities are assumed to equal for all fish in all strata,
 while in the latter, capture probabilities are allowed to vary among strata in no structured way.
@@ -289,6 +302,7 @@ The $BTSPAS$ function also allows you specify
 if problem arise.
 
 We already read in the data above. Here we set the rest of the parameters. Don't forget to set the working directory as appropriate
+
 ```{r setparms}
 library("BTSPAS")  
 
@@ -324,6 +338,7 @@ demo.fit <- TimeStratPetersenDiagError_fit(
                   debug=TRUE,  # this generates only 10,000 iterations of the MCMC chain for checking.
                   save.output.to.files=FALSE)
 ```
+
 The final parameter (*save.output.to.files*) can be set to automatically to save plots and reports in files with the appropriate prefix in the working directory.  
 
 ```{r deletefiles,echo=FALSE,results="hide" }
@@ -350,7 +365,9 @@ for later processing. Notice that I didn't save the results below as part of thi
 ```
 
 ## The output from the basic fit
+
 The final object has many components
+
 ```{r components,results="hide"}
 names(demo.fit)
 ```
@@ -360,7 +377,9 @@ options(width=max.width)
 names(demo.fit)
 options(save.options)
 ```
+
 The *plots* sub-object contains many plots:
+
 ```{r results="hide"}
 names(demo.fit$plots)
 ```
@@ -370,6 +389,7 @@ options(width=max.width)
 names(demo.fit$plots)
 options(save.options)
 ```
+
 In particular, it contains plots of the initial spline fit (*init.plot*), 
 the final fitted spline (*fit.plot*), 
 the estimated capture probabilities (on the logit scale) (*logitP.plot*),
@@ -382,11 +402,13 @@ These plots are all created using the $ggplot2$ packages, so the user can modify
 The $BTSPAS$ program also creates a report, which includes information about the data used in the fitting,
 the pooled- and stratified-Petersen estimates, a test for pooling, and summaries of the posterior. Only the first few lines
 are shown below:
+
 ```{r }
 head(demo.fit$report)
 ```
 
 Here is the fitted spline curve to the number of unmarked fish available in each recovery sample
+
 ```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted spline curve")}
 demo.fit$plots$fit.plot
 ```
@@ -395,23 +417,28 @@ The jump in the spline when hatchery fish are released is evident. The actual nu
 of unmarked fish is allowed to vary around the spline as shown below. 
 
 The distribution of the posterior sample for the total number unmarked and total abundance is available:
+
 ```{r fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Distribution of posterior samples")}
 demo.fit$plots$post.UNtot.plot
 ```
 
 
 A plot of the $logit(P)$ is 
+
 ```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
 demo.fit$plots$logitP.plot
 ```
+
 In cases where there is no information, $BTSPAS$ has interpolated based on the distribution of catchability
 in the other strata and so the credible interval is very wide (e.g. julian weeks 7, 13, and 41).
 
 A summary of the posterior for each parameter is also available. In particular, here are the
 summary statistics on the posterior sample for the total number unmarked and total abundance:
+
 ```{r}
 demo.fit$summary[ row.names(demo.fit$summary) %in% c("Ntot","Utot"),]
 ```
+
 This also includes the Rubin-Brooks-Gelman statistic ($Rhat$) on mixing of the chains and the effective sample size 
 of the posterior (after
 accounting for autocorrelation).
@@ -436,7 +463,9 @@ no captures of untagged fish.
 We need to set the p's in these strata to 0 rather than letting *BTSPAS* impute a value.
 
 ## Reading in the data
+
 Here is an example of some raw data that is read in:
+
 ```{r}
 demo2.data.csv <- textConnection(
 'jweek, n1, m2, u2
@@ -507,6 +536,7 @@ The strata where the value of *p* is to be fixed is specified along with the val
 Technically, the $logit(0.0)$ is negative infinity, but $-10$ is ``close enough''.
 
 The rest of the call is basically the same -- don't forget to specify the additional arguments in the call
+
 ```{r demo2.run}
 library("BTSPAS")  
 
@@ -566,6 +596,7 @@ file.remove("model.txt"      )
 Here is the fitted spline curve to the number of unmarked fish available in each recovery sample. 
 Note how the spline interpolates across the julian weeks when no unmarked fish were captured in julian
 weeks `r weeks.with.zero.text` but the uncertainty is much larger. 
+
 ```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted spline curve with fixed p's")}
 demo2.fit$plots$fit.plot
 ```
@@ -573,23 +604,28 @@ demo2.fit$plots$fit.plot
 The jump in the spline when hatchery fish are released is evident. 
 
 The distribution of the posterior sample for the total number unmarked and total abundance is available as before:
+
 ```{r fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Distribution of posterior samples")}
 demo2.fit$plots$post.UNtot.plot
 ```
 
 
 A plot of the $logit(P)$ is 
+
 ```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
 demo2.fit$plots$logitP.plot
 ```
+
 Notice how the fixed values at $-10$ (on the logit scale) occur.
 
 
 A summary of the posterior for each parameter is also available. In particular, here are the
 summary statistics on the posterior sample for the total number unmarked and total abundance:
+
 ```{r}
 demo2.fit$summary[ row.names(demo2.fit$summary) %in% c("Ntot","Utot"),]
 ```
+
 The estimated total abundance from $BTSPAS$ is 
 `r formatC(round(demo2.fit$summary[ "Ntot","mean"]), big.mark=",", digits=0, format="f")` (SD 
 `r formatC(round(demo2.fit$summary[ "Ntot","sd"  ]), big.mark=",", digits=0, format="f")` ) fish.
@@ -601,6 +637,7 @@ The estimated total abundance from $BTSPAS$ is
 It is not possible to use covariates to model the total number of unmarked fish.
 
 ## Reading in the data
+
 Here is an example of some raw data that includes the covariate $log(flow)$: 
 ```{r}
 demo3.data.csv <- textConnection(
@@ -651,6 +688,7 @@ print(demo3.data)
 
 A preliminary plot of the empirical logit (excluding those weeks when the trap was not running) shows an approximate quadratic fit to $log(flow)$,
 but the uncertainty in each week is enormous!
+
 ```{r  echo=FALSE, fig.height=4, fig.width=6, fig.caption="Logit(p) vs log(flow)", message=FALSE, warning=FALSE}
 demo3.data$elogitphat <- log(  (demo3.data$m2+.5)/(demo3.data$n1+1) / (1 - (demo3.data$m2+.5)/(demo3.data$n1+1)  ))
 plotdata <- demo3.data[ demo3.data$u2 >0, ]
@@ -678,6 +716,7 @@ head(demo3.logitP.cov)
 
 
 The rest of the call is basically the same -- don't forget to specify the additional arguments in the call
+
 ```{r demo3.run}
 library("BTSPAS")  
 
@@ -742,17 +781,20 @@ demo3.fit$plots$fit.plot
 The jump in the spline when hatchery fish are released is evident. 
 
 The distribution of the posterior sample for the total number unmarked and total abundance is available as before:
+
 ```{r fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Distribution of posterior samples")}
 demo3.fit$plots$post.UNtot.plot
 ```
 
 
 A plot of the $logit(P)$ is 
+
 ```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
 demo3.fit$plots$logitP.plot
 ```
 
 Here is a plot of the estimated $logit(p)$'s vs. the log(flow) and its fitted curve:
+
 ```{r echo=FALSE, fig.width=6, fig.height=4, fig.caption="Fitted relationship between logit(p) and log(flow)"}
 demo3.row.names <- rownames(demo3.fit$summary)
 demo3.coeff.row.index <- grep("beta.logitP[", demo3.row.names, fixed=TRUE)
@@ -783,6 +825,7 @@ There is virtually no evidence of a relationship with flow because of the very l
 in each of the estimated $logit(p)$. 
 
 The estimated coefficients of the quadratic relationship between logit(p) and *log(flow)* are:
+
 ```{r }
 round(demo3.fit$summary[demo3.coeff.row.index,],3)
 
@@ -790,13 +833,525 @@ round(demo3.fit$summary[demo3.coeff.row.index,],3)
 
 A summary of the posterior for each parameter is also available. In particular, here are the
 summary statistics on the posterior sample for the total number unmarked and total abundance:
+
 ```{r}
 demo3.fit$summary[ row.names(demo3.fit$summary) %in% c("Ntot","Utot"),]
 ```
+
 The estimated total abundance from $BTSPAS$ is 
 `r formatC(round(demo3.fit$summary[ "Ntot","mean"]), big.mark=",", digits=0, format="f")` (SD 
 `r formatC(round(demo3.fit$summary[ "Ntot","sd"  ]), big.mark=",", digits=0, format="f")` ) fish.
 
+
+# Using covariates to model the p's - prior information about beta coefficients
+ 
+*BTSPAS* also allows you to model the p's with additional covariates, such a temperature, stream flow, etc.
+It is not possible to use covariates to model the total number of unmarked fish.
+
+In some cases, you may have additional information about the effect of the covariates that you
+would like to incorporate into the analysis. For example, a rotary screw trap 
+may have run for many years and plots of the relationship between the
+*logit(catchability)* vs. *log(flow)* generally shows a relationship that you 
+may not be able to capture in a single year because of lack of contrast (i.e.
+the flow within a year does not vary enough) or because of smallish sample sizes.
+
+*BTSPAS* allows you to specify prior information on the coefficients of the
+relationship between *logit(catchability)* and covariates.
+
+We will show an example where four models are fit to the same data
+
+- no relationship between *logit(catchability)* and *log(flow)*;
+- linear relationship between *logit(catchability)* and *log(flow)* with the default priors;
+- linear relationship between *logit(catchability)* and *log(flow)* with weak priors;
+- linear relationship between *logit(catchability)* and *log(flow)* with strong priors (and
+the prior information conflicts with the fit),
+
+
+
+## Reading in the data
+
+Here is an example of some (fictitious) raw data that includes the covariate $log(flow)$: 
+
+```{r}
+demo5.data.csv <- textConnection(
+'time,   n1,     m2,       u2,       logFlow
+1   ,      0   ,    0   ,      21   ,   5.415
+2   ,     56   ,    8   ,    2266   ,   5.358
+3   ,   1009   ,   59   ,   11314   ,   6.737
+4   ,   1284   ,   25   ,    5035   ,   7.993
+5   ,   1504   ,   13   ,     396   ,   8.693
+6   ,      0   ,    0   ,      45   ,   8.861
+7   ,      0   ,    0   ,      26   ,   8.587
+8   ,   1560   ,   17   ,      12   ,   8.347
+9   ,   1643   ,   14   ,      43   ,   8.260
+10   ,     0   ,    0   ,      63   ,   8.606
+11   ,  1487   ,    7   ,      24   ,   8.671
+12   ,     0   ,    0   ,       5   ,   8.737
+13   ,     0   ,    0   ,       4   ,   7.862')
+
+demo5.data <- read.csv(demo5.data.csv, header=TRUE, as.is=TRUE, strip.white=TRUE)
+
+print(demo5.data)
+```
+
+A preliminary plot of the empirical logit (excluding those weeks when the trap was not running) shows an approximate linear fit to $log(flow)$,
+but the uncertainty in each week is enormous!
+
+```{r  echo=FALSE, fig.height=4, fig.width=6, fig.caption="Logit(p) vs log(flow)", message=FALSE, warning=FALSE}
+demo5.data$elogitphat <- log(  (demo5.data$m2+.5)/(demo5.data$n1+1) / (1 - (demo5.data$m2+.5)/(demo5.data$n1+1)  ))
+plotdata <- demo5.data[ demo5.data$u2 >0, ]
+ggplot(data=plotdata, aes(x=logFlow, y=elogitphat))+
+  ggtitle("Empirical logit vs. log(flow) ")+
+  geom_point()+
+  geom_smooth(method="lm", se=FALSE, formula = y ~ x)
+```
+
+## Fitting the BTSPAS diagonal model with no covariates
+
+We start with fitting BTSPAS with no covariates
+
+```{r }
+fit1 <- BTSPAS::TimeStratPetersenDiagError_fit(
+          title="no covariates"
+         ,prefix="fit1"
+         ,time  = demo5.data$time
+         ,n1    = demo5.data$n1
+         ,m2    = demo5.data$m2
+         ,u2    = demo5.data$u2
+         ,InitialSeed=234323
+         ,save.output.to.files=FALSE
+)
+
+```
+
+Estimated values of the overall mean *logitP* and the residual variation around the 
+fitted line are:
+
+```{r }
+select <-  grepl("beta.logitP", row.names(fit1$summary)) 
+fit1$summary[select,][1]
+
+select <-  grepl("sigmaP", row.names(fit1$summary)) # sd(logitP) around mean logitP or regression curve if covariates present
+fit1$summary[select,]
+
+```
+
+
+The plot of the estimated *logit(catchability)* vs. *log(flow)* and
+the overall mean is:
+
+```{r fig.width=6, fig.height=4, fig.align="center", fig.cap="Fit1: logitP vs log(flow)"}
+plotdata1 <- data.frame( logFlow = demo5.data$logFlow,
+                         logitP  = fit1$mean$logitP,
+                         time  = demo5.data$time,
+                         n1    = demo5.data$n1)
+plotdata1$fit <- 'fit1 - nocovariates'
+ggplot(data=plotdata1, aes(x=logFlow, y=logitP))+
+   ggtitle("no covariates")+
+   geom_point(aes(size=n1))+
+   #geom_smooth(method="lm", se=FALSE)+
+   geom_text(aes(label=time), vjust=-.5)+
+   geom_hline(yintercept=fit1$mean$beta.logitP[1], color="red")
+```
+
+The appears to be a relationship with *log(flow)* that has not been captured with this model.
+
+## Fitting the BTSPAS diagonal model with using log(flow) and default priors
+
+We need to create a matrix with the covariate values. We will need two columns - one for the intercept, and one for the value of log(flow).
+In practice, it is often advisable to standardize covariates to prevent numerical difficulties, 
+but in this case, the values are small enough that standardization
+is not really needed.
+
+```{r }
+
+fit2 <- BTSPAS::TimeStratPetersenDiagError_fit(
+          title="log(Flow)- default prior"
+         ,prefix="fit2"
+         ,time  = demo5.data$time
+         ,n1    = demo5.data$n1
+         ,m2    = demo5.data$m2
+         ,u2    = demo5.data$u2
+         ,logitP.cov=cbind( 1, demo5.data$logFlow)
+         ,InitialSeed=3542343
+         ,save.output.to.files=FALSE
+)
+```
+
+Estimated values of the beta coefficients (the intercept and slope) and the residual variation around the 
+fitted line are:
+
+```{r }
+select <-  grepl("beta.logitP", row.names(fit2$summary)) 
+fit2$summary[select,][1:2]
+
+select <-  grepl("sigmaP", row.names(fit2$summary)) # sd(logitP) around mean logitP or regression curve if covariates present
+fit2$summary[select,]
+
+```
+
+The plot of the estimated *logit(catchability)* vs. *log(flow)* and
+the overall mean is:
+
+```{r fig.width=6, fig.height=4, fig.align="center", fig.cap="Fit2: logitP vs log(flow)"}
+plotdata2 <- data.frame(logFlow = demo5.data$logFlow,
+                        logitP  = fit2$mean$logitP,
+                        time  = demo5.data$time,
+                        n1    = demo5.data$n1)
+plotdata2$fit <- 'fit2  - log flow default priors'
+ggplot(data=plotdata2, aes(x=logFlow, y=logitP))+
+   ggtitle("log(flow) - default priors")+
+   geom_point(aes(size=n1))+
+   #geom_smooth(method="lm", se=FALSE)+
+   geom_text(aes(label=time), vjust=-.5)+
+   #geom_hline(yintercept=fit1$mean$beta.logitP[1], color="red")+
+   geom_abline(intercept=fit2$mean$beta.logitP[1],
+               slope    =fit2$mean$beta.logitP[2], color="green")
+
+```
+
+We now have a relationship with *log(flow)*, but as you will see later, the 
+evidence is not very strong.
+
+## Fitting the BTSPAS diagonal model with using log(flow) and weak prior
+
+Prior information on the beta coefficients (the intercept and slope) are given
+using the *prior.beta.logitP.mean* and *prior.beta.logitP.sd* parameters in the call.
+The first specifies the values of the intercept and slope and the second 
+specifies the uncertainty in these prior values.
+
+Consider the fit:
+
+```{r }
+
+fit3 <- BTSPAS::TimeStratPetersenDiagError_fit(
+          title="log(Flow) - weak priors"
+         ,prefix="fit3"
+         ,time  = demo5.data$time
+         ,n1    = demo5.data$n1
+         ,m2    = demo5.data$m2
+         ,u2    = demo5.data$u2
+         ,logitP.cov=cbind( 1, demo5.data$logFlow)
+         ,prior.beta.logitP.mean=c( .3, -.7)  # prior for intercept and slope on logit scale - mean
+         ,prior.beta.logitP.sd  =c(  2,   2)  # prior for intercept and slope on logit scale - sd
+         ,InitialSeed=3542343
+         ,save.output.to.files=FALSE
+)
+```
+
+Here the prior for the intercept is set to 0.3 and the prior for the slope is set to -.7 (the *prior.beta.logitP.mean*).
+
+The *prior.beta.logitP.sd* gives the uncertainty (like a standard error) in these values. 
+In this fit, I used a large uncertainty, a standard deviation of 2 for both. 
+This indicates the prior puts information on $.3 \pm 2 \times 2$  for the intercept and $-7 \pm 2 \times 2$ for the slope, i.e.
+about 95% of the information in the prior within two standard deviations of the mean.
+
+
+Estimated values of the beta coefficients (the intercept and slope) and the residual variation around the 
+fitted line are:
+
+```{r }
+select <-  grepl("beta.logitP", row.names(fit3$summary)) 
+fit3$summary[select,][1:2]
+
+select <-  grepl("sigmaP", row.names(fit3$summary)) # sd(logitP) around mean logitP or regression curve if covariates present
+fit3$summary[select,]
+
+```
+
+The plot of the estimated *logit(catchability)* vs. *log(flow)* and
+the overall mean is:
+
+```{r fig.width=6, fig.height=4, fig.align="center", fig.cap="Fit3: logitP vs log(flow)"}
+plotdata3 <- data.frame( logFlow = demo5.data$logFlow,
+                        logitP  = fit3$mean$logitP,
+                        time  = demo5.data$time,
+                        n1    = demo5.data$n1)
+
+plotdata3$fit <- 'fit3 - log(flow) - weak priors'
+ggplot(data=plotdata3, aes(x=logFlow, y=logitP))+
+   ggtitle("log(flow) - weak priors")+
+   geom_point(aes(size=n1))+
+   #geom_smooth(method="lm", se=FALSE)+
+   geom_text(aes(label=time), vjust=-.5)+
+   #geom_hline(yintercept=fit1$mean$beta.logitP[1], color="red")+
+   #geom_abline(intercept=fit2$mean$beta.logitP[1],
+   #            slope    =fit2$mean$beta.logitP[2], color="green")+
+   geom_abline(intercept=fit3$mean$beta.logitP[1],
+               slope    =fit3$mean$beta.logitP[2], color="brown", linetype="solid")
+
+```
+
+The weak information on the slope gives a boost to the relationship between *log(flow)*
+and the the *logit(catchability)* especially for those weeks when the sample size
+is very small.
+
+## Fitting the BTSPAS diagonal model with using log(flow) and strong prior
+
+We repeat the fit but with very strong prior information:
+
+```{r }
+
+fit4 <- BTSPAS::TimeStratPetersenDiagError_fit(
+          title="log(Flow) - strong priors"
+         ,prefix="fit4"
+         ,time  = demo5.data$time
+         ,n1    = demo5.data$n1
+         ,m2    = demo5.data$m2
+         ,u2    = demo5.data$u2
+         ,logitP.cov=cbind( 1, demo5.data$logFlow)
+         ,prior.beta.logitP.mean=c( .3, -.7)  # prior for intercept and slope on logit scale - mean
+         ,prior.beta.logitP.sd  =c(.01, .01)  # prior for intercept and slope on logit scale - sd
+         ,InitialSeed=3542343
+         ,save.output.to.files=FALSE
+)
+```
+
+Here the prior for the intercept is set to 0.3 and the prior for the slope is set to -.7 (the *prior.beta.logitP.mean*).
+
+The *prior.beta.logitP.sd* gives the uncertainty (like a standard error) in these values. 
+In this fit, I used a very small uncertainty, a standard deviation of .01 for both. 
+This indicates the prior puts information on $.3 \pm 2 \times .01$  for the intercept and $-7 \pm 2 \times .01$ for the slope, i.e.
+about 95% of the information in the prior within two standard deviations of the mean.
+
+
+Estimated values of the beta coefficients (the intercept and slope) and the residual variation around the 
+fitted line are:
+
+```{r }
+select <-  grepl("beta.logitP", row.names(fit4$summary)) 
+fit4$summary[select,][1:2]
+
+select <-  grepl("sigmaP", row.names(fit4$summary)) # sd(logitP) around mean logitP or regression curve if covariates present
+fit4$summary[select,]
+
+```
+
+The plot of the estimated *logit(catchability)* vs. *log(flow)* and
+the overall mean is:
+
+```{r fig.width=6, fig.height=4, fig.align="center", fig.cap="Fit4: logitP vs log(flow)"}
+plotdata4 <- data.frame( logFlow = demo5.data$logFlow,
+                         logitP  = fit4$mean$logitP,
+                         time    = demo5.data$time,
+                         n1      = demo5.data$n1)
+plotdata4$fit <- 'fit4 - log(flow) - strong priors'
+ggplot(data=plotdata4, aes(x=logFlow, y=logitP))+
+   ggtitle("log(flow) - strong prior")+
+   geom_point(aes(size=n1))+
+   #geom_smooth(method="lm", se=FALSE)+
+   geom_text(aes(label=time), vjust=-.5)+
+   #geom_hline(yintercept=fit1$mean$beta.logitP[1], color="red")+
+   #geom_abline(intercept=fit2$mean$beta.logitP[1],
+   #            slope    =fit2$mean$beta.logitP[2], color="green")+
+   #geom_abline(intercept=fit3$mean$beta.logitP[1],
+   #            slope    =fit3$mean$beta.logitP[2], color="brown", linetype="solid")+
+   geom_abline(intercept=fit4$mean$beta.logitP[1],
+               slope    =fit4$mean$beta.logitP[2], color="brown", linetype="dashed")
+
+```
+
+Notice that the (strong) prior is now in conflict with the data. The model
+now believes that the variation around the line must be large, which allows 
+it to move estimates of *logit(catchability)* below the line.
+
+## Comparing the results of the fits
+
+### Estimates of abundance
+
+```{r echo=FALSE, message=FALSE, warning=FALSE }
+select <-  grepl("Ntot", row.names(fit1$summary)) 
+t1 <- data.frame(as.list(fit1$summary[select,]))
+t1$Source <- "No covariates"
+
+select <-  grepl("Ntot", row.names(fit2$summary)) 
+t2 <- data.frame(as.list(fit2$summary[select,]))
+t2$Source <- "Default prior"
+
+select <-  grepl("Ntot", row.names(fit3$summary)) 
+t3 <- data.frame(as.list(fit3$summary[select,]))
+t3$Source <- "Weak prior"
+
+select <-  grepl("Ntot", row.names(fit4$summary)) 
+t4 <-data.frame(as.list(fit4$summary[select,]))
+t4$Source <- "Strong prior"
+
+temp <- rbind(t1, t2, t3, t4)
+
+kable(temp[,c("Source","mean","sd")], row.names=FALSE,
+      caption="Comparing estimates of abundance among fit",
+      col.names=c("Source","Mean","SD"),
+      digits=c(0,0,0)) %>%
+      column_spec(column=c(1),         width="3cm"  ) %>%
+      column_spec(column=c(2,3),       width="1.5cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+
+```
+
+There appears to be little impact on the estimate of abundance, but notice that the
+uncertainty declines as you add information from *fit1* to *fit3(), but when you add
+a strong conflicting prior (see below), the uncertainty now increases.
+
+
+### Estimates of coefficients
+
+```{r echo=FALSE, message=FALSE, warning=FALSE }
+select <-  grepl("beta.logitP", row.names(fit1$summary)) 
+t1 <- data.frame(as.list(fit1$summary[select,][1,]))
+t1$Source <- "No covariates"
+t1$Est    <- "Intercept"
+
+select <-  grepl("beta.logitP", row.names(fit2$summary)) 
+t2 <- data.frame(fit2$summary[select,][1:2,])
+t2$Source <- "Default prior"
+t2$Est    <- c("Intercept","Slope")
+
+select <-  grepl("beta.logitP", row.names(fit3$summary)) 
+t3 <- data.frame(fit3$summary[select,][1:2,])
+t3$Source <- "Weak prior"
+t3$Est    <- c("Intercept","Slope")
+
+select <-  grepl("beta.logitP", row.names(fit4$summary)) 
+t4 <-data.frame(fit4$summary[select,][1:2,])
+t4$Source <- "Strong prior"
+t4$Est    <- c("Intercept","Slope")
+
+temp <- rbind(t1, t2, t3, t4)
+
+kable(temp[,c("Source","Est","mean","sd")], row.names=FALSE,
+      caption="Comparing estimates of beta coefficients among fit",
+      col.names=c("Source","Estimate","Mean","SD"),
+      digits=c(0,0,3,3)) %>%
+      column_spec(column=c(1:2),         width="3cm"  ) %>%
+      column_spec(column=c(3,4),       width="1.5cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+
+```
+
+With the strong prior, the data plays essentially no role in determining the slope and intercept.
+With a weak prior, the estimated slope has lower precision than with the even weaker (default) prior.
+
+### Comparing the residual standard deviation around the line of fit
+
+```{r echo=FALSE, message=FALSE, warning=FALSE }
+select <-  grepl("sigmaP", row.names(fit1$summary)) 
+t1 <- data.frame(as.list(fit1$summary[select,]))
+t1$Source <- "No covariates"
+
+select <-  grepl("sigmaP", row.names(fit2$summary)) 
+t2 <- data.frame(as.list(fit2$summary[select,]))
+t2$Source <- "Default prior"
+
+select <-  grepl("sigmaP", row.names(fit3$summary)) 
+t3 <- data.frame(as.list(fit3$summary[select,]))
+t3$Source <- "Weak prior"
+
+select <-  grepl("sigmaP", row.names(fit4$summary)) 
+t4 <-data.frame(as.list(fit4$summary[select,]))
+t4$Source <- "Strong prior"
+
+temp <- rbind(t1, t2, t3, t4)
+
+kable(temp[,c("Source","mean","sd")], row.names=FALSE,
+      caption="Comparing estimates of residual variation in logitP among fit",
+      col.names=c("Source","Mean","SD"),
+      digits=c(0,3,3)) %>%
+      column_spec(column=c(1),         width="3cm"  ) %>%
+      column_spec(column=c(2,3),       width="1.5cm") %>%
+      kable_styling("bordered",position = "center", full_width=FALSE, latex_options = "HOLD_position")
+
+
+```
+
+The residual variation declines as more information is added via the prior for the first 3 fits, but
+then increases when a strong (conflicting) prior is added (last fit).
+
+
+### Comparing the fits
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=6, fig.height=6, fig.align="center", fig.cap="All fits: logitP vs log(flow)"}
+# fitted logit(p) vs covariate for each model
+plotdata <- plyr::rbind.fill(plotdata1, plotdata2, plotdata3, plotdata4)
+ggplot(data=plotdata, aes(x=logFlow, y=logitP))+
+   ggtitle("Fitted logitP vs log(flow) - each model")+
+   geom_point(aes(size=n1))+
+   #geom_smooth(method="lm", se=FALSE)+
+   geom_text(aes(label=time), vjust=-.5)+
+   geom_hline(yintercept=fit1$mean$beta.logitP[1], color="red")+
+   geom_abline(intercept=fit2$mean$beta.logitP[1],
+               slope    =fit2$mean$beta.logitP[2], color="green")+
+   geom_abline(intercept=fit3$mean$beta.logitP[1],
+               slope    =fit3$mean$beta.logitP[2], color="brown", linetype="solid")+
+   geom_abline(intercept=fit4$mean$beta.logitP[1],
+               slope    =fit4$mean$beta.logitP[2], color="brown", linetype="dashed")+
+   facet_wrap(~fit, ncol=2,dir="v")
+```
+
+In the plots of *logitP* vs. *log(flow)*, the red horizontal line is from *fit1* (no covariates) and represents the mean. 
+The green line is from the fit of *logitP* vs *logFlow* using the default prior. 
+The solid brown line is from the fit of *logitP* vs *logFlow* for the weak prior and the dashed brown line is for the strong prior. 
+The size of the dots represents n1 the number of fish released. 
+
+So for *fit1*, there is very little data for time 1  and time 2, and and so their *logitP* are basically free to vary.
+For *fit2*, the default prior gives some (but not much information) about the relationship between 
+*logitP* and *logFlow*, so the estimates of *logitP* for  periods 1 and 2 are moved "closer" to the green line.
+For *fit3*, the weak prior gives more information and so the points move very close to the line. 
+As well, the periods with lots of data can be well fit with very little noise and so the model 
+says the the noise of periods in *logitP* must also be small, and so all the points are forced to lie on the line.
+For *fit4*, the very strong prior is placed on a WRONG line (the dashed brown). 
+Now the model is in a quandary and says that the only way the *logitP* for weeks 3, 4, etc. 
+with lots of data are consistent with the dashed brown line is if the among period variance is very large and so 
+the *logitP* for weeks with very poor data are allowed to move away from the brown dashed line.
+
+
+
+We can also compare the spline fit to the number of unmarked fish:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=6, fig.height=4, fig.align="center", fig.cap="Allfts: spline fit to U"}
+
+# Look at the spline fits for each model
+allplots <- gridExtra::arrangeGrob( 
+             fit1$plots$fit.plot,
+             fit2$plots$fit.plot,
+             fit3$plots$fit.plot,
+             fit4$plots$fit.plot, ncol=2, as.table=FALSE)
+plot(allplots)
+```
+
+The spline is only affected slightly.
+
+We can also compare the trend of *logitP* over time:
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,fig.width=6, fig.height=4, fig.align="center", fig.cap="All fits: logitP vs time"}
+
+# Look at the logitP over time fits for each model
+allplots <- gridExtra::arrangeGrob( 
+             fit1$plots$logitP.plot,
+             fit2$plots$logitP.plot,
+             fit3$plots$logitP.plot,
+             fit4$plots$logitP.plot, ncol=2, as.table=FALSE)
+plot(allplots)
+```
+
+The trend over time is mostly unchanged for period with lots of data, and for periods
+with very small amount of data, the points are allowed to vary as needed.
+
+
+```{r echo=FALSE,results="hide" }
+# delete extra files that were created
+file.remove("data.txt"       )       
+file.remove("CODAindex.txt"  )
+file.remove("CODAchain1.txt" )
+file.remove("CODAchain2.txt" )
+file.remove("CODAchain3.txt" )
+file.remove("inits1.txt"     )
+file.remove("inits2.txt"     )
+file.remove("inits3.txt"     )
+file.remove("model.txt"      )
+
+```
 
 
 
@@ -806,7 +1361,9 @@ The previous example still showed some temporal structure in the $p$'s. This add
 can be imposed by using a spline for the $p$'s.
 
 ## Reading in the data
+
 Here is an example of some raw data: 
+
 ```{r}
 demo4.data.csv <- textConnection(
 'jweek, n1, m2,    u2 
@@ -855,6 +1412,7 @@ print(demo4.data)
 ```
 
 A preliminary plot of the empirical logit (excluding those weeks when the trap was not running) shows some temporal structure:
+
 ```{r  echo=FALSE, fig.height=4, fig.width=6, fig.caption="Logit(p) vs julian week", warning=FALSE, message=FALSE}
 demo4.data$elogitphat <- log(  (demo4.data$m2+.5)/(demo4.data$n1+1) / (1 - (demo4.data$m2+.5)/(demo4.data$n1+1)  ))
 plotdata <- demo4.data[ demo4.data$u2 >0, ]
@@ -882,13 +1440,14 @@ head(demo4.logitP.cov)
 
 
 The rest of the call is basically the same -- don't forget to specify the additional arguments in the call
+
 ```{r demo4.run}
 library("BTSPAS")  
 
 # After which weeks is the spline allowed to jump?
 demo4.jump.after <- c(22,39)  # julian weeks after which jump occurs
 
-# Which julian weeks have "bad" recapture values. These will be set to missing and estimated.
+# Which julian weeks have "bad" recapture values. These will be set to 0 or missing prior to the run.
 demo4.bad.m2     <- c(41)   # list julian weeks with bad m2 values. This is used in the Trinity Example
 demo4.bad.u2     <- c(11)   # list julian weeks with bad u2 values. [This was arbitrary to demostrate the feature.]
 demo4.bad.n1     <- c(38)   # list julian weeks with bad n1 values. [This was arbitrary to demonstrate the feature.]
@@ -946,17 +1505,20 @@ demo4.fit$plots$fit.plot
 The jump in the spline when hatchery fish are released is evident. 
 
 The distribution of the posterior sample for the total number unmarked and total abundance is available as before:
+
 ```{r fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Distribution of posterior samples")}
 demo4.fit$plots$post.UNtot.plot
 ```
 
 
 A plot of the $logit(P)$ is 
+
 ```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
 demo4.fit$plots$logitP.plot
 ```
 
 Here is a plot of the estimated $logit(p)$'s with the fitted spline for the $p$'s:
+
 ```{r, echo=FALSE, fig.height=4, fig.width=6, fig.caption="logit(p) over time with underlying spline fit"}
 demo4.row.names <- rownames(demo4.fit$summary)
 demo4.coeff.row.index <- grep("beta.logitP[", demo4.row.names, fixed=TRUE)
@@ -987,9 +1549,11 @@ are very wide (e.g. around julian weeks 37-40).
 
 A summary of the posterior for each parameter is also available. In particular, here are the
 summary statistics on the posterior sample for the total number unmarked and total abundance:
+
 ```{r}
 demo4.fit$summary[ row.names(demo4.fit$summary) %in% c("Ntot","Utot"),]
 ```
+
 The estimated total abundance from $BTSPAS$ is 
 `r formatC(round(demo4.fit$summary[ "Ntot","mean"]), big.mark=",", digits=0, format="f")` (SD 
 `r formatC(round(demo4.fit$summary[ "Ntot","sd"  ]), big.mark=",", digits=0, format="f")` ) fish.

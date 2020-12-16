@@ -15,6 +15,18 @@
 %   }
 %}
 
+\section{CHANGES IN VERSION 2021.1.1}{
+  \subsection{USER-VISIBLE CHANGES}{
+    \itemize{
+      \item User now able to specify prior for beta parameters of logitP vs covariates.
+      Refer to the vignette on covariates.
+      \item All values of n1, m2 must be non-missing and positive. If you set the bad.n1
+      and bad.m2 values, then n1 and m2 are all set to 0.
+      \item Fixed slight error in computation of gof statistics for the non-diagonal cases. We now exclude 
+      strata that are flagged as being bad from the computations.
+     }
+   }
+}
 \section{CHANGES IN VERSION 2020.9.1}{
   \subsection{USER-VISIBLE CHANGES}{
     \itemize{

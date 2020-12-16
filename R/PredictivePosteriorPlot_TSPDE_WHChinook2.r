@@ -5,6 +5,7 @@
 # We need to use the importFrom here to get the data.table package in the namespace but to avoid warning messages
 # from R CMD check about melt() and dcast() being overwritten from the reshape2 package.
 
+# 2020-12-15 CJS Fixed problem with u2==NA causing plots to fail
 # 2018-12-03 CJS convert to using facets rather that marrangeGrob as the latter had problems
 # 2015-06-10 CJS Converted to ggplot()
 # 2014-09-01 CJS Change Inf to NA 
@@ -25,8 +26,8 @@ PredictivePosteriorPlot.TSPDE.WHCH2 <- function( discrep, ncol=2, nrow=2 ) {
   #     (15-16)  o,s Freeman-Tukey for all data (m2, YoY and Age 1)`
 
   # Change any Inf to NA
-  temp <- discrep == Inf | discrep == -Inf
-  if(sum(temp)>0){cat(sum(temp), " infinite discrepancy measures set to NA\n")}
+  temp <- is.infinite(discrep) & !is.na(discrep)
+  if(sum(temp, na.rm=TRUE)>0){cat(sum(temp, na.rm=TRUE), " infinite discrepancy measures set to NA\n")}
   discrep[ temp ] <- NA
   
 
@@ -50,7 +51,7 @@ PredictivePosteriorPlot.TSPDE.WHCH2 <- function( discrep, ncol=2, nrow=2 ) {
  
   # compute the bayesian p-values         
   p_values <-plyr::ddply(discrep.long, c("Statistic","Title"), function(x){
-       p.value=mean(x$Observed < x$Simulated)
+       p.value=mean(x$Observed < x$Simulated, na.rm=TRUE)
        data.frame(p.value)
   })
   p_values$label = paste("Bayesian GOF P:",formatC(p_values$p.value, digits=2, format="f"))

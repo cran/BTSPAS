@@ -1,3 +1,4 @@
+## 2020-11-07 CJS Allow user to specify prior for beta parameters for covariates on logitP
 ## 2018-11-26 CJS Removed all OpenBugs stuff
 ## 2014-09-01 CJS Converted to JAGS
 ## 2013-12-31 CJS Tried adding u2copy to get back Matts fix for mixing
@@ -25,15 +26,16 @@ TimeStratPetersenDiagError <- function(
     m2,
     u2,
     jump.after=NULL,
-    logitP.cov, logitP.fixed, 
+    logitP.cov=as.matrix(rep(1,length(u2))),
+    logitP.fixed, 
     n.chains=3,
     n.iter=200000,
     n.burnin=100000,
     n.sims=2000,
     tauU.alpha=1, tauU.beta=.05,
     taueU.alpha=1,  taueU.beta=.05,
-    mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),
-    tau_xiP=1/var(logit((m2+.5)/(n1+1)),na.rm=TRUE),
+    prior.beta.logitP.mean = c(logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),rep(0,  ncol(as.matrix(logitP.cov))-1)),
+    prior.beta.logitP.sd   = c(sd(logit((m2+.5)/(n1+1)),na.rm=TRUE),        rep(10, ncol(as.matrix(logitP.cov))-1)), 
     tauP.alpha=.001, tauP.beta=.001,
     debug=FALSE,
     debug2=FALSE,
@@ -119,18 +121,14 @@ model{
 #      n.b.notflat- number of b coefficients that do not have a flat prior
 #      tauU.alpha, tauU.beta - parameters for prior on tauU
 #      taueU.alpha, taueU.beta - parameters for prior on taueU
-#      mu_xiP, tau_xiP  - parameters for prior on mean logit(P)'s [The intercept term]
-#                         mu_xiP = mean; tau_xiP = 1/variance
-#                       - the other beta terms are given a prior of a N(mu=0, variance=1000)
+#      prior.beta.logitP.mean, prior.beta.logitP.sd  - parameters for prior of coefficient of covariates for logitP
 #      tauP.alpha, tauP.beta - parameter for prior on tauP (residual variance of logit(P)'s after adjusting for
 #                         covariates)
 #
 #  Parameters of the model are:
 #      p[i]
 #       logitP[i]  = logit(p[i]) = logitP.cov*beta.logitP
-#         The first beta.logitP has a prior from N(xiP, tauP)
-#            and xiP and tauP are currently set internally
-#         The remaining beta's are assigned a wider prior N(mu=0, var=1000).
+#         The beta coefficients have a prior that is N(mean= prior.beta.logitP.mean, sd= prior.beta.logitP.sd)
 #      U[i]
 #       etaU[i]  = log(U[i])
 #         which comes from spline with parameters bU[1... Knots+q]
@@ -171,9 +169,8 @@ model{
    sigmaeU <- 1/sqrt(taueU)
 
    ## Capture probabilities covariates
-   beta.logitP[1] ~ dnorm(mu_xiP,tau_xiP) # first term is usually an intercept
-   for(i in 2:NlogitP.cov){
-      beta.logitP[i] ~ dnorm(0, .01)   # rest of beta terms are normal 0 and a large variance
+   for(i in 1:NlogitP.cov){
+      beta.logitP[i] ~ dnorm(prior.beta.logitP.mean[i], 1/prior.beta.logitP.sd[i]^2)  # rest of beta terms are normal 0 and a large variance
    }
    beta.logitP[NlogitP.cov+1] ~ dnorm(0, .01) # dummy so that covariates of length 1 function properly
    tauP ~ dgamma(tauP.alpha,tauP.beta)
@@ -258,7 +255,8 @@ datalist <- list("Nstrata", "n1", "m2", "u2", "u2copy",
                  "SplineDesign",
                  "b.flat", "n.b.flat", "b.notflat", "n.b.notflat", "n.bU",
                  "tauU.alpha", "tauU.beta", "taueU.alpha", "taueU.beta",
-                 "mu_xiP", "tau_xiP", "tauP.alpha", "tauP.beta")
+                 "prior.beta.logitP.mean", "prior.beta.logitP.sd", 
+                 "tauP.alpha", "tauP.beta")
 
 
 ## Generate best guess initial values

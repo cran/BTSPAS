@@ -27,6 +27,7 @@ expit <- function(theta){1/(1+exp(-theta))}
 ```
 
 # Location of vignette source and code.
+
 Because of the length of time needed to run the vignettes, only
 static vignettes have been included with this package.
 
@@ -52,6 +53,7 @@ However, the actual implementation is incorrect in *BTSPAS* and is deprecated. T
 proper way to deal with this problem.
 
 ## Experimental setup
+
 This simulated population is modelled around a capture-capture experiment on the Taku River which flows
 between the US and Canada.
 
@@ -63,6 +65,7 @@ part of the week until the quota for catch is reached. Then the fishery stops
 until the next week.
 
 ## Generation of population
+
 ```{r genpop, include=FALSE}
 # simulate the population
 N <- 150000  # total run size
@@ -80,6 +83,7 @@ pop.dist <- ggplot(data=pop, aes(x=time.at.wheel))+
    xlab("Arrive date at tagging wheel")
    
 ```
+
 A population of `r formatC(round(N,0), digits=0, big.mark=',', format="f")`
 fish will be simulated arriving at the fish wheels according to a normal distribution with 
 a mean of `r mean.at.wheel` and a standard deviation of `r sd.at.wheel`. This gives a distribution of arrival times at the fish wheel of
@@ -87,6 +91,7 @@ a mean of `r mean.at.wheel` and a standard deviation of `r sd.at.wheel`. This gi
 ```{r fig.width=6,fig.height=4,include=TRUE, fig.align="center", fig.cap=c("Distribution of arrival time at wheel"), echo=FALSE}
 pop.dist
 ```
+
 The spikes at the start and end are where the arrival time has been truncated and fish forced to arrive in the first and last days
 of the run (for convenience).
 
@@ -107,6 +112,7 @@ capture.dist <- ggplot(data=capture.prob, aes(x=expit(logit.tag)))+
    xlab("Capture probability at the fish wheel")
 capture.dist
 ```
+
 This is used to sample from the simulated run as it passes the wheel and the distribution of the number tagged is:
 
 
@@ -120,6 +126,7 @@ ggplot(data=pop[pop$tagged,], aes(x=date))+
    geom_bar(alpha=0.2)+
    xlab("Date")
 ```
+
 A total of `r sum(pop$tagged)` fish are tagged and released.
 
 ```{r travel.time, include=FALSE}
@@ -138,10 +145,13 @@ travel.dist <- ggplot(data=pop, aes(x=travel.time))+
 Travel time from the wheel to the commercial fishery is simulated using a log-normal distribution
 with a mean (on the log scale) of log(`r travel.time.mu`) days and a standard deviation on the log-scale
 of `r travel.time.sigma`. This gives a distribution of travel times of:
+
 ```{r fig.width=6, fig.height=4,include=TRUE, fig.align="center", fig.cap=c("Distribution of travel times"), echo=FALSE, warning=FALSE, message=FALSE}
 travel.dist
 ```
+
 The travel time was added to the time of arrival at the fish wheels giving a distribution of time of arrival in fishery of 
+
 ```{r, fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Arrive date at fishery"), echo=FALSE, warning=FALSE, message=FALSE}
 # arrival at fishery
 pop$time.at.fishery <- pop$time.at.wheel + pop$travel.time
@@ -206,7 +216,9 @@ fishery.catch <- ggplot(data=pop[pop$recover,], aes(x=date.at.fishery))+
    geom_vline(xintercept=date.cutoff, color="red")+
    xlim(0,max(pop$date.at.fishery))+xlab("Date")
 ```
+
 The distribution of catchability in the commercial fishery is
+
 ```{r fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Distribution of cature probabilities in fishery"), echo=FALSE, warning=FALSE, message=FALSE}
 fishery.prob
 ```
@@ -219,9 +231,11 @@ This is clearly not the case because some fish has a probability of 0 of being c
 
 If the probability of capture in the commercial fishery is uncorrelated with the probability of capture by the tagging wheel,
 the pooled-Petersen is also unbiased. A plot of the probability of capture at the tagging wheels and in the commercial fishery is:
+
 ```{r  fig.width=6, fig.height=4,include=TRUE, fig.align="center", fig.cap=c("Distribution of cature-probabilities at wheel"), echo=FALSE, warning=FALSE, message=FALSE}
 correlaton.plot
 ```
+
 In this case the correlation between the tagging and recovery probability is
 `r round(correlation.tag.recover,2)`.
 Schwarz and Taylor (1988) give a formula for the relative bias of the pooled Petersen if you know the correlation and variation 
@@ -234,9 +248,11 @@ when there are many fish available which could induce some correlation.
 
 A summary of the catch 
 by the fishery is:
+
 ```{r fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fish captured in fishery by date"), echo=FALSE}
 fishery.catch
 ```
+
 Notice the "holes" in the data when the commercial fishery is not operating.
 
 A summary of the number of fish tagged and recaptured is:
@@ -283,14 +299,17 @@ takuz
 Notice that some columns that are all zero because of the commercial fishery.
 
 # Analysis of dataset stratified to the 3-day strata.
+
 We are now back to familiar territory.
 
 
 ## Pooled Petersen estimator
+
 ```{r ppz,echo=FALSE,warning=FALSE,message=FALSE}
 library(BTSPAS)
 ppz.complete <- BTSPAS::SimplePetersen( sum(takuz[,"tagged"], na.rm=TRUE), sum(takuz[-nrow(takuz), -1]), sum(takuz["untagged",],na.rm=TRUE)) 
 ```
+
 The pooled Petersen estimator of abundance is 
 `r formatC(round(ppz.complete$N.est,0), digits=0, big.mark=',', format="f")` 
 (SE
@@ -299,7 +318,9 @@ The pooled Petersen estimator of abundance is
 
 
 ##  *BTSPAS* on the full dataset
+
 We prepare the data in the usual way with the following results:
+
 ```{r statweekz,echo=FALSE}
 # what is the strata identification number (statistical week from start of year)?
 takuz.sweek <- 1:(ncol(takuz)-1)
@@ -350,7 +371,7 @@ takuz.title  <- "Example 3-day stratification - TSPND NP"
 # are there any jumps in the abundance?
 takuz.jump.after <- NULL    # list sample times after which jump in number occurs
 
-# are there any bad values that need to be adjusted?
+# are there any bad values that need to be set to 0 or missing prior to the model fit?
 takuz.bad.n1     <- c()     # list sample times of bad n1 values
 takuz.bad.m2     <- c()     # list sample times of bad m2 values
 takuz.bad.u2     <- c()     # list sample times of bad u2 values
@@ -417,6 +438,7 @@ file.remove("model.txt"      )
 ```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted run curve with zeroes"), echo=FALSE}
 ex.3day.fit$plots$fit.plot
 ```
+
 Notice that *BTSPAS* interpolated through the weeks where no commercial fishery ran. Estimates of the run size are very 
 uncertain when there are few fish released and recovered near the end of the experiment. 
 
@@ -441,6 +463,7 @@ The estimated total run size (with 95% credible interval)
 ```{r fit1dirz.Ntot,echo=FALSE}
 round(ex.3day.fit$summary[ grepl("Ntot", rownames(ex.3day.fit$summary)),],0)
 ```
+
 which can be compared to the real total population of `r formatC(round(N,0), digits=0, big.mark=',', format="f")` and the Pooled Petersen estimate of
 `r formatC(round(ppz.complete$N.est,0), digits=0, big.mark=',', format="f")` 
 (SE
@@ -448,6 +471,7 @@ which can be compared to the real total population of `r formatC(round(N,0), dig
 ). The bias in the pooled-Petersen seems to have been resolved.
 
 The individual estimates of the number of unmarked in each recovery stratum are:
+
 ```{r fit1dirz.U,echo=FALSE}
 round(ex.3day.fit$summary[ grepl("^U\\[", rownames(ex.3day.fit$summary)),],0)
 ```
@@ -502,10 +526,12 @@ takuzp
 Notice that no recovery strata are now zero (except at the end of the study)
 
 ## Pooled Petersen estimator
+
 ```{r ppzp,echo=FALSE,warning=FALSE,message=FALSE}
 library(BTSPAS)
 ppzp.complete <- BTSPAS::SimplePetersen( sum(takuzp[,"tagged"], na.rm=TRUE), sum(takuzp[-nrow(takuzp), -1]), sum(takuzp["untagged",],na.rm=TRUE)) 
 ```
+
 The pooled Petersen estimator of abundance is the same as before as there are no changes to the number tagged, recaptured, or fished. 
 `r formatC(round(ppzp.complete$N.est,0), digits=0, big.mark=',', format="f")` 
 (SE
@@ -514,6 +540,7 @@ The pooled Petersen estimator of abundance is the same as before as there are no
 
 
 ##  *BTSPAS* on the pooled dataset
+
 We prepare the data in the usual way with the following results:
 ```{r statweekzp,echo=FALSE}
 # what is the strata identification number (statistical week from start of year)?
@@ -573,6 +600,7 @@ takuzp.bad.u2     <- c()     # list sample times of bad u2 values
 ```
 
 There were no (pooled) strata where there was no commercial fishery, so we don't restrict the $logit(p)$ to any value.
+
 ```{r zerosetp}
 # are there any days where the capture probability is fixed in advance?, i.e. because no commercial fishery
 takuzp.logitP.fixed        <- NULL
@@ -646,6 +674,7 @@ The estimated total run size (with 95% credible interval)
 ```{r fit1dirzp.Ntot,echo=FALSE}
 round(ex.6day.fit$summary[ grepl("Ntot", rownames(ex.6day.fit$summary)),],0)
 ```
+
 which can be compared to the real total population of `r formatC(round(N,0), digits=0, big.mark=',', format="f")` and the Pooled Petersen estimate of
 `r formatC(round(ppz.complete$N.est,0), digits=0, big.mark=',', format="f")` 
 (SE
@@ -658,6 +687,7 @@ round(ex.6day.fit$summary[ grepl("^U\\[", rownames(ex.6day.fit$summary)),],0)
 ```
 
 # References
+
 Bonner Simon, J., & Schwarz Carl, J. (2011). 
 Smoothing Population Size Estimates for Time-Stratified MarkRecapture Experiments Using Bayesian P-Splines. 
 Biometrics, 67, 1498–1507.

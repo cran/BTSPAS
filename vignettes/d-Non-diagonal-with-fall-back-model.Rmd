@@ -25,7 +25,9 @@ library(BTSPAS)
 library(ggplot2)
 max.width=70
 ```
+
 # Location of vignette source and code.
+
 Because of the length of time needed to run the vignettes, only
 static vignettes have been included with this package.
 
@@ -37,6 +39,7 @@ https://github.com/cschwarz-stat-sfu-ca/BTSPAS
 # Introduction
 
 ## Experimental set-up
+
 This case represents a generalization of the non-diagonal case considered in a separate
 vignette. Now we allow some fish (marked and unmarked) to approach the second trap, but fall back and
 never pass the trap. Schwarz and Bonner (2011) considered this model to estimate the number of
@@ -82,6 +85,7 @@ Newly
 Untagged               u2[1]   u2[2]   u2[3]  ...                 u2[k]   u2[k,k+1]
 captured  
 ```
+
 Here the tagging and recapture events have been stratified in to $k$ temporal strata.
 Marked fish from one stratum tend to spread out and are recaptured over multiple strata.
 Several additional recovery strata are needed at the end of the experiment to fully
@@ -92,6 +96,7 @@ in a shorthand fashion by showing the recoveries in the same stratum as release,
 the next stratum, etc, up to a maximum number of recovery strata per release.
 
 ## Fall-back information
+
 This information is obtained by also marking radio-tagged fish whose ultimate fate
 (i.e. did they pass the second trap nor not) can be determined. 
 We measure:
@@ -112,11 +117,18 @@ and over-estimates of unmarked fish that pass the second trap.
 
 This model could also be used for mortality between the marking and recovery trap. 
 
+## Fixing values of $p$ or using covariates.
+
+Refer to the vignette on the *Diagonal Case* for information about fixing values of $p$ or modelling 
+$p$ using covariates such a stream flow or smoothing $p$ using a temporal spline.
 
 
 # Example of  non-diagonal model with fall-back.
+
 ## Reading in the data
+
 Here is an example of some raw data that is read in:
+
 ```{r}
 demo.data.csv <- textConnection("
 jweek,n1,    X0,X1 ,X2 ,X3,X4,X5,X6,X7 
@@ -139,23 +151,27 @@ demo.data <- read.csv(demo.data.csv, header=TRUE, as.is=TRUE, strip.white=TRUE)
 
 print(demo.data)
 ```
+
 There are `r nrow(demo.data)` release strata.
 In the first release stratum, a total of `r demo.data[1,"n1"]` fish were tagged and released.
 No recoveries occurred.
 
 Because the recoveries take place in more strata than releases, the $u2$ vector is read in separately. Note that is must be sufficiently long
 to account for the number of releases plus potential movement:
+
 ```{r }
 demo.data.u2 <- c(  2,  65,  325,  873,  976,  761,  869,  473,  332,  197,
                   177, 282,   82,  100)
 ```
 
 We also separate out the recoveries $m2$ into a matrix
+
 ```{r }
 demo.data.m2 <- as.matrix(demo.data[,c("X0","X1","X2","X3","X4","X5","X6","X7")])
 ```
 
 A separate radio-telemetry study found that of 66 fish released, 40 passed the second trap:
+
 ```{r }
 demo.mark.available.n <- 66
 demo.mark.available.x <- 40
@@ -200,6 +216,7 @@ The $BTSPAS$ function also allows you specify
 if problem arise.
 
 We already read in the data above. Here we set the rest of the parameters. Don't forget to set the working directory as appropriate
+
 ```{r }
 library("BTSPAS")  
 demo.prefix <- "FB-"
@@ -208,7 +225,7 @@ demo.title  <- "Fall-back demo"
 
 demo.jump.after <- NULL 
 
-## Identify spurious values in n1, m2, and u2 that should be removed
+## Identify spurious values in n1, m2, and u2 that should be set to 0 or missing as needed.
 demo.bad.n1     <- c()     # list sample times of bad n1 values
 demo.bad.m2     <- c()     # list sample times of bad m2 values
 demo.bad.u2     <- c()     # list sample times of bad u2 values
@@ -256,6 +273,7 @@ file.remove("model.txt"      )
 ## The output from the fit
 
 Here is the fitted spline curve to the number of unmarked fish available in each recovery stratum at the second trap
+
 ```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted spline curve")}
 demo.fit$plots$fit.plot
 ```
@@ -264,24 +282,29 @@ demo.fit$plots$fit.plot
 The distribution of the posterior sample for the total number unmarked and total abundance that pass the second trap is available.
 Note this include the sum of the unmarked shown in the previous plot, plus a binomial distribution on the number
 of marked fish released that pass the second trap. 
+
 ```{r fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Distribution of posterior samples")}
 demo.fit$plots$post.UNtot.plot
 ```
 
 
 A plot of the $logit(P)$ is 
+
 ```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
 demo.fit$plots$logitP.plot
 ```
+
 In cases where there is little information, $BTSPAS$ has shared information based on the distribution of catchability
 in the other strata.
 
 A summary of the posterior for each parameter is also available. In particular, here are the
 summary statistics on the posterior sample for the total number unmarked and total abundance
 **THAT PASS THE SECOND TRAP**:
+
 ```{r}
 demo.fit$summary[ row.names(demo.fit$summary) %in% c("Ntot","Utot"),]
 ```
+
 This also includes the Rubin-Brooks-Gelman statistic ($Rhat$) on mixing of the chains and the effective sample size 
 of the posterior (after
 accounting for autocorrelation).
@@ -291,16 +314,19 @@ The estimated total abundance is
 `r formatC(round(demo.fit$summary[ "Ntot","sd"  ]), big.mark=",", digits=0, format="f")` ) fish.
 
 The estimated distribution function is allowed by vary by release stratum around a common "mean" distribution.
+
 ```{r }
 probs <- demo.fit$summary[grepl("movep", row.names(demo.fit$summary)),  ]
 round(probs,3)
 ```
+
 So we expect that about `r round(probs[1,"mean"]*100,0)`% of fish will migrate to the second trap in the day of release;
 about `r round(probs[2,"mean"]*100,0)`% of fish will migrate to the second trap in the second day after release etc.
 
 The movement for each release stratum varies around this base distribution.
 It is also possible to see the probability of moving from release stratum $i$ to recovery stratum $j$ by looking
 at the $Theta[i,j]$ values. Here are the transition probabilities for the first release stratum:
+
 ```{r}
 round(demo.fit$summary[ grepl("Theta[1,", row.names(demo.fit$summary),fixed=TRUE),],3)
 ```
@@ -312,6 +338,7 @@ movement probabilities.
 
 The sample of the posterior-distribution for the proportion of fish that DO NOT FALL back
 is
+
 ```{r}
 round(demo.fit$summary[ grepl("ma.p", row.names(demo.fit$summary),fixed=TRUE),],3)
 ```

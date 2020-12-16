@@ -25,7 +25,9 @@ library(BTSPAS)
 library(ggplot2)
 max.width=70
 ```
+
 # Location of vignette source and code.
+
 Because of the length of time needed to run the vignettes, only
 static vignettes have been included with this package.
 
@@ -78,6 +80,7 @@ Newly
 Untagged               u2[1]   u2[2]   u2[3]  ...                 u2[k]   u2[k,k+1]
 captured  
 ```
+
 Here the tagging and recapture events have been stratified in to $k$ temporal strata.
 Marked fish from one stratum tend to spread out and are recaptured over multiple strata.
 Several additional recovery strata are needed at the end of the experiment to fully
@@ -88,9 +91,18 @@ in a shorthand fashion by showing the recoveries in the same stratum as release,
 the next stratum, etc, up to a maximum number of recovery strata per release.
 
 
+## Fixing values of $p$ or using covariates.
+
+Refer to the vignette on the *Diagonal Case* for information about fixing values of $p$ or modelling 
+$p$ using covariates such a stream flow or smoothing $p$ using a temporal spline.
+
+
 # Example of basic non-diagonal BTSPAS fit.
+
 ## Reading in the data
+
 Here is an example of some raw data that is read in:
+
 ```{r}
 demo.data.csv <- textConnection(
 "Date        ,     n1  , X0  , X1  , X2  , X3  , X4
@@ -145,6 +157,7 @@ print(demo.data)
 demo.data$Date <- as.Date(demo.data$Date, "%Y-%m-%d")
 demo.data$jday <- as.numeric(format(demo.data$Date, "%j"))
 ```
+
 Here the strata are days (rather than weeks). 
 There are `r nrow(demo.data)` release strata, and tagged fish are recovered in the stratum of release plus another 
 `r ncol(demo.data)-2` strata.
@@ -156,6 +169,7 @@ Because the recoveries take place in more strata than releases, the $u2$ vector 
 Note that is must be sufficiently long
 to account for the number of releases plus potential movement, for a length of 
 `r nrow(demo.data)+ ncol(demo.data)-4`:
+
 ```{r }
 demo.data.u2 <- c(0  ,    2  ,    1  ,  2 ,   39 , 226  , 75 , 129 , 120 , 380 ,
                   921, 1005  , 1181 ,1087 , 1108 ,1685  ,671 ,1766 , 636 , 483 , 
@@ -165,6 +179,7 @@ demo.data.u2 <- c(0  ,    2  ,    1  ,  2 ,   39 , 226  , 75 , 129 , 120 , 380 ,
 ```
 
 We also separate out the recoveries $m2$ into a matrix
+
 ```{r }
 demo.data.m2 <- as.matrix(demo.data[,c("X0","X1","X2","X3","X4")])
 ```
@@ -172,6 +187,7 @@ demo.data.m2 <- as.matrix(demo.data[,c("X0","X1","X2","X3","X4")])
 ```{r pp,message=FALSE,echo=FALSE}
 Nhat <-BTSPAS::SimplePetersen( sum(demo.data$n1), sum(demo.data.m2), sum(demo.data.u2))
 ```
+
 ## Preliminary screening of the data
 
 A pooled-Petersen estimator would add all of the marked, recaptured and unmarked fish
@@ -186,6 +202,7 @@ releases over multiple recovery strata.
 
 
 Let us look at the pattern of unmarked fish captured at the second trap:
+
 ```{r umarked, echo=FALSE, fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Observed number of unmarked recaptures"), warning=FALSE}
 
 plotdata <- data.frame(jday=min(demo.data$jday):(min(demo.data$jday)+length(demo.data.u2)-1),
@@ -250,13 +267,14 @@ The $BTSPAS$ function also allows you specify
 if problem arise.
 
 We already read in the data above. Here we set the rest of the parameters. Don't forget to set the working directory as appropriate
+
 ```{r }
 library("BTSPAS")  
 
 # After which weeks is the spline allowed to jump?
 demo.jump.after <- c()  # julian weeks after which jump occurs
 
-# Which julian weeks have "bad" recapture values. These will be set to missing and estimated.
+# Which julian weeks have "bad" recapture values. These will be set to 0 or missing prior to the model fitting.
 demo.bad.m2     <- c(117)   # list julian weeks with bad m2 values. 
 demo.bad.u2     <- c()   # list julian weeks with bad u2 values. 
 demo.bad.n1     <- c(117)   # list julian weeks with bad n1 values. 
@@ -284,6 +302,7 @@ demo.fit <- TimeStratPetersenNonDiagError_fit(
                   debug=TRUE,             # save time by reducing number of MCMC iterations
                   save.output.to.files=FALSE)
 ```
+
 The final parameter (*save.output.to.files*) can be set to automatically to save plots and reports in files with the appropriate prefix in the working directory.  
 
 ```{r deletefiles,echo=FALSE,results="hide" }
@@ -303,6 +322,7 @@ file.remove("model.txt"      )
 
 ## The output from the fit
 The final object has many components
+
 ```{r components, results="hide"}
 names(demo.fit)
 ```
@@ -314,6 +334,7 @@ options(save.options)
 ```
 
 The *plots* sub-object contains many plots:
+
 ```{r results='hide'}
 names(demo.fit$plots)
 ```
@@ -336,34 +357,41 @@ These plots are all created using the $ggplot2$ packages, so the user can modify
 The $BTSPAS$ program also creates a report, which includes information about the data used in the fitting,
 the pooled- and stratified-Petersen estimates, a test for pooling, and summaries of the posterior. Only the first few lines
 are shown below:
+
 ```{r }
 head(demo.fit$report)
 ```
 
 Here is the fitted spline curve to the number of unmarked fish available in each recovery sample
+
 ```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted spline curve")}
 demo.fit$plots$fit.plot
 ```
 
 
 The distribution of the posterior sample for the total number unmarked and total abundance is available:
+
 ```{r fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Distribution of posterior samples")}
 demo.fit$plots$post.UNtot.plot
 ```
 
 
 A plot of the $logit(P)$ is 
+
 ```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
 demo.fit$plots$logitP.plot
 ```
+
 In cases where there is little information, $BTSPAS$ has shared information based on the distribution of catchability
 in the other strata.
 
 A summary of the posterior for each parameter is also available. In particular, here are the
 summary statistics on the posterior sample for the total number unmarked and total abundance:
+
 ```{r}
 demo.fit$summary[ row.names(demo.fit$summary) %in% c("Ntot","Utot"),]
 ```
+
 This also includes the Rubin-Brooks-Gelman statistic ($Rhat$) on mixing of the chains and the effective sample size 
 of the posterior (after
 accounting for autocorrelation).
@@ -374,6 +402,7 @@ The estimated total abundance from $BTSPAS$ is
 
 The model has a "base" log-normal distribution for the travel times between the release and recovery 
 strata. The summary of the posterior distribution of its parameters for the log(travel time) are:
+
 ```{r}
 round(demo.fit$summary[ row.names(demo.fit$summary) %in% c("baseMu","baseSd"),],3)
 ```
@@ -382,6 +411,7 @@ Each release stratum is allowed to have a travel time distribution that differ f
 by allowing the individual release stratum parameters to be sampled from a distribution around the above vales.
 Posterior samples represent the mean and standard deviation of the log(travel time) between
 the release and recovery strata. Here are the results for the first 5 strata:
+
 ```{r}
 round(demo.fit$summary[ grepl("muLogTT", row.names(demo.fit$summary)),][1:5,],3)
 round(demo.fit$summary[ grepl("sdLogTT", row.names(demo.fit$summary)),][1:5,],3)
@@ -389,6 +419,7 @@ round(demo.fit$summary[ grepl("sdLogTT", row.names(demo.fit$summary)),][1:5,],3)
 
 It is also possible to see the probability of moving from release stratum $i$ to recovery stratum $j$ by looking
 at the $Theta[i,j]$ values. Here are the transition probabilities for the first release stratum:
+
 ```{r}
 round(demo.fit$summary[ grepl("Theta[1,", row.names(demo.fit$summary),fixed=TRUE),][1:10,],3)
 ```
@@ -441,13 +472,14 @@ The $BTSPAS$ function also allows you specify
 if problem arise.
 
 We already read in the data above. Here we set the rest of the parameters. Don't forget to set the working directory as appropriate
+
 ```{r }
 library("BTSPAS")  
 
 # After which weeks is the spline allowed to jump?
 demo2.jump.after <- c()  # julian weeks after which jump occurs
 
-# Which julian weeks have "bad" recapture values. These will be set to missing and estimated.
+# Which julian weeks have "bad" recapture values. These will be set to 0 or missing prior to the model fit.
 demo2.bad.m2     <- c()   # list julian weeks with bad m2 values. This is used in the Trinity Example
 demo2.bad.u2     <- c()   # list julian weeks with bad u2 values. [This was arbitrary to demostrate the feature.]
 demo2.bad.n1     <- c()   # list julian weeks with bad n1 values. [This was arbitrary to demonstrate the feature.]
@@ -475,6 +507,7 @@ demo2.fit <- TimeStratPetersenNonDiagErrorNP_fit(  # notice change in function n
                   debug=TRUE,             # save time by reducing number of MCMC iterations
                   save.output.to.files=FALSE)
 ```
+
 The final parameter (*save.output.to.files*) can be set to automatically to save plots and reports in files with the appropriate prefix in the working directory.  
 
 ```{r deletefiles2,echo=FALSE,results="hide" }
@@ -495,29 +528,35 @@ file.remove("model.txt"      )
 ## The output from the fit
 
 Here is the fitted spline curve to the number of unmarked fish available in each recovery sample
+
 ```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted spline curve")}
 demo2.fit$plots$fit.plot
 ```
 
 
 The distribution of the posterior sample for the total number unmarked and total abundance is available:
+
 ```{r fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Distribution of posterior samples")}
 demo2.fit$plots$post.UNtot.plot
 ```
 
 
 A plot of the $logit(P)$ is 
+
 ```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
 demo2.fit$plots$logitP.plot
 ```
+
 In cases where there is little information, $BTSPAS$ has shared information based on the distribution of catchability
 in the other strata.
 
 A summary of the posterior for each parameter is also available. In particular, here are the
 summary statistics on the posterior sample for the total number unmarked and total abundance:
+
 ```{r}
 demo2.fit$summary[ row.names(demo2.fit$summary) %in% c("Ntot","Utot"),]
 ```
+
 This also includes the Rubin-Brooks-Gelman statistic ($Rhat$) on mixing of the chains and the effective sample size 
 of the posterior (after
 accounting for autocorrelation).
@@ -527,16 +566,19 @@ The estimated total abundance from $BTSPAS$ is
 `r formatC(round(demo2.fit$summary[ "Ntot","sd"  ]), big.mark=",", digits=0, format="f")` ) fish.
 
 The estimated distribution function is allowed by vary by release stratum around a common "mean" distribution.
+
 ```{r }
 probs <- demo2.fit$summary[grepl("movep", row.names(demo2.fit$summary)),  ]
 round(probs,3)
 ```
+
 So we expect that about `r round(probs[1,"mean"]*100,0)`% of fish will migrate to the second trap in the day of release;
 about `r round(probs[2,"mean"]*100,0)`% of fish will migrate to the second trap in the second day after release etc.
 
 The movement for each release stratum varies around this base distribution.
 It is also possible to see the probability of moving from release stratum $i$ to recovery stratum $j$ by looking
 at the $Theta[i,j]$ values. Here are the transition probabilities for the first release stratum:
+
 ```{r}
 round(demo2.fit$summary[ grepl("Theta[1,", row.names(demo2.fit$summary),fixed=TRUE),],3)
 ```
@@ -549,6 +591,7 @@ the goodness of fit, trace, and autocorrelation plots.
 
 
 # Prior information on the movement probabilities.
+
 It is possible to impose prior information on the movement probabilities in both cases. This would be useful
 in cases with VERY sparse data!
 
@@ -565,20 +608,23 @@ Here we will fit a fairly strong prior on the movement probabilities:
 ```{r }
 demo3.prior.muTT=c(10,50,30,5,5)
 ```
+
 where the probability of movement in the stratum of release and subsequent strata is
+
 ```{r}
 round(demo3.prior.muTT/sum(demo3.prior.muTT),2)
 ```
 
 
 We already read in the data above. Here we set the rest of the parameters. Don't forget to set the working directory as appropriate
+
 ```{r }
 library("BTSPAS")  
 
 # After which weeks is the spline allowed to jump?
 demo3.jump.after <- c()  # julian weeks after which jump occurs
 
-# Which julian weeks have "bad" recapture values. These will be set to missing and estimated.
+# Which julian weeks have "bad" recapture values. These will be set to 0 or missing as needed.
 demo3.bad.m2     <- c()   # list julian weeks with bad m2 values. This is used in the Trinity Example
 demo3.bad.u2     <- c()   # list julian weeks with bad u2 values. [This was arbitrary to demonstrate the feature.]
 demo3.bad.n1     <- c()   # list julian weeks with bad n1 values. [This was arbitrary to demonstrate the feature.]
@@ -607,6 +653,7 @@ demo3.fit <- TimeStratPetersenNonDiagErrorNP_fit(  # notice change in function n
                   debug=TRUE,             # save time by reducing number of MCMC iterations
                   save.output.to.files=FALSE)
 ```
+
 The final parameter (*save.output.to.files*) can be set to automatically to save plots and reports in files with the appropriate prefix in the working directory.  
 
 ```{r deletefiles3,echo=FALSE,results="hide" }
@@ -627,29 +674,35 @@ file.remove("model.txt"      )
 ## The output from the fit
 
 Here is the fitted spline curve to the number of unmarked fish available in each recovery sample
+
 ```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted spline curve")}
 demo3.fit$plots$fit.plot
 ```
 
 
 The distribution of the posterior sample for the total number unmarked and total abundance is available:
+
 ```{r fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Distribution of posterior samples")}
 demo3.fit$plots$post.UNtot.plot
 ```
 
 
 A plot of the $logit(P)$ is 
+
 ```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
 demo3.fit$plots$logitP.plot
 ```
+
 In cases where there is little information, $BTSPAS$ has shared information based on the distribution of catchability
 in the other strata.
 
 A summary of the posterior for each parameter is also available. In particular, here are the
 summary statistics on the posterior sample for the total number unmarked and total abundance:
+
 ```{r}
 demo3.fit$summary[ row.names(demo3.fit$summary) %in% c("Ntot","Utot"),]
 ```
+
 This also includes the Rubin-Brooks-Gelman statistic ($Rhat$) on mixing of the chains and the effective sample size 
 of the posterior (after
 accounting for autocorrelation).
@@ -659,16 +712,19 @@ The estimated total abundance from $BTSPAS$ is
 `r formatC(round(demo3.fit$summary[ "Ntot","sd"  ]), big.mark=",", digits=0, format="f")` ) fish.
 
 The estimated distribution function is allowed by vary by release stratum around a common "mean" distribution.
+
 ```{r }
 probs <- demo3.fit$summary[grepl("movep", row.names(demo3.fit$summary)),  ]
 round(probs,3)
 ```
+
 So we expect that about `r round(probs[1,"mean"]*100,0)`% of fish will migrate to the second trap in the day of release;
 about `r round(probs[2,"mean"]*100,0)`% of fish will migrate to the second trap in the second day after release etc.
 
 The movement for each release stratum varies around this base distribution.
 It is also possible to see the probability of moving from release stratum $i$ to recovery stratum $j$ by looking
 at the $Theta[i,j]$ values. Here are the transition probabilities for the first release stratum:
+
 ```{r}
 round(demo3.fit$summary[ grepl("Theta[1,", row.names(demo3.fit$summary),fixed=TRUE),],3)
 ```

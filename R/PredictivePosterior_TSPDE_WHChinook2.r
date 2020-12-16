@@ -23,6 +23,7 @@ select.u2.A.YoY <- !is.na(u2.A.YoY) & (time>hatch.after.YoY)
 select.u2.N.YoY <- !is.na(u2.N.YoY)
 select.u2.A.1   <- !is.na(u2.A.1)   # These could residualize and be available even before hatch.after the next year.
 select.u2.N.1   <- !is.na(u2.N.1)
+
 for(i in 1:nrow(p)){
    # generate sample data
    gen.m2 <- rbinom(ncol(p), n1, p[i,])

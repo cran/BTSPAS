@@ -1,3 +1,5 @@
+# 2020-12-15 CJS Remove sampfrac from code
+# 2020-11-07 CJS Allowed user to specify prior for beta coefficient for logitP
 # 2018-12-19 CJS deprecated use of sampling fraction
 # 2018-12-06 CJS converted report to textConnection
 # 2018-12-06 CJS converted initial plot to ggplots
@@ -51,18 +53,12 @@
 #' captured in each stratum.
 #' @param u2.H.1 A numeric vector of the number of unmarked hatchery age 1+ fish
 #' (i.e. adipose fin clipped) captured in each stratum.
-#' @param sampfrac \strong{Deprecated} DO NOT USE ANYMORE. A numeric vector with entries between 0 and 1 indicating
-#' what fraction of the stratum was sampled. For example, if strata are
-#' calendar weeks, and sampling occurred only on 3 of the 7 days, then the
-#' value of \code{sampfrac} for that stratum would be 3/7.
+#' @template sampfrac
 #' @param hatch.after A numeric vector with elements belonging to \code{time}.
 #' At which point do hatchery fish arrive? They arrive in the immediate stratum
 #' AFTER these entries.
-#' @param bad.m2 A numeric vector with elements belonging to \code{time}.  In
-#' some cases, something goes wrong in the stratum, and the number of recovered
-#' fish should be ignored.  For example, poor handling is suspected to induce
-#' handling induced mortality in the marked fish and so only very few are
-#' recovered. The values of \code{m2} will be set to NA for these strata.
+#' @template bad.n1
+#' @template bad.m2 
 #' @param bad.u2.W.YoY A numeric vector with elements belonging to \code{time}.
 #' In some cases, something goes wrong in the stratum, and the number of wild
 #' unmarked Young-of-Year fish should be ignored.
@@ -88,9 +84,9 @@
 #' the prior for the variance of noise around the spline.
 #' @param taueU.beta One of the parameters along with \code{taueU.alpha} for
 #' the prior for the variance of noise around the spline.
-#' @param mu_xiP One of the parameters for the prior for the mean of the
+#' @param prior.beta.logitP.mean Mean of the prior normal distribution for
 #' logit(catchability) across strata
-#' @param tau_xiP One of the parameter for the prior for the mean of the
+#' @param prior.beta.logitP.sd   SD of the prior normal distribution for
 #' logit(catchability) across strata
 #' @param tauP.alpha One of the parameters for the prior for the variance in
 #' logit(catchability) among strata
@@ -124,12 +120,12 @@ TimeStratPetersenDiagErrorWHSteel_fit <-
   function( title="TSPDE-WHSteel", prefix="TSPDE-WHSteel-", 
            time, n1, m2, u2.W.YoY, u2.W.1, u2.H.1, sampfrac=rep(1,length(u2.W.YoY)), 
            hatch.after=NULL, 
-           bad.m2=c(), bad.u2.W.YoY=c(), bad.u2.W.1=c(), bad.u2.H.1=c(),
-           logitP.cov=rep(1,length(n1)),
+           bad.n1=c(), bad.m2=c(), bad.u2.W.YoY=c(), bad.u2.W.1=c(), bad.u2.H.1=c(),
+           logitP.cov=as.matrix(rep(1,length(n1))),
            n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
            tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05, 
-           mu_xiP=logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)), 
-           tau_xiP=1/var( logit((m2+.5)/(n1+1)), na.rm=TRUE),
+           prior.beta.logitP.mean = c(logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),rep(0,  ncol(as.matrix(logitP.cov))-1)),
+           prior.beta.logitP.sd   = c(sd(logit((m2+.5)/(n1+1)),na.rm=TRUE),        rep(10, ncol(as.matrix(logitP.cov))-1)), 
            tauP.alpha=.001, tauP.beta=.001,
            run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
            debug=FALSE, debug2=FALSE,
@@ -140,7 +136,7 @@ TimeStratPetersenDiagErrorWHSteel_fit <-
 # The steelhead are nice because 100% of hatchery fish are adipose fin clipped and no wild fish are adipose fin clipped
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2020-09-01'
+   version <- '2021-01-01'
    options(width=200)
 
 # Input parameters are
@@ -157,11 +153,7 @@ TimeStratPetersenDiagErrorWHSteel_fit <-
 #    u2.W.YoY - number of wild YoY fish (no clips)
 #    u2.W.1   - number of wild age 1+ fish (no clips)
 #    u2.H.1   - number of hatchery age 1+ fish (ad fin clipped). 100% of hatchery production is fin clipped
-#    sampfrac - DEPRECATED. DO NOT USE ANYMORE. sampling fraction to adjust for how many days of the week was the trap operating
-#              This is expressed as fraction i.e. 3 days out of 7 is expressed as 3/7=.42 etc.
-#              If the trap was operating ALL days, then the SampFrac = 1. It is possible for the sampling
-#              fraction to be > 1 (e.g. a mark is used for 8 days instead of 7. The data are adjusted
-#              back to a 7 day week as well.
+#    sampfrac - DEPRECATED. DO NOT USE ANYMORE. 
 #    hatch.after - julian week AFTER which hatchery fish are released 
 #    bad.m2  - list of julian numbers where the value of m2 is suspect.
 #              For example, the capture rate could be extremely low.
@@ -176,8 +168,8 @@ TimeStratPetersenDiagErrorWHSteel_fit <-
 #               if you have any covariates. The default, if not specified, is a constant (the mean logit)
 #    tauU.alpha, tauU.beta   - parameters for the prior on variance in spline coefficients
 #    taueU.alpha, taueU.beta - parameters for the prior on variance in log(U) around fitted spline 
-#    mu_xiP, tau_xiP         - parameters for the prior on mean logit(P)'s [The intercept term]
-#                              The other covariates are assigned priors of a mean of 0 and a variance of 1000
+#    prior.beta.logitP.mean, prior.beta.logitP.sd   - parameters for the prior on mean logit(P)'s [The intercept term]
+#                              The other covariates are assigned priors of a mean of 0 and a sd of 30
 #    tauP.alpha, tauP.beta   - parameters for the prior on 1/var of residual error in logit(P)'s
 #    run.prob  - percentiles of run timing wanted 
 #    debug  - if TRUE, then this is a test run with very small MCMC chains run to test out the data
@@ -198,6 +190,19 @@ if(var(c(length(n1),length(m2),length(u2.W.YoY),length(u2.W.1),length(u2.H.1), l
    cat("***** ERROR ***** Lengths of n1, m2, u2.W.YoY, u2.W.1, u2.H.1, sampfrac, time must all be equal. They are:",
         length(n1)," ",length(m2)," ",length(u2.W.YoY)," ",length(u2.W.1)," ",length(u2.H.1)," ", length(sampfrac)," ",length(time),"\n")
    return()}
+if(!is.numeric(n1)){
+   cat("***** ERROR ***** n1 must be numeric. You have:",
+        paste(n1,collapse=", "),"\n")
+   return()} 
+if(any(is.na(n1))){
+  cat("***** ERROR ***** All values of n1 must not be missing. You have: ",
+        paste(n1,collapse=", "),"\n")
+   return()}
+if(any(n1 < 0, na.rm=TRUE)){
+  cat("***** ERROR ***** All values of n1 must be non-negative. You have: ",
+        paste(n1,collapse=", "),"\n")
+   return()}
+
 if(length(logitP.cov) %% length(n1) != 0){
    cat("***** ERROR ***** Dimension of covariate vector doesn't match length of n1 etc They are:",
         length(n1)," ",length(logitP.cov)," ",dim(logitP.cov),"\n")
@@ -236,6 +241,18 @@ if(!all(hatch.after %in% time, na.rm=TRUE)){
        paste(time,       collapse=","), "\n")
    return()}
 
+# Check that that the prior.beta.logitP.mean and prior.beta.logitP.sd length=number of columns of covariates
+logitP.cov <- as.matrix(logitP.cov)
+if(!is.vector(prior.beta.logitP.mean) | !is.vector(prior.beta.logitP.sd)){
+   stop("prior.beta.logitP.mean and prior.beta.logitP.sd must be vectors")
+}
+if(!is.numeric(prior.beta.logitP.mean) | !is.numeric(prior.beta.logitP.sd)){
+   stop("prior.beta.logitP.mean and prior.beta.logitP.sd must be numeric")
+}
+if(length(prior.beta.logitP.mean) != ncol(logitP.cov) | length(prior.beta.logitP.sd) != ncol(logitP.cov)){
+   stop("prior.beta.logitP.mean and prior.beta.logitP.sd must be same length as number columns in covariate matrix")
+}
+
 # Deprecation of sampling fraction.
 if(any(sampfrac != 1)){
   cat("***** ERROR ***** Sampling fraction is deprecated for any values other than 1. DO NOT USE ANYMORE. ")
@@ -256,8 +273,8 @@ cat("\n\n", title, "Results \n\n")
 
 
 cat("*** Raw data *** \n")
-temp<- cbind(time, n1, m2, u2.W.YoY, u2.W.1, u2.H.1, round(sampfrac,digits=2), logitP.cov)
-colnames(temp)<- c('time', 'n1','m2','u2.W.YoY', 'u2.W.1', 'u2.H.1','SampFrac', paste("logitPcov[", 1:ncol(as.matrix(logitP.cov)),"]",sep="") )
+temp<- cbind(time, n1, m2, u2.W.YoY, u2.W.1, u2.H.1, logitP.cov)
+colnames(temp)<- c('time', 'n1','m2','u2.W.YoY', 'u2.W.1', 'u2.H.1', paste("logitPcov[", 1:ncol(as.matrix(logitP.cov)),"]",sep="") )
 print(temp) 
 cat("\n\n")
 cat("Hatchery fish are released AFTER strata: ", hatch.after,"\n\n")
@@ -272,19 +289,19 @@ cat("The following strata had u2.H.1   set to missing: ",
 
 
 # Pooled Petersen estimator over ALL of the data including when no releases take place, bad m2, bad.u2.* values.
-cat("\n\n*** Pooled Petersen Estimates based on pooling over ALL strata adjusting for sampling fractions ***\n\n")
-cat("W.YoY  Total n1=", sum(n1, na.rm=TRUE),";  m2=",sum(m2, na.rm=TRUE),";  u2=",sum(u2.W.YoY/sampfrac, na.rm=TRUE),"\n")
-pp <- SimplePetersen(sum(n1, na.rm=TRUE), sum(m2, na.rm=TRUE), sum(u2.W.YoY/sampfrac, na.rm=TRUE))
+cat("\n\n*** Pooled Petersen Estimates based on pooling over ALL strata ***\n\n")
+cat("W.YoY  Total n1=", sum(n1, na.rm=TRUE),";  m2=",sum(m2, na.rm=TRUE),";  u2=",sum(u2.W.YoY, na.rm=TRUE),"\n")
+pp <- SimplePetersen(sum(n1, na.rm=TRUE), sum(m2, na.rm=TRUE), sum(u2.W.YoY, na.rm=TRUE))
 cat("W.YoY  Est U(total) ", format(round(pp$U.est),big.mark=","),"  (SE ", format(round(pp$U.se), big.mark=","), ")\n")
 cat("W.YoY  Est N(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round(pp$N.se), big.mark=","), ")\n\n\n")
 
-cat("W.1    Total n1=", sum(n1, na.rm=TRUE),";  m2=",sum(m2, na.rm=TRUE),";  u2=", sum(u2.W.1/sampfrac, na.rm=TRUE),"\n")
-pp <- SimplePetersen(sum(n1, na.rm=TRUE), sum(m2, na.rm=TRUE), sum(u2.W.1/sampfrac, na.rm=TRUE))
+cat("W.1    Total n1=", sum(n1, na.rm=TRUE),";  m2=",sum(m2, na.rm=TRUE),";  u2=", sum(u2.W.1, na.rm=TRUE),"\n")
+pp <- SimplePetersen(sum(n1, na.rm=TRUE), sum(m2, na.rm=TRUE), sum(u2.W.1, na.rm=TRUE))
 cat("W.1    Est U(total) ", format(round(pp$U.est),big.mark=","),"  (SE ", format(round(pp$U.se), big.mark=","), ")\n")
 cat("W.1    Est N(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round(pp$N.se), big.mark=","), ")\n\n\n")
 
-cat("H.1    Total n1=", sum(n1, na.rm=TRUE),";  m2=",sum(m2, na.rm=TRUE),";  u2=",sum(u2.H.1/sampfrac, na.rm=TRUE),"\n")
-pp <- SimplePetersen(sum(n1, na.rm=TRUE), sum(m2, na.rm=TRUE), sum(u2.H.1/sampfrac, na.rm=TRUE))
+cat("H.1    Total n1=", sum(n1, na.rm=TRUE),";  m2=",sum(m2, na.rm=TRUE),";  u2=",sum(u2.H.1, na.rm=TRUE),"\n")
+pp <- SimplePetersen(sum(n1, na.rm=TRUE), sum(m2, na.rm=TRUE), sum(u2.H.1, na.rm=TRUE))
 cat("H.1    Est U(total) ", format(round(pp$U.est),big.mark=","),"  (SE ", format(round(pp$U.se), big.mark=","), ")\n")
 cat("H.1    Est N(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round(pp$N.se), big.mark=","), ")\n\n\n")
 
@@ -299,20 +316,19 @@ temp.m2       <- m2      [select]
 temp.u2.W.YoY <- u2.W.YoY[select]
 temp.u2.W.1   <- u2.W.1  [select]
 temp.u2.H.1   <- u2.H.1  [select]
-temp.sampfrac <- sampfrac[select]
 
-cat("W.YoY  Total n1=", sum(temp.n1, na.rm=TRUE),";  m2=",sum(temp.m2, na.rm=TRUE),";  u2=",sum(temp.u2.W.YoY/temp.sampfrac, na.rm=TRUE),"\n")
-pp <- SimplePetersen(sum(temp.n1, na.rm=TRUE), sum(temp.m2, na.rm=TRUE), sum(temp.u2.W.YoY/temp.sampfrac, na.rm=TRUE))
+cat("W.YoY  Total n1=", sum(temp.n1, na.rm=TRUE),";  m2=",sum(temp.m2, na.rm=TRUE),";  u2=",sum(temp.u2.W.YoY, na.rm=TRUE),"\n")
+pp <- SimplePetersen(sum(temp.n1, na.rm=TRUE), sum(temp.m2, na.rm=TRUE), sum(temp.u2.W.YoY, na.rm=TRUE))
 cat("W.YoY  Est U(total) ", format(round(pp$U.est),big.mark=","),"  (SE ", format(round(pp$U.se), big.mark=","), ")\n")
 cat("W.YoY  Est N(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round(pp$N.se), big.mark=","), ")\n\n\n")
 
-cat("W.1    Total n1=", sum(temp.n1, na.rm=TRUE),";  m2=",sum(temp.m2, na.rm=TRUE),";  u2=", sum(temp.u2.W.1/temp.sampfrac, na.rm=TRUE),"\n")
-pp <- SimplePetersen(sum(temp.n1, na.rm=TRUE), sum(temp.m2, na.rm=TRUE), sum(temp.u2.W.1/temp.sampfrac, na.rm=TRUE))
+cat("W.1    Total n1=", sum(temp.n1, na.rm=TRUE),";  m2=",sum(temp.m2, na.rm=TRUE),";  u2=", sum(temp.u2.W.1, na.rm=TRUE),"\n")
+pp <- SimplePetersen(sum(temp.n1, na.rm=TRUE), sum(temp.m2, na.rm=TRUE), sum(temp.u2.W.1, na.rm=TRUE))
 cat("W.1    Est U(total) ", format(round(pp$U.est),big.mark=","),"  (SE ", format(round(pp$U.se), big.mark=","), ")\n")
 cat("W.1    Est U(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round(pp$N.se), big.mark=","), ")\n\n\n")
 
-cat("H.1    Total n1=", sum(temp.n1, na.rm=TRUE),";  m2=",sum(temp.m2, na.rm=TRUE),";  u2=",sum(temp.u2.H.1/temp.sampfrac, na.rm=TRUE),"\n")
-pp <- SimplePetersen(sum(temp.n1, na.rm=TRUE), sum(temp.m2, na.rm=TRUE), sum(temp.u2.H.1/sampfrac, na.rm=TRUE))
+cat("H.1    Total n1=", sum(temp.n1, na.rm=TRUE),";  m2=",sum(temp.m2, na.rm=TRUE),";  u2=",sum(temp.u2.H.1, na.rm=TRUE),"\n")
+pp <- SimplePetersen(sum(temp.n1, na.rm=TRUE), sum(temp.m2, na.rm=TRUE), sum(temp.u2.H.1, na.rm=TRUE))
 cat("H.1    Est U(total) ", format(round(pp$U.est),big.mark=","),"  (SE ", format(round(pp$U.se), big.mark=","), ")\n")
 cat("H.1    Est U(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round(pp$N.se), big.mark=","), ")\n\n\n")
 
@@ -352,20 +368,19 @@ temp.m2        <- m2      [select]
 temp.u2.W.YoY  <- u2.W.YoY[select]
 temp.u2.W.1    <- u2.W.1  [select]
 temp.u2.H.1    <- u2.H.1  [select]
-temp.sampfrac  <- sampfrac[select]
 
-cat("W.YoY  Total n1=", sum(temp.n1),";  m2=",sum(temp.m2),";  u2=",sum(temp.u2.W.YoY/temp.sampfrac),"\n")
-pp <- SimplePetersen(sum(temp.n1), sum(temp.m2), sum(temp.u2.W.YoY/temp.sampfrac))
+cat("W.YoY  Total n1=", sum(temp.n1),";  m2=",sum(temp.m2),";  u2=",sum(temp.u2.W.YoY),"\n")
+pp <- SimplePetersen(sum(temp.n1), sum(temp.m2), sum(temp.u2.W.YoY))
 cat("W.YoY  Est U(total) ", format(round(pp$U.est),big.mark=","),"  (SE ", format(round(pp$U.se), big.mark=","), ")\n")
 cat("W.YoY  Est N(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round(pp$N.se), big.mark=","), ")\n\n\n")
 
-cat("W.1    Total n1=", sum(temp.n1),";  m2=",sum(temp.m2),";  u2=",sum(temp.u2.W.1/temp.sampfrac),"\n")
-pp <- SimplePetersen(sum(temp.n1), sum(temp.m2), sum(temp.u2.W.1/temp.sampfrac))
+cat("W.1    Total n1=", sum(temp.n1),";  m2=",sum(temp.m2),";  u2=",sum(temp.u2.W.1),"\n")
+pp <- SimplePetersen(sum(temp.n1), sum(temp.m2), sum(temp.u2.W.1))
 cat("W.1    Est U(total) ", format(round(pp$U.est),big.mark=","),"  (SE ", format(round(pp$U.se), big.mark=","), ")\n")
 cat("W.1    Est N(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round(pp$N.se), big.mark=","), ")\n\n\n")
 
-cat("H.1   Total n1=", sum(temp.n1),";  m2=",sum(temp.m2),";  u2=",sum(temp.u2.H.1/temp.sampfrac),"\n")
-pp <- SimplePetersen(sum(temp.n1), sum(temp.m2), sum(temp.u2.H.1/temp.sampfrac))
+cat("H.1   Total n1=", sum(temp.n1),";  m2=",sum(temp.m2),";  u2=",sum(temp.u2.H.1),"\n")
+pp <- SimplePetersen(sum(temp.n1), sum(temp.m2), sum(temp.u2.H.1))
 cat("H.1   Est U(total) ", format(round(pp$U.est),big.mark=","),"  (SE ", format(round(pp$U.se), big.mark=","), ")\n")
 cat("H.1   Est N(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round(pp$N.se), big.mark=","), ")\n\n\n")
 
@@ -429,8 +444,8 @@ temp.u2.H.1 <- u2.H.1
 temp.u2.H.1[index.bad.u2.H.1] <- NA
 
 cat("\nW.YoY raw data\n")
-sp <- SimplePetersen(temp.n1, temp.m2, temp.u2.W.YoY/sampfrac)
-temp <- cbind(time, temp.n1, temp.m2, temp.u2.W.YoY/sampfrac, round(sp$U.est), round(sp$U.se))
+sp <- SimplePetersen(temp.n1, temp.m2, temp.u2.W.YoY)
+temp <- cbind(time, temp.n1, temp.m2, temp.u2.W.YoY, round(sp$U.est), round(sp$U.se))
 colnames(temp) <- c('time', 'n1','m2','u2.W.YoY(adj)', 'U[i]', 'SE(U[i])')
 print(temp)
 cat("\n")
@@ -438,8 +453,8 @@ cat("W.YoY Est U(total) ", format(round(sum(sp$U.est, na.rm=TRUE)),big.mark=",")
     "  (SE ", format(round(sqrt(sum(sp$U.se^2, na.rm=TRUE))), big.mark=","), ")\n\n\n")
 
 cat("\nW.1   raw data\n")
-sp <- SimplePetersen(temp.n1, temp.m2, temp.u2.W.1/sampfrac)
-temp <- cbind(time, temp.n1, temp.m2, temp.u2.W.1/sampfrac, round(sp$U.est), round(sp$U.se))
+sp <- SimplePetersen(temp.n1, temp.m2, temp.u2.W.1)
+temp <- cbind(time, temp.n1, temp.m2, temp.u2.W.1, round(sp$U.est), round(sp$U.se))
 colnames(temp) <- c('time', 'n1','m2','u2.W.1(adj)', 'U[i]', 'SE(U[i])')
 print(temp)
 cat("\n")
@@ -447,8 +462,8 @@ cat("W.1   Est U(total) ", format(round(sum(sp$U.est, na.rm=TRUE)),big.mark=",")
     "  (SE ", format(round(sqrt(sum(sp$U.se^2, na.rm=TRUE))), big.mark=","), ")\n\n\n")
 
 cat("\nH.1   raw data\n")
-sp <- SimplePetersen(temp.n1, temp.m2, temp.u2.H.1/sampfrac)
-temp <- cbind(time, temp.n1, temp.m2, temp.u2.H.1/sampfrac, round(sp$U.est), round(sp$U.se))
+sp <- SimplePetersen(temp.n1, temp.m2, temp.u2.H.1)
+temp <- cbind(time, temp.n1, temp.m2, temp.u2.H.1, round(sp$U.est), round(sp$U.se))
 colnames(temp) <- c('time', 'n1','m2','u2.H.1(adj)', 'U[i]', 'SE(U[i])')
 print(temp)
 cat("\n")
@@ -479,7 +494,6 @@ new.m2         <- rep(0, max(time)-min(time)+1)
 new.u2.W.YoY   <- rep(0, max(time)-min(time)+1)
 new.u2.W.1     <- rep(0, max(time)-min(time)+1)
 new.u2.H.1     <- rep(0, max(time)-min(time)+1)
-new.sampfrac   <- rep(0, max(time)-min(time)+1)
 new.logitP.cov <- matrix(NA, nrow=max(time)-min(time)+1, ncol=ncol(as.matrix(logitP.cov)))
 new.time       <- min(time):max(time)
 
@@ -498,7 +512,6 @@ new.u2.H.1  [time-min(time)+1]             <- u2.H.1
 new.u2.H.1  [bad.u2.H.1-min(time)+1]       <- NA    # wipe out strata where u2.W.1 is known to be bad
 
 
-new.sampfrac[time-min(time)+1]   <- sampfrac
 new.logitP.cov[time-min(time)+1,]<- as.matrix(logitP.cov)
 new.logitP.cov[ is.na(new.logitP.cov[,1]), 1] <- 1  # insert a 1 into first columns where not specified
 new.logitP.cov[ is.na(new.logitP.cov)] <- 0         # other covariates are forced to zero not in column 1
@@ -509,31 +522,13 @@ new.logitP.cov[ is.na(new.logitP.cov)] <- 0         # other covariates are force
 new.m2[new.n1==0] <- NA
 new.n1[new.n1==0] <- 1
 
-# Adjust data when a stratum has less than 100% sampling fraction to "estimate" the number
-# of unmarked fish that were captured. It is not necessary to adjust the n1 and m2 values 
-# as these are used ONLY to estimate the capture efficiency. 
-# In reality, there should be a slight adjustment
-# to the precision to account for this change, but this is not done.
-# Similarly, if the sampling fraction is more than 1, the adjustment forces the total unmarked catch back to a single week.
-new.u2.W.YoY <- round(new.u2.W.YoY/new.sampfrac)
-new.u2.W.1   <- round(new.u2.W.1  /new.sampfrac)
-new.u2.H.1   <- round(new.u2.H.1  /new.sampfrac)
-
-
-# Adjust for strata where sampling fraction=0. On these strata
-# u2.* is set to NA so that there is NO information on U2 for this stratum
-new.u2.W.YoY[new.sampfrac<.001] <- NA
-new.u2.W.1  [new.sampfrac<.001] <- NA
-new.u2.H.1  [new.sampfrac<.001] <- NA
-
-
 # Print out the revised data
 hatch.indicator <- rep('   ', max(time)-min(time)+1)
 hatch.indicator[hatch.after-min(time)+1]<- '***'
 
 cat("\n\n*** Revised data *** \n")
 temp<- data.frame(time=new.time, n1=new.n1, m2=new.m2, u2.W.YoY=new.u2.W.YoY, u2.W.1=new.u2.W.1, u2.H.1=new.u2.H.1, 
-       sampfrac=round(new.sampfrac,digits=2), new.logitP.cov=new.logitP.cov, 
+       new.logitP.cov=new.logitP.cov, 
        hatch.indicator=hatch.indicator)
 print(temp) 
 cat("\n\n")
@@ -546,8 +541,7 @@ cat("   Parameters for prior on tauU (variance in spline coefficients: ", tauU.a
 cat("   Parameters for prior on taueU (variance of log(U) about spline: ",taueU.alpha, taueU.beta, 
     " which corresponds to a mean/std dev of 1/var of:",
     round(taueU.alpha/taueU.beta,2),round(sqrt(taueU.alpha/taueU.beta^2),2),"\n")
-cat("   Parameters for prior on beta.logitP[1] (intercept) (mean, 1/var):", round(mu_xiP,3), round(tau_xiP,5),
-    " which corresponds to a median P of ", round(expit(mu_xiP),3), "\n")
+cat("   Parameters for prior on beta.logitP[1] (intercept) (mean, sd): \n", cbind(round(prior.beta.logitP.mean,3), round(prior.beta.logitP.sd,5)),"\n")
 cat("   Parameters for prior on tauP (residual variance of logit(P) after adjusting for covariates: ",tauP.alpha, tauP.beta, 
     " which corresponds to a mean/std dev of 1/var of:",
     round(tauP.alpha/tauP.beta,2),round(sqrt(tauP.alpha/tauP.beta^2),2),"\n")
@@ -568,6 +562,8 @@ if (debug)
             hatch.after=hatch.after-min(time)+1, 
             logitP.cov=new.logitP.cov,
             n.chains=3, n.iter=10000, n.burnin=5000, n.sims=500,   # set to low value for debugging only
+            prior.beta.logitP.mean=prior.beta.logitP.mean, 
+            prior.beta.logitP.sd  =prior.beta.logitP.sd,
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
             debug=debug, debug2=debug2, InitialSeed=InitialSeed,
             save.output.to.files=save.output.to.files)
@@ -577,6 +573,8 @@ if (debug)
             hatch.after=hatch.after-min(time)+1, 
             logitP.cov=new.logitP.cov,
             n.chains=n.chains, n.iter=n.iter, n.burnin=n.burnin, n.sims=n.sims, 
+            prior.beta.logitP.mean=prior.beta.logitP.mean, 
+            prior.beta.logitP.sd  =prior.beta.logitP.sd,
             tauU.alpha=tauU.alpha, tauU.beta=tauU.beta, taueU.alpha=taueU.alpha, taueU.beta=taueU.beta,
             debug=debug, debug2=debug2, InitialSeed=InitialSeed,
             save.output.to.files=save.output.to.files)
@@ -814,7 +812,6 @@ results$report <- stdout
 
 # add some of the raw data to the bugs object for simplicity in referencing it later
 results$data <- list( time=time, n1=n1, m2=m2, u2.W.YoY=u2.W.YoY, u2.W.1=u2.W.1, u2.H.1=u2.H.1,
-                      sampfrac=sampfrac, 
                       hatch.after=hatch.after, 
                       bad.m2=bad.m2, bad.u2.W.YoY=bad.u2.W.YoY, bad.u2.W.1=bad.u2.W.1, bad.u2.H.1=bad.u2.H.1, 
                       logitP.cov=logitP.cov,

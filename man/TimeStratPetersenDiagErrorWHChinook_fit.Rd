@@ -26,7 +26,7 @@ TimeStratPetersenDiagErrorWHChinook2_fit(
   bad.u2.N.YoY = c(),
   bad.u2.A.1 = c(),
   bad.u2.N.1 = c(),
-  logitP.cov = rep(1, length(n1)),
+  logitP.cov = as.matrix(rep(1, length(n1))),
   n.chains = 3,
   n.iter = 2e+05,
   n.burnin = 1e+05,
@@ -35,8 +35,10 @@ TimeStratPetersenDiagErrorWHChinook2_fit(
   tauU.beta = 0.05,
   taueU.alpha = 1,
   taueU.beta = 0.05,
-  mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)),
-  tau_xiP = 1/var(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE),
+  prior.beta.logitP.mean = c(logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)), rep(0,
+    ncol(as.matrix(logitP.cov)) - 1)),
+  prior.beta.logitP.sd = c(sd(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE), rep(10,
+    ncol(as.matrix(logitP.cov)) - 1)),
   tauP.alpha = 0.001,
   tauP.beta = 0.001,
   run.prob = seq(0, 1, 0.1),
@@ -57,10 +59,11 @@ TimeStratPetersenDiagErrorWHChinook_fit(
   clip.frac.H,
   sampfrac = rep(1, length(u2.A)),
   hatch.after = NULL,
+  bad.n1 = c(),
   bad.m2 = c(),
   bad.u2.A = c(),
   bad.u2.N = c(),
-  logitP.cov = rep(1, length(n1)),
+  logitP.cov = as.matrix(rep(1, length(n1))),
   n.chains = 3,
   n.iter = 2e+05,
   n.burnin = 1e+05,
@@ -69,8 +72,10 @@ TimeStratPetersenDiagErrorWHChinook_fit(
   tauU.beta = 0.05,
   taueU.alpha = 1,
   taueU.beta = 0.05,
-  mu_xiP = logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)),
-  tau_xiP = 1/var(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE),
+  prior.beta.logitP.mean = c(logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)), rep(0,
+    ncol(as.matrix(logitP.cov)) - 1)),
+  prior.beta.logitP.sd = c(sd(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE), rep(10,
+    ncol(as.matrix(logitP.cov)) - 1)),
   tauP.alpha = 0.001,
   tauP.beta = 0.001,
   run.prob = seq(0, 1, 0.1),
@@ -112,10 +117,9 @@ So u2.A.1 MUST be hatchery fish.
 
 \item{clip.frac.H.YoY, clip.frac.H.1}{Fraction of the YoY hatchery/Age1 (from last year's releases) hatchery fish are clipped?\ (between 0 and 1)}
 
-\item{sampfrac}{\strong{Deprecated}. DO NOT USE ANYMORE. A numeric vector with entries between 0 and 1 indicating
-what fraction of the stratum was sampled. For example, if strata are
-calendar weeks, and sampling occurred only on 3 of the 7 days, then the
-value of \code{sampfrac} for that stratum would be 3/7.}
+\item{sampfrac}{\strong{Deprecated} because it really doesn't work as intended.
+You must remove all references to sampfrac from your code. Contact \email{cschwarz.stat.sfu.ca@gmail.com}
+for more information.}
 
 \item{hatch.after.YoY}{A numeric vector with elements belonging to
 \code{time}.  At which point do YoY hatchery fish arrive? They arrive in the
@@ -123,9 +127,10 @@ immediate stratum AFTER these entries.}
 
 \item{bad.m2}{A numeric vector with elements belonging to \code{time}.  In
 some cases, something goes wrong in the stratum, and the number of recovered
-fish should be ignored.  For example, poor handling is suspected to induce
-handling induced mortality in the marked fish and so only very few are
-recovered. The values of \code{m2} will be set to NA for these strata.}
+marked fish should be ignored. For example, poor handling is suspected to
+induce handling induced mortality in the marked fish and so only very few
+are recovered.  The values of \code{n1} and \code{m2} will be set to 0
+for these strata.}
 
 \item{bad.u2.A.YoY, bad.u2.N.YoY}{List of julian weeks where the value of u2.A.YoY/u2.N.YoY is suspect. 
 These are set to NA prior to the fit.}
@@ -158,10 +163,10 @@ the prior for the variance of noise around the spline.}
 \item{taueU.beta}{One of the parameters along with \code{taueU.alpha} for
 the prior for the variance of noise around the spline.}
 
-\item{mu_xiP}{One of the parameters for the prior for the mean of the
+\item{prior.beta.logitP.mean}{Mean of the prior normal distribution for
 logit(catchability) across strata}
 
-\item{tau_xiP}{One of the parameter for the prior for the mean of the
+\item{prior.beta.logitP.sd}{SD of the prior normal distribution for
 logit(catchability) across strata}
 
 \item{tauP.alpha}{One of the parameters for the prior for the variance in
@@ -200,6 +205,11 @@ that have the adipose fin clipped (between 0 and 1).}
 \item{hatch.after}{A numeric vector with elements belonging to \code{time}.
 At which point do hatchery fish arrive? They arrive in the immediate stratum
 AFTER these entries.}
+
+\item{bad.n1}{A numeric vector with elements belonging to \code{time}.  In
+some cases, something goes wrong in the stratum, and the number of marked
+fish releases should be discarded.  The values of \code{n1} and \code{m2} will be set to
+0 for these strata.}
 
 \item{bad.u2.A}{A numeric vector with elements belonging to \code{time}.  In
 some cases, something goes wrong in the stratum, and the number of unmarked

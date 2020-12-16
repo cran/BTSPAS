@@ -25,7 +25,9 @@ library(BTSPAS)
 library(ggplot2)
 max.width=70
 ```
+
 # Location of vignette source and code.
+
 Because of the length of time needed to run the vignettes, only
 static vignettes have been included with this package.
 
@@ -40,6 +42,8 @@ occurrences as explained below.
 
 In all cases, only diagonal recoveries are allowed.
 
+## Fixing values of $p$ or using covariates.
+
 Refer to the vignette on the *Diagonal Case* for information about fixing values of $p$ or modelling 
 $p$ using covariates such a stream flow or smoothing $p$ using a temporal spline.
 
@@ -52,7 +56,7 @@ releases and recoveries is diagonal.
 The $n1[j]$ and $m2[j]$ establish the capture efficiency of the trap.
  
 At the same time, $u2[j]$ unmarked fish are captured at the screw trap.
-These fish are a mixture of wild and hatchery raised chinook salmon.
+These fish are a mixture of wild and hatchery raised Chinook Salmon.
 A portion (*clip.rate*) of the hatchery raised fish are adipose fin clipped and can be recognized as hatchery raised.
 The unclipped fish are a mixture of wild and hatchery fish which must be separated.
 Hence the $u2[j]$ are separated into:
@@ -62,7 +66,9 @@ Hence the $u2[j]$ are separated into:
 
 
 ## Reading in the data
+
 Here is an example of some raw data that is read in:
+
 ```{r}
 demo.data.csv <- textConnection(
 "     jweek,      n1,      m2,      u2.A,      u2.N
@@ -125,6 +131,7 @@ We already read in the data above. Here we set the rest of the parameters.
 * the *clip.frac.H* variable identify what fraction of the hatchery fish have adipose fin clips.
 
 Don't forget to set the working directory as appropriate:
+
 ```{r }
 library("BTSPAS")  
 
@@ -186,6 +193,7 @@ file.remove("model.txt"      )
 ## The output from the fit
 
 Here is the fitted spline curve to the number of unmarked fish available in each recovery sample
+
 ```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted spline curve")}
 demo.fit$plots$fit.plot
 ```
@@ -194,14 +202,17 @@ The separation of wild and hatchery fish is evident as well has the start of the
 
 
 A plot of the $logit(P)$ is 
+
 ```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
 demo.fit$plots$logitP.plot
 ```
+
 In cases where there is no information (such as the first julian week), $BTSPAS$ has interpolated based on the distribution of catchability
 in the other strata and so the credible interval is very wide.
 
 A summary of the posterior for each parameter is also available. In particular, here are the
 summary statistics on the posterior sample for the total number unmarked separated by wild and hatchery origin:
+
 ```{r}
 demo.fit$summary[ row.names(demo.fit$summary) %in% c("Ntot","Utot","Utot.H","Utot.W"),]
 ```
@@ -211,7 +222,7 @@ demo.fit$summary[ row.names(demo.fit$summary) %in% c("Ntot","Utot","Utot.H","Uto
 # Wild and Hatchery Chinook with YoY and Age 1 fish.
 
 In this example, *BTSPAS* allows for
-separating wild from hatchery Chinook salmon when Age-1 chinook are present (residualized) from last year.
+separating wild from hatchery Chinook salmon when Age-1 Chinook Salmon are present (residualized) from last year.
 
 
 In each stratum $j$, $n1[j]$ fish are marked and released above a rotary screw trap.
@@ -220,7 +231,7 @@ releases and recoveries is diagonal.
 The $n1[j]$ and $m2[j]$ establish the capture efficiency of the trap.
  
 At the same time, $u2[j]$ unmarked fish are captured at the screw trap.
-These fish are a mixture of YoY and Age-1 wild and hatchery raised chinook salmon. 
+These fish are a mixture of YoY and Age-1 wild and hatchery raised Chinook Salmon. 
 A portion (*clip.rate.H.YoY*, *clip.rate.H.1*) of the YoY and Age1 hatchery raised fish 
 are adipose fin clipped and can be recognized as hatchery raised.
 The unclipped fish are a mixture of wild and hatchery fish which must be separated.
@@ -234,6 +245,7 @@ Hence the $u2[j]$ are separated into
 
 ## Reading in the data
 Here is an example of some raw data that is read in:
+
 ```{r}
 demo2.data.csv <- textConnection(
 "     jweek,      n1,      m2,      u2.A.YoY,      u2.N.YoY,      u2.A.1,      u2.N.1
@@ -296,6 +308,7 @@ We already read in the data above. Here we set the rest of the parameters.
 * the *clip.frac.H* variables identify what fraction of the hatchery fish have adipose fin clips in the YoY and Age 1 fish.
 
 Don't forget to set the working directory as appropriate:
+
 ```{r }
 library("BTSPAS")  
 
@@ -365,6 +378,7 @@ file.remove("model.txt"      )
 ## The output from the fit
 
 Here is the fitted spline curve to the number of unmarked fish available of both stocks and ages.
+
 ```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted spline curve")}
 demo2.fit$plots$fit.plot
 ```
@@ -373,14 +387,17 @@ The separation of wild and hatchery fish is evident as well has the start of the
 
 
 A plot of the $logit(P)$ is 
+
 ```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
 demo2.fit$plots$logitP.plot
 ```
+
 In cases where there is no information (such as the first julian week), $BTSPAS$ has interpolated based on the distribution of catchability
 in the other strata and so the credible interval is very wide.
 
 A summary of the posterior for each parameter is also available. In particular, here are the
 summary statistics on the posterior sample for the total number unmarked separated by wild and hatchery origin and the different ages:
+
 ```{r}
 round(demo2.fit$summary[ grepl("Utot", row.names(demo2.fit$summary)),],1)
 ```
@@ -415,7 +432,9 @@ The $u2[j]$ are separated into
 
 
 ## Reading in the data
+
 Here is an example of some raw data that is read in:
+
 ```{r}
 demo3.data.csv <- textConnection(
 "     jweek,      n1,      m2,      u2.W.YoY,      u2.W.1,      u2.H.1
@@ -483,6 +502,7 @@ We already read in the data above. Here we set the rest of the parameters.
 * the *clip.frac.H* variables identify what fraction of the hatchery fish have adipose fin clips in the YoY and Age 1 fish.
 
 Don't forget to set the working directory as appropriate:
+
 ```{r }
 library("BTSPAS")  
 
@@ -527,6 +547,7 @@ demo3.fit <- TimeStratPetersenDiagErrorWHSteel_fit(
                   save.output.to.files=FALSE)
 
 ```
+
 The final parameter (*save.output.to.files*) can be set to automatically to save plots and reports in files with the appropriate prefix in the working directory.  
 
 ```{r echo=FALSE,results="hide" }
@@ -546,6 +567,7 @@ file.remove("model.txt"      )
 ## The output from the fit
 
 Here is the fitted spline curve to the number of unmarked fish available of both stocks and ages.
+
 ```{r message=FALSE,warning=FALSE,fig.width=6, fig.height=4, include=TRUE, fig.align="center", fig.cap=c("Fitted spline curve")}
 demo3.fit$plots$fit.plot
 ```
@@ -554,14 +576,17 @@ The separation of wild and hatchery fish is evident as well has the start of the
 
 
 A plot of the $logit(P)$ is 
+
 ```{r warnings=FALSE,message=FALSE,warning=FALSE, fig.width=6, fig.height=4,  include=TRUE, fig.align="center", fig.cap=c("Estimates of logit(p)")}
 demo3.fit$plots$logitP.plot
 ```
+
 In cases where there is no information (such as the first julian week), $BTSPAS$ has interpolated based on the distribution of catchability
 in the other strata and so the credible interval is very wide.
 
 A summary of the posterior for each parameter is also available. In particular, here are the
 summary statistics on the posterior sample for the total number unmarked separated by wild and hatchery origin and the different ages:
+
 ```{r}
 demo3.fit$summary[ grepl("Utot", row.names(demo3.fit$summary)),]
 ```

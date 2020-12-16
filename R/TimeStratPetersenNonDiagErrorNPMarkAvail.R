@@ -1,3 +1,4 @@
+## 2020-11-07 CJS Allow user to specify prior for beta parameters for covariates on logitP
 # 2018-12-23 CJS added movep to BUGS code
 # 2018-11-28 CJS removed referece to OpenBugs
 # 2014-09-01 CJS conversion to JAGS
@@ -17,7 +18,7 @@ TimeStratPetersenNonDiagErrorNPMarkAvail <- function(title,
                                                      m2,
                                                      u2,
                                                      jump.after=NULL,
-                                                     logitP.cov=rep(1,length(u2)),
+                                                     logitP.cov=as.matrix(rep(1,length(u2))),
                                                      logitP.fixed=rep(NA,length(u2)),
                                                      ma.p.alpha,
                                                      ma.p.beta,
@@ -32,8 +33,8 @@ TimeStratPetersenNonDiagErrorNPMarkAvail <- function(title,
                                                      Delta.max,
                                                      tauTT.alpha=.1,
                                                      tauTT.beta=.1,
-                                                     mu_xiP=-2,
-                                                     tau_xiP=.6666, 
+                                                     prior.beta.logitP.mean = c(logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),rep(0,  ncol(as.matrix(logitP.cov))-1)),
+                                                     prior.beta.logitP.sd   = c(2,                                           rep(10, ncol(as.matrix(logitP.cov))-1)), 
                                                      tauP.alpha=.001,
                                                      tauP.beta=.001, 
                                                      debug=FALSE,
@@ -127,8 +128,7 @@ model {
 #      n.b.notflat- number of b coefficients that do not have a flat prior
 #      tauU.alpha, tauU.beta - parameters for prior on tauU
 #      taueU.alpha, taueU.beta - parameters for prior on taueU
-#      mu_xiP, tau_xiP  - parameters for prior on mean logit(P)'s [The intercept term]
-#                       - the other beta terms are given a prior of a N(mu=0, variance=1000)
+#      prior.beta.logitP.mean, prior.beta.logitP.sd  - parameters for prior of coefficient of covariates for logitP
 #      tauP.alpha, tauP.beta - parameter for prior on tauP (residual variance of logit(P)'s after adjusting for
 #                         covariates)
 #      xiMu, tauMu  - mean and precision (1/variance) for prior on mean(log travel-times)
@@ -137,9 +137,7 @@ model {
 #  Parameters of the model are:
 #      p[i]
 #       logitP[i]  = logit(p[i]) = logitP.cov*beta.logitP
-#         The first beta.logitP has a prior from N(xiP, tauP)
-#            and xiP and tauP are currently set internally
-#         The remaining beta's are assigned a wider prior N(mu=0, var=1000).
+#         The beta coefficients have a prior that is N(mean= prior.beta.logitP.mean, sd= prior.beta.logitP.sd)
 #      U[i]
 #       etaU[i]  = log(U[i])
 #         which comes from spline with parameters bU[1... Knots+q]
@@ -210,10 +208,9 @@ model {
    taueU ~ dgamma(taueU.alpha,taueU.beta) # dgamma(100,.05) # Notice reduction from .0005 (in thesis) to .05
    sigmaeU <- 1/sqrt(taueU)
 
-   ## Capture probabilities. The logit(p[i]) are n(logitP.cov*beta.logitP.cov, sigmaP**2)
-   beta.logitP[1] ~ dnorm(mu_xiP,tau_xiP) # first term is usually an intercept
-   for(i in 2:NlogitP.cov){
-      beta.logitP[i] ~ dnorm(0, .01)   # rest of beta terms are normal 0 and a large variance
+   ## Capture probabilities covariates
+   for(i in 1:NlogitP.cov){
+      beta.logitP[i] ~ dnorm(prior.beta.logitP.mean[i], 1/prior.beta.logitP.sd[i]^2)  # rest of beta terms are normal 0 and a large variance
    }
    beta.logitP[NlogitP.cov+1] ~ dnorm(0, .01) # dummy so that covariates of length 1 function properly
    tauP ~ dgamma(tauP.alpha,tauP.beta)
@@ -325,13 +322,14 @@ datalist <- list("Nstrata.rel", "Nstrata.cap","Extra.strata.cap",
                  "b.flat", "n.b.flat", "b.notflat", "n.b.notflat", "n.bU",
                  "tauTT.alpha","tauTT.beta",
                  "tauU.alpha", "tauU.beta", "taueU.alpha", "taueU.beta",
-                 "mu_xiP", "tau_xiP", "tauP.alpha", "tauP.beta")
+                 "prior.beta.logitP.mean", "prior.beta.logitP.sd", 
+                 "tauP.alpha", "tauP.beta")
 
 
 ## Generate the initial values for the parameters of the model
 
 ## 1) U and spline coefficients
-Uguess <- pmax((u2+1)/expit(mu_xiP),1)  # try and keep Uguess larger than observed values
+Uguess <- pmax((u2+1)/expit(prior.beta.logitP.mean[1]),1)  # try and keep Uguess larger than observed values
 Uguess[which(is.na(Uguess))] <- mean(Uguess,na.rm=TRUE)
 
 init.bU   <- lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
@@ -343,7 +341,7 @@ if(debug2) {
 
 ## 2) Capture probabilities
 logitPguess <- c(logit(pmin(.99,pmax(.01,(apply(m2[,1:(Delta.max+1)],1,sum)+1)/(n1+1)))),
-                 rep(mu_xiP,Nstrata.cap-Nstrata.rel))
+                 rep(prior.beta.logitP.mean[1],Nstrata.cap-Nstrata.rel))
 #browser()
 init.beta.logitP <- as.vector(lm( logitPguess ~ logitP.cov-1)$coefficients)
 if(debug2) {
@@ -380,7 +378,8 @@ if( any(is.na(m2))) {parameters <- c(parameters,"m2")} # monitor in case some ba
 if( any(is.na(u2))) {parameters <- c(parameters,"u2")}
                  
 init.vals <- function(){
-   init.logitP <- c(logit((apply(m2[,1:(Delta.max+1)],1,sum)+1)/(n1+1)),rep(mu_xiP,Nstrata.cap-Nstrata.rel))         # initial capture rates based on observed recaptures
+   init.logitP <- c(logit((apply(m2[,1:(Delta.max+1)],1,sum)+1)/(n1+1)),
+                    rep(prior.beta.logitP.mean[1],Nstrata.cap-Nstrata.rel))         # initial capture rates based on observed recaptures
    init.logitP <- pmin(10,pmax(-10,init.logitP))
    init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
    init.logitP[!is.na(logitP.fixed)] <- NA        # no need to initialize the fixed values
