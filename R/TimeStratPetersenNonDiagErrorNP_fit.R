@@ -46,13 +46,10 @@
 #' 
 #' The *NP functions fit a non-parametric distribution for the travel times.
 #' 
-#' @param title A character string used for a title on reports and graphs
-#' @param prefix A character string used as the prefix for created files. All
-#' created graph files are of the form prefix-xxxxx.pdf.
-#' @param time A numeric vector of time used to label the strata. For example,
-#' this could be julian week for data stratified at a weekly level.
-#' @param n1 A numeric vector of the number of marked fish released in each
-#' time stratum.
+#' @template title
+#' @template prefix
+#' @template time
+#' @template n1 
 #' @param m2 A numeric matrix of the number of fish released in stratum [i] and
 #' recovered in [j-1] strata later.  For example m2[3,5] is the number of
 #' marked fish released in stratum 3 and recovered 4 strata later in stratum 7.
@@ -73,9 +70,7 @@
 #' @template bad.n1 
 #' @template bad.m2 
 #' @template bad.u2 
-#' @param logitP.cov A numeric matrix for covariates to fit the
-#' logit(catchability).  Default is a single intercept, i.e. all strata have
-#' the same mean logit(catchability).
+#' @template logitP.cov
 #' @param logitP.fixed A numeric vector (could be null) of the time strata
 #' where the logit(P) would be fixed. Typically, this is used when the capture
 #' rates for some strata are 0 and logit(P) is set to -10 for these strata. The
@@ -85,11 +80,7 @@
 #' when certain strata have a 0 capture rate and the fixed value is set to -10
 #' which on the logit scale gives p[i] essentially 0. Don't specify values such
 #' as -50 because numerical problems could occur in JAGS.
-#' @param n.chains Number of parallel MCMC chains to fit.
-#' @param n.iter Total number of MCMC iterations in each chain.
-#' @param n.burnin Number of burn-in iterations.
-#' @param n.sims Number of simulated values to keeps for posterior
-#' distribution.
+#' @template mcmc-parms
 #' @param tauU.alpha One of the parameters along with \code{tauU.beta} for the
 #' prior for the variance of the random noise for the smoothing spline.
 #' @param tauU.beta One of the parameters along with \code{tauU.alpha} for the
@@ -130,10 +121,8 @@
 #' produced. Normally the functions will halt at \code{browser()} calls to
 #' allow the user to peek into the internal variables. Not useful except to
 #' package developers.
-#' @param InitialSeed Numeric value used to initialize the random numbers used
-#' in the MCMC iterations.
-#' @param save.output.to.files Should the plots and text output be save to the files
-#' in addition to being stored in the MCMC object? 
+#' @template InitialSeed
+#' @template save.output.to.files
 #' 
 #' @return An MCMC object with samples from the posterior distribution. A
 #' series of graphs and text file are also created in the working directory.
@@ -146,6 +135,7 @@
 #' ##
 #' 
 #' @export TimeStratPetersenNonDiagErrorNP_fit
+#' @importFrom stats runif var sd
 
 TimeStratPetersenNonDiagErrorNP_fit<- function( title="TSPNDENP", prefix="TSPNDENP-",
                          time, n1, m2, u2, sampfrac=rep(1,length(u2)), jump.after=NULL,
@@ -162,14 +152,14 @@ TimeStratPetersenNonDiagErrorNP_fit<- function( title="TSPNDENP", prefix="TSPNDE
                          tauTT.alpha=.1,tauTT.beta=.1,
                          run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted
                          debug=FALSE, debug2=FALSE,
-                         InitialSeed=ceiling(runif(1,min=0,1000000)),
+                         InitialSeed=ceiling(stats::runif(1,min=0,1000000)),
                          save.output.to.files=TRUE) {
   ## Fit a Time Stratified Petersen model with NON-diagonal entries and with smoothing on U allowing for random error
   ## This is the classical stratified Petersen model where the recoveries can take place for this and multiple
   ## strata later. Transisions of marked fish are modelled non-parametrically.
   ##
   
-  version <- '2021-01-01'
+  version <- '2021-11-01'
   options(width=200)
 
   ## Input parameters are
@@ -250,7 +240,7 @@ if(any(n1 < 0, na.rm=TRUE)){
         paste(n1,collapse=", "),"\n")
    return()}
 
-  if(var(c(length(u2),length(sampfrac),length(time)))>0){
+  if(stats::var(c(length(u2),length(sampfrac),length(time)))>0){
     cat("***** ERROR ***** Lengths of u2, sampfrac, time must all be equal. They are:",
          length(u2)," ",length(sampfrac)," ",length(time),"\n")
     return()}
@@ -374,9 +364,9 @@ if(length(prior.beta.logitP.mean) != ncol(logitP.cov) | length(prior.beta.logitP
 
   ## Print information about delta max
   cat("\nMaximum travel time (Delta.max): ",Delta.max)
-  cat("\nFixed logitP indices are:", logitP.fixed)
+  cat("\nFixed logitP indices are: ", logitP.fixed)
   if(length(logitP.fixed)==0) cat("none - NO fixed values")
-  cat("\nFixed logitP values  are:", logitP.fixed.values)
+  cat("\nFixed logitP values  are: ", logitP.fixed.values)
   if(length(logitP.fixed)==0) cat("none - NO fixed values")
 
   ## Obtain the Pooled Petersen estimator prior to fixup of bad.n1, bad.m2, and bad.u2 values
@@ -394,9 +384,9 @@ if(length(prior.beta.logitP.mean) != ncol(logitP.cov) | length(prior.beta.logitP
   select.rel <- !(time[1:length(n1)] %in% bad.n1 | time[1:length(n1)] %in% bad.m2 )
   select.rec <- ! time %in% bad.u2
   cat("\n\n*** Pooled Petersen Estimate after removing release and recovery strata flagged as bad ***\n\n")
-  cat("The following release strata were excluded:",
+  cat("The following release strata were excluded: ",
      if(length(time[!select.rel])>0){time[!select.rel]} else {" NONE"}, "\n")
-  cat("The following recovery strata were excluded:",
+  cat("The following recovery strata were excluded: ",
      if(length(time[!select.rec])>0){time[!select.rec]} else {" NONE"}, "\n")
 
   temp.n1 <- n1[select.rel]

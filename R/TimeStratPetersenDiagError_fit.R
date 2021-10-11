@@ -40,13 +40,10 @@
 #' 
 #' 
 #' @aliases TimeStratPetersenDiagError_fit 
-#' @param title A character string used for a title on reports and graphs
-#' @param prefix A character string used as the prefix for created files. All
-#' created graph files are of the form prefix-xxxxx.pdf.
-#' @param time A numeric vector of time used to label the strata. For example,
-#' this could be julian week for data stratified at a weekly level.
-#' @param n1 A numeric vector of the number of marked fish released in each
-#' time stratum.
+#' @template title
+#' @template prefix
+#' @template time
+#' @template n1
 #' @param m2 A numeric vector of the number of marked fish from n1 that are
 #' recaptured in each time stratum. All recaptures take place within the
 #' stratum of release.
@@ -62,9 +59,7 @@
 #' @template bad.n1 
 #' @template bad.m2 
 #' @template bad.u2
-#' @param logitP.cov A numeric matrix for covariates to fit the
-#' logit(catchability). Default is a single intercept, i.e. all strata have the
-#' same mean logit(catchability).
+#' @template logitP.cov
 #' @param logitP.fixed A numeric vector (could be null) of the time strata
 #' where the logit(P) would be fixed. Typically, this is used when the capture
 #' rates for some strata are 0 and logit(P) is set to -10 for these strata. The
@@ -75,11 +70,7 @@
 #' which on the logit scale gives p[i] essentially 0. Don't specify values such
 #' as -50 because numerical problems could occur in WinBugs/OpenBugs.
 
-#' @param n.chains Number of parallel MCMC chains to fit.
-#' @param n.iter Total number of MCMC iterations in each chain.
-#' @param n.burnin Number of burn-in iterations.
-#' @param n.sims Number of simulated values to keeps for posterior
-#' distribution.
+#' @template mcmc-parms
 #' @param tauU.alpha One of the parameters along with \code{tauU.beta} for the
 #' prior for the variance of the random noise for the smoothing spline.
 #' @param tauU.beta One of the parameters along with \code{tauU.alpha} for the
@@ -105,10 +96,8 @@
 #' produced. Normally the functions will halt at \code{browser()} calls to
 #' allow the user to peek into the internal variables. Not useful except to
 #' package developers.
-#' @param InitialSeed Numeric value used to initialize the random numbers used
-#' in the MCMC iterations.
-#' @param save.output.to.files Should the plots and text output be save to the files
-#' in addition to being stored in the MCMC object? 
+#' @template InitialSeed
+#' @template save.output.to.files
 
 #' 
 #' @return An MCMC object with samples from the posterior distribution. A
@@ -116,6 +105,7 @@
 #' @template author
 #' @template references
 #' @keywords ~models ~smooth
+#' @importFrom stats runif var sd
 #' @export TimeStratPetersenDiagError_fit
 #' 
 #' 
@@ -130,21 +120,20 @@ TimeStratPetersenDiagError_fit <-
            n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
            tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05, 
            prior.beta.logitP.mean = c(logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),rep(0,  ncol(as.matrix(logitP.cov))-1)),
-           prior.beta.logitP.sd   = c(sd(logit((m2+.5)/(n1+1)),na.rm=TRUE),        rep(10, ncol(as.matrix(logitP.cov))-1)), 
+           prior.beta.logitP.sd   = c(stats::sd(logit((m2+.5)/(n1+1)),na.rm=TRUE),        rep(10, ncol(as.matrix(logitP.cov))-1)), 
            tauP.alpha=.001, tauP.beta=.001,
            run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
            debug=FALSE, debug2=FALSE,
-           InitialSeed=ceiling(runif(1,min=0, max=1000000)),
+           InitialSeed=ceiling(stats::runif(1,min=0, max=1000000)),
            save.output.to.files=TRUE) {
     
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2021-01-01'
+   version <- '2021-11-01'
    options(width=200)
 
 # Input parameters are
-#    title - title for the analysis
 #    prefix - prefix used for files created with the analysis results
 #             this should be in standard Window's format, eg. JC-2002-ST-TSPDE
 #             to which is appended various suffixes for plots etc
@@ -192,7 +181,7 @@ sampfrac <- as.vector(sampfrac)
 
 #  Do some basic error checking
 #  1. Check that length of n1, m2, u2, sampfrac, time all match
-if(var(c(length(n1),length(m2),length(u2),length(sampfrac),length(time)))>0){
+if(stats::var(c(length(n1),length(m2),length(u2),length(sampfrac),length(time)))>0){
    cat("***** ERROR ***** Lengths of n1, m2, u2, sampfrac, time must all be equal. They are:",
         length(n1),length(m2),length(u2),length(sampfrac),length(time),"\n")
    return()}
@@ -286,11 +275,11 @@ if(length(logitP.fixed)==0) cat("none - NO fixed values")
 cat("\nFixed logitP values  are:", logitP.fixed.values)
 if(length(logitP.fixed)==0) cat("none - NO fixed values")
 
-cat("\n\nValues of bad.n1 are : ", bad.n1, ". The value of n1 will be set to 1 and m2 to NA for these strata")
+cat("\n\nValues of bad.n1 are : ", bad.n1, ". The value of n1 will be set to 1 and m2 to NA for these strata: ")
 if(length(bad.n1)==0) cat("none.")
-cat(  "\nValues of bad.m2 are : ", bad.m2, ". The value of m2 will be set to NA for these strata")
+cat(  "\nValues of bad.m2 are : ", bad.m2, ". The value of m2 will be set to NA for these strata: ")
 if(length(bad.m2)==0) cat("none.")
-cat(  "\nValues of bad.u2 are : ", bad.u2, ". The value of u2 will be set to NA for these strata")
+cat(  "\nValues of bad.u2 are : ", bad.u2, ". The value of u2 will be set to NA for these strata: ")
 if(length(bad.u2)==0) cat("none.")
 
 # Pooled Petersen estimator over ALL of the data including when no releases take place, bad.n1, bad.m2, bad.u2 and missing values.

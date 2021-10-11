@@ -13,11 +13,12 @@
 # 2011-01-24 SB  added call to run.windows.openbugs and run.windows.winbugs
 # 2013-13-31 CJS updated for JAGS
 # 2010-11-25 CJS add output to track progress of burnin and post-burnin phases
-# 2010-04-26 CJS fixed problem with initial values for logitP when n1=m2 (+infinite) which crashed lm()
+# 2010-04-26 CJS fixed problem with initial values for logitP when n1=m2 (+infinite) which crashed stats::lm()
 # 2009-12-05 CJS added title to argument list
 # 2009-12-01 CJS Added open/win bugs path names to argument list
 
 #' @keywords internal
+#' @importFrom stats lm spline sd
 
 TimeStratPetersenDiagErrorWHChinook <-
     function(title, prefix, time, n1, m2, u2.A, u2.N,
@@ -26,7 +27,7 @@ TimeStratPetersenDiagErrorWHChinook <-
              n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
              tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
              prior.beta.logitP.mean = c(logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),rep(0,  ncol(as.matrix(logitP.cov))-1)),
-             prior.beta.logitP.sd   = c(sd(logit((m2+.5)/(n1+1)),na.rm=TRUE),        rep(10, ncol(as.matrix(logitP.cov))-1)), 
+             prior.beta.logitP.sd   = c(stats::sd(logit((m2+.5)/(n1+1)),na.rm=TRUE),        rep(10, ncol(as.matrix(logitP.cov))-1)), 
              tauP.alpha=.001, tauP.beta=.001,
              debug=FALSE, debug2=FALSE, 
              InitialSeed,
@@ -245,13 +246,13 @@ model {
       Nstrata <- length(n1)
 
   # make a copy of u2.N to improve mixing in the MCMC model
-  u2.Ncopy <- spline(x=1:Nstrata, y=u2.N, xout=1:Nstrata)$y
+  u2.Ncopy <- stats::spline(x=1:Nstrata, y=u2.N, xout=1:Nstrata)$y
   u2.Ncopy <- round(u2.Ncopy) # round to integers
 
   # similarly make a copy of u2.A to improve mixing in the MCMC model
   # notice that Adipose clips only occur at hatch.after or later
   u2.Acopy <- u2.A * 0
-  u2.Acopy[hatch.after:Nstrata] <- spline(x=hatch.after:Nstrata, y=u2.A[hatch.after:Nstrata], xout=hatch.after:Nstrata)$y
+  u2.Acopy[hatch.after:Nstrata] <- stats::spline(x=hatch.after:Nstrata, y=u2.A[hatch.after:Nstrata], xout=hatch.after:Nstrata)$y
   u2.Acopy <- round(u2.Acopy) # round to integers
 
   datalist <- list("Nstrata", "n1", "m2",
@@ -306,7 +307,7 @@ model {
   n.b.flat.W    <- length(b.flat.W)
   n.b.notflat.W <- length(b.notflat.W)
   n.bU.W        <- n.b.flat.W + n.b.notflat.W
-  init.bU.W   <- lm(log(Uguess.W+1) ~ SplineDesign.W-1)$coefficients  # initial values for spline coefficients
+  init.bU.W   <- stats::lm(log(Uguess.W+1) ~ SplineDesign.W-1)$coefficients  # initial values for spline coefficients
 
   ## hatchery fish. Notice they can only enter AFTER hatch.after, The spline design matrix still has rows
   ## of zero for 1:hatch.after to make it easier in Bugs
@@ -318,7 +319,7 @@ model {
   n.b.flat.H    <- length(b.flat.H)
   n.b.notflat.H <- length(b.notflat.H)
   n.bU.H        <- n.b.flat.H + n.b.notflat.H
-  init.bU.H   <- lm(log(Uguess.H[(hatch.after+1):Nstrata]+1) ~ SplineDesign.H-1)$coefficients  # initial values for spline coefficients
+  init.bU.H   <- stats::lm(log(Uguess.H[(hatch.after+1):Nstrata]+1) ~ SplineDesign.H-1)$coefficients  # initial values for spline coefficients
                                     # patch up the initial rows of the spline design matrix
   SplineDesign.H <- rbind(matrix(0,nrow=hatch.after, ncol=ncol(SplineDesign.H)), SplineDesign.H)
 

@@ -1,6 +1,7 @@
 # 2011-03-10 CJS Utility functions for specifying prior for muTT
 
 #' @import utils
+#' @importFrom stats rnorm
 #****************************************************************************
 
 make.muTT.prior <- function(x){
@@ -48,7 +49,7 @@ visualize.muTT.prior<- function( muTT.prior, npoints=1000, title=NULL){
    p<- matrix(NA, nrow=npoints, ncol=length(muTT.prior$mean.muTT)+1)
    for(i in 1:npoints){
 #     generate the movement probability
-      muTT <- rnorm(length(muTT.prior$mean.muTT), 
+      muTT <- stats::rnorm(length(muTT.prior$mean.muTT), 
                  mean=muTT.prior$mean.muTT,
                  sd  =muTT.prior$sd.muTT)
 #     convert these back to probabilities

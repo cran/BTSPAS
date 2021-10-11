@@ -16,6 +16,7 @@
 ## code can be reused.
 
 #' @keywords internal
+#' @importFrom stats lm median pnorm rnorm sd var
 #' @inheritParams TimeStratPetersenNonDiagErrorNP_fit
 
 genInitsTTln <-
@@ -34,7 +35,7 @@ genInitsTTln <-
         init.muLogTT[!tmp1] <- mean(init.muLogTT[tmp1])
 
         init.xiMu <- mean(init.muLogTT)
-        init.tauMu <- 1/max(0.2,var(init.muLogTT))  # avoid variances that are zero
+        init.tauMu <- 1/max(0.2,stats::var(init.muLogTT))  # avoid variances that are zero
 
         init.etasdLogTT <- log(rep(.5,Nstrata.rel))  # note that log (sd(log travel time)) is being modelled
         init.xiSd <- mean(init.etasdLogTT)
@@ -84,7 +85,7 @@ genInitsTTnp <-  function(n1,m2,u2,Delta.max){
 
   ## mean and standard deviation of transition probabilties
   init.muTT <- apply(logit(init.delta),2,mean,na.rm=TRUE)
-  init.sdTT <- max(.01,sd(as.vector(t(logit(init.delta)))-init.muTT,na.rm=TRUE))
+  init.sdTT <- max(.01,stats::sd(as.vector(t(logit(init.delta)))-init.muTT,na.rm=TRUE))
   #browser()
   return(list(muTT  =init.muTT,
               tauTT =1/init.sdTT^2,
@@ -133,7 +134,7 @@ genInitValsChain <- function(
   if(model %in% c("TSPNDE")){
      ## Compute expected number of marked fish in each cell
      Theta <- t(sapply(1:Nstrata.rel,function(i){
-       tmp <- pnorm(log(i:Nstrata.cap),inits$muLogTT[i],exp(inits$etasdLogTT[i]))
+       tmp <- stats::pnorm(log(i:Nstrata.cap),inits$muLogTT[i],exp(inits$etasdLogTT[i]))
        c(rep(0,(i-1)),tmp - c(0,tmp[-(Nstrata.cap - (i-1))]))
      }))
 
@@ -171,13 +172,13 @@ genInitValsChain <- function(
 
   ## 2.2) Compute associated coefficients for design matrix
   #browser()
-  init.beta.logitP <- as.vector(lm(init.logitP ~ logitP.cov - 1)$coeff)
+  init.beta.logitP <- as.vector(stats::lm(init.logitP ~ logitP.cov - 1)$coeff)
 
   ## 2.3) Set variance for hierarchical model of capture probabilities
   if(length(init.beta.logitP)==1)
-     init.tauP <- 1/var(init.logitP - logitP.cov*init.beta.logitP,na.rm=TRUE)
+     init.tauP <- 1/stats::var(init.logitP - logitP.cov*init.beta.logitP,na.rm=TRUE)
   else
-     init.tauP <- 1/var(init.logitP - logitP.cov %*% init.beta.logitP,na.rm=TRUE)
+     init.tauP <- 1/stats::var(init.logitP - logitP.cov %*% init.beta.logitP,na.rm=TRUE)
 
   init.beta.logitP <- c(init.beta.logitP, 0)   # add one extra element so that single beta is still written as a vector
 
@@ -212,12 +213,12 @@ genInitValsChain <- function(
   if(model %in% c("TSPDE","TSPNDE","TSPNDENP")){
       ## 4.1) Fit Spline to strata with u2 observed
       tmp1 <- !is.na(init.U)
-      init.bU <- lm(log(init.U[tmp1]) ~ SplineDesign[tmp1,]-1)$coeff
+      init.bU <- stats::lm(log(init.U[tmp1]) ~ SplineDesign[tmp1,]-1)$coeff
       init.bU[is.na(init.bU)] <- mean(init.bU,na.rm=TRUE)       # Fix any coefficients that can't be computed
 
       ## 4.2) Compute variance of second differences between coefficients
       tmp2 <- 3:length(init.bU)
-      sigmaU <- sd(init.bU[tmp2]-2*init.bU[tmp2-1]+init.bU[tmp2-2])
+      sigmaU <- stats::sd(init.bU[tmp2]-2*init.bU[tmp2-1]+init.bU[tmp2-2])
       init.tauU <- 1/sigmaU^2
 
        inits <- append(inits,list(bU=init.bU,tauU=init.tauU))
@@ -227,17 +228,17 @@ genInitValsChain <- function(
   if(model %in% c("TSPDE-WHchinook")){
             ## 4.1.a) Fit spline to wild fish
             tmp1.W <- !is.na(init.U.W)
-            init.bU.W <- lm(log(init.U.W[tmp1.W]) ~ SplineDesign$W[tmp1.W,]-1)$coeff
+            init.bU.W <- stats::lm(log(init.U.W[tmp1.W]) ~ SplineDesign$W[tmp1.W,]-1)$coeff
             init.bU.W[is.na(init.bU.W)] <- mean(init.bU.W,na.rm=TRUE)       # Fix any coefficients that can't be computed
 
             ## 4.1.b) Fit spline to hatchery fish
             tmp1.H <- c(rep(FALSE,hatch.after),!is.na(init.U.H[-(1:hatch.after)]))
-            init.bU.H <- lm(log(init.U.H[tmp1.H]) ~ SplineDesign$H[tmp1.H,]-1)$coeff
+            init.bU.H <- stats::lm(log(init.U.H[tmp1.H]) ~ SplineDesign$H[tmp1.H,]-1)$coeff
             init.bU.H[is.na(init.bU.H)] <- mean(init.bU.H,na.rm=TRUE)       # Fix any coefficients that can't be c
 
             ## 4.2) Variance of second differences between coefficients (use only wild fish to initialize)
             tmp2 <- 3:length(init.bU.W)
-            sigmaU <- sd(init.bU.W[tmp2]-2*init.bU.W[tmp2-1]+init.bU.W[tmp2-2])
+            sigmaU <- stats::sd(init.bU.W[tmp2]-2*init.bU.W[tmp2-1]+init.bU.W[tmp2-2])
             init.tauU <- 1/sigmaU^2
 
             inits <- append(inits,list(bU.W=init.bU.W,bU.H=init.bU.H,tauU=init.tauU))
@@ -247,22 +248,22 @@ genInitValsChain <- function(
   if(model %in% c("TSPDE-WHsteel")){
             ## 4.1.a) Fit spline to wild YoY fish
             tmp1.W.YoY <- !is.na(init.U.W.YoY)
-            init.bU.W.YoY <- lm(log(init.U.W.YoY[tmp1.W.YoY]) ~ SplineDesign$W.YoY[tmp1.W.YoY,]-1)$coeff
+            init.bU.W.YoY <- stats::lm(log(init.U.W.YoY[tmp1.W.YoY]) ~ SplineDesign$W.YoY[tmp1.W.YoY,]-1)$coeff
             init.bU.W.YoY[is.na(init.bU.W.YoY)] <- mean(init.bU.W.YoY,na.rm=TRUE)       # Fix any coefficients that can't be computed
 
             ## 4.1.b) Fit spline to wild 1 fish
             tmp1.W.1 <- !is.na(init.U.W.1)
-            init.bU.W.1 <- lm(log(init.U.W.1[tmp1.W.1]) ~ SplineDesign$W.1[tmp1.W.1,]-1)$coeff
+            init.bU.W.1 <- stats::lm(log(init.U.W.1[tmp1.W.1]) ~ SplineDesign$W.1[tmp1.W.1,]-1)$coeff
             init.bU.W.1[is.na(init.bU.W.1)] <- mean(init.bU.W.1,na.rm=TRUE)       # Fix any coefficients that can't be computed
 
             ## 4.1.c) Fit spline to hatchery fish
             tmp1.H.1 <- c(rep(FALSE,hatch.after),!is.na(init.U.H.1[-(1:hatch.after)]))
-            init.bU.H.1 <- lm(log(init.U.H.1[tmp1.H.1]) ~ SplineDesign$H.1[tmp1.H.1,]-1)$coeff
+            init.bU.H.1 <- stats::lm(log(init.U.H.1[tmp1.H.1]) ~ SplineDesign$H.1[tmp1.H.1,]-1)$coeff
             init.bU.H.1[is.na(init.bU.H.1)] <- mean(init.bU.H.1,na.rm=TRUE)       # Fix any coefficients that can't be c
 
             ## 4.2) Variance of second differences between coefficients (use only wild YoY fish to initialize)
             tmp2 <- 3:length(init.bU.W.YoY)
-            sigmaU <- sd(init.bU.W.YoY[tmp2]-2*init.bU.W.YoY[tmp2-1]+init.bU.W.YoY[tmp2-2])
+            sigmaU <- stats::sd(init.bU.W.YoY[tmp2]-2*init.bU.W.YoY[tmp2-1]+init.bU.W.YoY[tmp2-2])
             init.tauU <- 1/sigmaU^2
 
             inits <- append(inits,list(bU.W.YoY=init.bU.W.YoY,bU.W.1=init.bU.W.1,
@@ -272,19 +273,19 @@ genInitValsChain <- function(
   ## 5) Variance about spline
         ## Option 1: Models with one spline
   if(model %in% c("TSPDE","TSPNDE","TSPNDENP")){
-            sigmaeU <- sd(log(init.U+1) - SplineDesign %*% init.bU,na.rm=TRUE)
+            sigmaeU <- stats::sd(log(init.U+1) - SplineDesign %*% init.bU,na.rm=TRUE)
             init.taueU <- 1/sigmaeU^2
   }
 
   ## Option 2: Chinook models with two splines -- use only wild fish to initialize
   if(model %in% c("TSPDE-WHchinook")){
-            sigmaeU <- sd(log(init.U.W+1) - SplineDesign$W %*% init.bU.W,na.rm=TRUE)
+            sigmaeU <- stats::sd(log(init.U.W+1) - SplineDesign$W %*% init.bU.W,na.rm=TRUE)
             init.taueU <- 1/sigmaeU^2
   }
 
   ## Option 3: Steelhead models with three splines -- use only wild fish to initialize
   if(model %in% c("TSPDE-WHsteel")){
-            sigmaeU <- sd(log(init.U.W.YoY+1) - SplineDesign$W.YoY %*% init.bU.W.YoY,na.rm=TRUE)
+            sigmaeU <- stats::sd(log(init.U.W.YoY+1) - SplineDesign$W.YoY %*% init.bU.W.YoY,na.rm=TRUE)
             init.taueU <- 1/sigmaeU^2
   }
 
@@ -295,7 +296,7 @@ genInitValsChain <- function(
   if(model %in% c("TSPDE","TSPNDE","TSPNDENP")){
             if(sum(!tmp1)>0)
                 init.U[!tmp1] <- ceiling(exp(as.vector(SplineDesign[!tmp1,] %*% init.bU)
-                                             + rnorm(sum(!tmp1),0,sigmaeU))) + 1
+                                             + stats::rnorm(sum(!tmp1),0,sigmaeU))) + 1
             init.etaU <- pmin(log(init.U),20)  # limit the initial values to reasonable values
 
             inits <- append(inits,list(etaU=init.etaU))
@@ -306,14 +307,14 @@ genInitValsChain <- function(
             ## Wild fish
             if(sum(!tmp1.W)>0)
                 init.U[!tmp1.W] <- ceiling(exp(as.vector(SplineDesign$W[!tmp1.W,] %*% init.bU.W)
-                                               + rnorm(sum(!tmp1.W),0,sigmaeU))) + 1
+                                               + stats::rnorm(sum(!tmp1.W),0,sigmaeU))) + 1
             init.etaU.W <- pmin(log(init.U.W), 15) # limit the initial values to reasonable values
 
             ## Hatchery fish
             tmp2.H <- tmp1.H[-(1:hatch.after)]
             if(sum(!tmp2.H)>0)
                 init.U[!tmp2.H] <- ceiling(exp(as.vector(SplineDesign$H[!tmp2.H,] %*% init.bU.H)
-                                               + rnorm(sum(!tmp2.H),0,sigmaeU))) + 1
+                                               + stats::rnorm(sum(!tmp2.H),0,sigmaeU))) + 1
 
             init.etaU.H <- c(rep(NA,hatch.after),pmin(20,log(init.U.H[tmp1.H])))
       
@@ -326,21 +327,21 @@ genInitValsChain <- function(
             ## Wild YoY fish
             if(sum(!tmp1.W.YoY)>0)
                 init.U[!tmp1.W.YoY] <- ceiling(exp(as.vector(SplineDesign$W.YoY[!tmp1.W.YoY,] %*% init.bU.W.YoY)
-                                                   + rnorm(sum(!tmp1.W.YoY),0,sigmaeU))) + 1
+                                                   + stats::rnorm(sum(!tmp1.W.YoY),0,sigmaeU))) + 1
             init.etaU.W.YoY <- pmin(20,log(init.U.W.YoY))
 
 
             ## Wild 1 fish
             if(sum(!tmp1.W.1)>0)
                 init.U[!tmp1.W.1] <- ceiling(exp(as.vector(SplineDesign$W.1[!tmp1.W.1,] %*% init.bU.W.1)
-                                                 + rnorm(sum(!tmp1.W.1),0,sigmaeU))) + 1
+                                                 + stats::rnorm(sum(!tmp1.W.1),0,sigmaeU))) + 1
             init.etaU.W.1 <- pmin(20,log(init.U.W.1))
 
             ## Hatchery 1 fish
             tmp2.H.1 <- tmp1.H.1[-(1:hatch.after)]
             if(sum(!tmp2.H.1)>0)
                 init.U[!tmp2.H.1] <- ceiling(exp(as.vector(SplineDesign$H.1[!tmp2.H.1,] %*% init.bU.H.1)
-                                                 + rnorm(sum(!tmp2.H.1),0,sigmaeU))) + 1
+                                                 + stats::rnorm(sum(!tmp2.H.1),0,sigmaeU))) + 1
 
             init.etaU.H.1 <- c(rep(NA,hatch.after),pmin(20,log(init.U.H.1[tmp1.H.1])))
 
@@ -432,21 +433,21 @@ genInitValsChain <- function(
   }
   if(model %in% c("TSPDE-WHchinook")){  # u2 is a list with components W and H, A and N
      init.u2.A <- rep(NA, length(u2$A))
-     init.u2.A[is.na(u2$A)] <- pmin(init.U.H[is.na(u2$A)], round(median(u2$A, na.rm=TRUE)))
+     init.u2.A[is.na(u2$A)] <- pmin(init.U.H[is.na(u2$A)], round(stats::median(u2$A, na.rm=TRUE)))
      if(any(is.na(u2$A))){inits <- append(inits, list(u2.A=init.u2.A))}
        init.u2.N <- rep(NA, length(u2$N))
-       init.u2.N[is.na(u2$N)] <- pmin(init.U.W[is.na(u2$N)],round(median(u2$N, na.rm=TRUE))) # This is too strict as some hatchery have no clips
+       init.u2.N[is.na(u2$N)] <- pmin(init.U.W[is.na(u2$N)],round(stats::median(u2$N, na.rm=TRUE))) # This is too strict as some hatchery have no clips
       if(any(is.na(u2$N))){inits <- append(inits, list(u2.N=init.u2.N))}
   }
   if(model %in% c("TSPDE-WHsteel")){  # u2 is a list with components W.YoY, W.1, H.1
      init.u2.W.1 <- rep(NA, length(u2$W.1))
-     init.u2.W.1[is.na(u2$W.1)] <- pmin(init.U.W.1[is.na(u2$W.1)], round(median(u2$W.1, na.rm=TRUE)))
+     init.u2.W.1[is.na(u2$W.1)] <- pmin(init.U.W.1[is.na(u2$W.1)], round(stats::median(u2$W.1, na.rm=TRUE)))
      if(any(is.na(u2$W.1))){inits <- append(inits, list(u2.W.1=init.u2.W.1))}
      init.u2.W.YoY <- rep(NA, length(u2$W.YoY))
-     init.u2.W.YoY[is.na(u2$W.YoY)] <- pmin(init.U.W.YoY[is.na(u2$W.YoY)], round(median(u2$W.YoY, na.rm=TRUE)))
+     init.u2.W.YoY[is.na(u2$W.YoY)] <- pmin(init.U.W.YoY[is.na(u2$W.YoY)], round(stats::median(u2$W.YoY, na.rm=TRUE)))
      if(any(is.na(u2$W.YoY))){inits <- append(inits, list(u2.W.YoY=init.u2.W.YoY))}
      init.u2.H.1 <- rep(NA, length(u2$H.1))
-     init.u2.H.1[is.na(u2$H.1)] <- pmin(init.U.H.1[is.na(u2$H.1)], round(median(u2$H.1, na.rm=TRUE)))
+     init.u2.H.1[is.na(u2$H.1)] <- pmin(init.U.H.1[is.na(u2$H.1)], round(stats::median(u2$H.1, na.rm=TRUE)))
      if(any(is.na(u2$H.1))){inits <- append(inits, list(u2.H.1=init.u2.H.1))}
   }
 

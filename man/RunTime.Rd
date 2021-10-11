@@ -7,7 +7,8 @@
 RunTime(time, U, prob = seq(0, 1, 0.1))
 }
 \arguments{
-\item{time}{List of sample weeks. It is assumed that there are no salmon prior to the first value}
+\item{time}{A numeric vector of time used to label the strata. For example,
+this could be julian week for data stratified at a weekly level.}
 
 \item{U}{matrix of posterior samples. Each row is a sample from the posterior.}
 
@@ -24,12 +25,13 @@ Take the posterior sample of U[1,...nstrata] and compute the percentiles of the 
 timing. 
 This uses the quantile() function from the "actuar" package which is designed to compute
 quantiles of grouped data.
+It is assumed that there are no fish in the system prior to the first point
 }
 \references{
 Bonner, S. J., & Schwarz, C. J. (2011). 
 Smoothing population size estimates for Time-Stratified Mark-Recapture experiments Using Bayesian P-Splines. 
 Biometrics, 67, 1498-1507. 
-\url{https://doi.org/10.1111/j.1541-0420.2011.01599.x}
+\doi{10.1111/j.1541-0420.2011.01599.x}
 
 Schwarz, C. J., & Dempson, J. B. (1994).
 Mark-recapture estimation of a salmon smolt population. 

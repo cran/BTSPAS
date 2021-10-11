@@ -7,6 +7,7 @@
 
 #' @import R2jags utils
 #' @importFrom coda as.mcmc.list
+#' @importFrom stats runif
 #' @keywords internal
 #' 
 
@@ -41,7 +42,7 @@ run.jags <-
   set.seed(initialSeed)
   initVals <- llply(initVals, function(x){
     # add to this list
-    x$.RNG.seed <- round(runif(1, min=1, max=1000000))
+    x$.RNG.seed <- round(stats::runif(1, min=1, max=1000000))
     x$.RNG.name <- "base::Wichmann-Hill"
     cat("Random number seed for chain ", x$.RNG.seed, "\n")
     x

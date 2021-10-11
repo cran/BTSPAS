@@ -1,6 +1,6 @@
 #' @rdname PredictivePosterior.TSPDE
 #' @param ma.p Proportion of marks available, i.e 1-fallback probability
-#' @import stats 
+#' @importFrom stats sd dbinom dmultinom rbinom rmultinom 
 
 # 2018-12-14 CJS First edition based on PredictivePosterior.TSPNDENP
 # 2014-09-01
@@ -79,10 +79,10 @@ discrep <- t(sapply(1:nrow(p),function(k){
   d2.m2.o <- -2 * sum(sapply(1:length(n1),function(i){
     cellProbs <- Theta[[k]][i,] * p[k,1:t]  # 2014-09-01 need to ignore extra p's at end which were needed for OPENbugs quirk
     cellProbs <- c(cellProbs,1-sum(cellProbs))
-    dmultinom(c(m2.expanded[i,1:t], n1[i]-sum(m2.expanded[i,1:t])),n1[i],cellProbs,log=TRUE)
+    stats::dmultinom(c(m2.expanded[i,1:t], n1[i]-sum(m2.expanded[i,1:t])),n1[i],cellProbs,log=TRUE)
   }))
 
-  d2.u2.o <- -2 * sum(dbinom(u2[select.u2],U[k,select.u2],p[k,select.u2],log=TRUE), na.rm=TRUE)
+  d2.u2.o <- -2 * sum(stats::dbinom(u2[select.u2],U[k,select.u2],p[k,select.u2],log=TRUE), na.rm=TRUE)
 
   d2.o <- d2.m2.o + d2.u2.o
 
@@ -90,10 +90,10 @@ discrep <- t(sapply(1:nrow(p),function(k){
   d2.m2.s <- -2 * sum(sapply(1:length(n1),function(i){
     cellProbs <- Theta[[k]][i,] * p[k,1:t]  # 2014-09-01 ditto to previous fix
     cellProbs <- c(cellProbs,1-sum(cellProbs))
-    dmultinom(simData[[k]]$m2[i,],n1[i],cellProbs,log=TRUE)
+    stats::dmultinom(simData[[k]]$m2[i,],n1[i],cellProbs,log=TRUE)
   }))
 
-  d2.u2.s <- -2 * sum(dbinom(simData[[k]]$u2[select.u2],U[k,select.u2],p[k,select.u2],log=TRUE), na.rm=TRUE)
+  d2.u2.s <- -2 * sum(stats::dbinom(simData[[k]]$u2[select.u2],U[k,select.u2],p[k,select.u2],log=TRUE), na.rm=TRUE)
 
   d2.s <- d2.m2.s + d2.u2.s
 
@@ -117,14 +117,14 @@ simTSPNDENPMarkAvail <- function(n1,U,p,Theta, ma.p){
     cellProbs <- Theta[i,] * p[1:t] * ma.p
     cellProbs <- c(cellProbs,1-sum(cellProbs))
     if( any(cellProbs < 0)){browser()}
-    rmultinom(1,n1[i],cellProbs)[1:t]
+    stats::rmultinom(1,n1[i],cellProbs)[1:t]
   }))
 
   ## 2) Add number of individuals not recovered to last column of m2
   m2 <- cbind(m2,n1-apply(m2,1,sum))
 
   ## 3) Simulate captures of unmarked fish
-  u2 <- rbinom(t,U,p)
+  u2 <- stats::rbinom(t,U,p)
 
   return(list(m2=m2,u2=u2))
 }

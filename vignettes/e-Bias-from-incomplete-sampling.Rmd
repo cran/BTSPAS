@@ -20,6 +20,7 @@ max.width=200
 
 library(ggplot2)
 library(plyr)
+library(stats)
 # Generate population curve
 
 logit <- function(p){log(p/(1-p))}
@@ -74,7 +75,7 @@ N <- 150000  # total run size
 mean.at.wheel <- 42
 sd.at.wheel   <- 15
 
-pop <- data.frame(time.at.wheel=pmin(170,pmax(1,rnorm(N, mean=mean.at.wheel, sd=sd.at.wheel)))) # date of arrival
+pop <- data.frame(time.at.wheel=pmin(170,pmax(1,stats::rnorm(N, mean=mean.at.wheel, sd=sd.at.wheel)))) # date of arrival
 pop$date <- trunc(pop$time.at.wheel)  # how many arrive at the wheel
 
 pop.dist <- ggplot(data=pop, aes(x=time.at.wheel))+
@@ -103,8 +104,8 @@ The distribution of capture probabilities at the wheel is:
 # capture prob at wheel is normal on logit( .03 with a sd of .01) but a maximum of 400 fish per week
 capture.prob <- plyr::ddply(pop, "date", plyr::summarize,
                             tot.fish.wheel = length(date))
-capture.prob$logit.tag <- rnorm(nrow(capture.prob), mean=pmin(logit(.06), logit(1000/7/capture.prob$tot.fish.wheel), na.rm=TRUE), sd=0.5)
-#capture.prob$logit.tag <- rnorm(nrow(capture.prob), mean=logit(.06), sd=0.5)
+capture.prob$logit.tag <- stats::rnorm(nrow(capture.prob), mean=pmin(logit(.06), logit(1000/7/capture.prob$tot.fish.wheel), na.rm=TRUE), sd=0.5)
+#capture.prob$logit.tag <- stats::rnorm(nrow(capture.prob), mean=logit(.06), sd=0.5)
 
 capture.dist <- ggplot(data=capture.prob, aes(x=expit(logit.tag)))+
    ggtitle("Distribution of capture probabilities at tagging wheel")+
@@ -184,12 +185,12 @@ pop <- merge(pop, fishery, all.x=TRUE)
 # fishery probability  logit on logit(.15) sd .2 on log scale 
 # Here is a case where the probability of capture is independent
 fishery.p <- .10
-pop$logit.recover <-  rnorm( nrow(pop), mean=logit(.10), sd=.2) 
+pop$logit.recover <-  stats::rnorm( nrow(pop), mean=logit(.10), sd=.2) 
 pop$logit.recover[ !pop$active] <- -10  # probability of zero when fishery not acting
 
 # add a dependency on run size similar to what happens at the fish wheels
 fishery.p <- .10
-pop$logit.recover <-  rnorm( nrow(pop), mean=pmin(logit(fishery.p), logit(1000/7/pop$tot.fish.fishery), na.rm=TRUE), sd=.2) 
+pop$logit.recover <-  stats::rnorm( nrow(pop), mean=pmin(logit(fishery.p), logit(1000/7/pop$tot.fish.fishery), na.rm=TRUE), sd=.2) 
 
 pop$logit.recover[ !pop$active] <- -10  # probability of zero when fishery not acting
 
@@ -693,13 +694,17 @@ Smoothing Population Size Estimates for Time-Stratified MarkRecapture Experiment
 Biometrics, 67, 1498–1507.
 https://doi.org/10.1111/j.1541-0420.2011.01599.x 
 
-Darroch, J. N. (1961). The two-sample capture-recapture census when tagging and sampling are stratified. Biometrika, 48, 241–260.
-https://www.jstor.org/stable/2332748
+Darroch, J. N. (1961). 
+The two-sample capture-recapture census when tagging and sampling are stratified. Biometrika, 48, 241–260.
+https://doi.org/10.1093/biomet/48.3-4.241
 
-Plante, N., L.-P Rivest, and G. Tremblay. (1988). Stratified Capture-Recapture Estimation of the Size of a Closed Population. Biometrics 54, 47-60.
-https://www.jstor.org/stable/2533994
+Plante, N., L.-P Rivest, and G. Tremblay. (1988). 
+Stratified Capture-Recapture Estimation of the Size of a Closed Population. Biometrics 54, 47-60.
+https://doi.org/10.2307/2533994
 
-Schwarz, C. J., & Taylor, C. G. (1998). The use of the stratified-Petersen estimator in fisheries management with an illustration of estimating the number of pink salmon (Oncorhynchus gorbuscha) that return to spawn in the Fraser River. Canadian Journal of Fisheries and Aquatic Sciences, 55, 281–296.
+Schwarz, C. J., & Taylor, C. G. (1998). The use of the stratified-Petersen estimator in fisheries management with an illustration of estimating the number of pink salmon (Oncorhynchus gorbuscha) 
+that return to spawn in the Fraser River. 
+Canadian Journal of Fisheries and Aquatic Sciences, 55, 281–296.
 https://doi.org/10.1139/f97-238
 
 

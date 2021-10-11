@@ -1,5 +1,6 @@
 #' @rdname PredictivePosterior.TSPDE
-#' @import stats plyr
+#' @importFrom stats sd rbinom 
+#' @import plyr
 
 
 
@@ -25,10 +26,10 @@ select.u2.N <- !is.na(u2.N)
 #browser()
 for(i in 1:nrow(p)){
    # generate sample data
-   gen.m2   <- rbinom(ncol(p), n1, p[i,])
-   gen.u2.A <- rbinom(ncol(p), U.H[i,], p[i,]*clip.frac.H)*(time>hatch.after)   # only hatchery fish can generate adipose clipped fish
-   gen.u2.N <- rbinom(ncol(p), U.W[i,], p[i,]) +
-               rbinom(ncol(p), U.H[i,], p[i,]*(1-clip.frac.H))*(time>hatch.after) # wild and hatchery fish generate non-clipped fish
+   gen.m2   <- stats::rbinom(ncol(p), n1, p[i,])
+   gen.u2.A <- stats::rbinom(ncol(p), U.H[i,], p[i,]*clip.frac.H)*(time>hatch.after)   # only hatchery fish can generate adipose clipped fish
+   gen.u2.N <- stats::rbinom(ncol(p), U.W[i,], p[i,]) +
+               stats::rbinom(ncol(p), U.H[i,], p[i,]*(1-clip.frac.H))*(time>hatch.after) # wild and hatchery fish generate non-clipped fish
    # compute a discrepancy measure
    # Observed vs expected values for recaptures of marked fish
      temp <- sqrt(m2) - sqrt(n1*p[i,])

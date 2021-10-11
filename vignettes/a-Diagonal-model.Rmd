@@ -278,10 +278,14 @@ are recaptured in more than stratum.
 
 The $BTSPAS$ package also has additional features and options:
 
-* if $u2$ is missing for any stratum, the program will use the spline to interpolate for the
+* if $u2$ is missing for any stratum, the program will use the spline to interpolate the 
+number of unmarked fish in the population for the
 missing stratum.
-* if $n1$ and/or $m2$ are missing, the program will use the hierarchical model to interpolate the capture
-probabilities for the missing strata.
+* if $n1$ **and** $m2$ are 0, then these strata provide no information towards recapture probabilities.
+This is useful when no release take place in a stratum (e.g. trap did not run) and so you need
+'dummy' values as placeholders.
+Of course is $n1>0$ and $m2=0$, this provides information that the capture probability may be small.
+If $n1=0$ and $m2>0$, this is an error (recoveries from no releases).
 * the program allows you specify break points in the underlying spline to account
 for external events. We was in the above example, that hatchery fish were released at
 in julian weeks 23 and 40  resulting in sudden jump
@@ -289,10 +293,14 @@ in abundance. The $jump.after$ parameter gives the julian weeks just BEFORE the 
 i.e. the spline is allowed to jump AFTER the julian weeks in jump.after.
 * sometimes bad thing happen.  The vector $bad.m2$ indicates which julian weeks something went wrong. In the above example, the
 number of recoveries in julian week 41 is far below expectations and leads to an impossible
-Petersen estimate for julian week 41. Similarly, the vector $bad.u2$ indicates in which julian weeks, the number of unmarked fish is suspect.
+Petersen estimate for julian week 41. Similarly, the vector $bad.u2$ 
+indicates in which julian weeks, the number of unmarked fish is suspect.
 In both cases, the suspect values of $m2$ and $u2$ are set to missing.
 Alternatively, the user can set the $m2$ and $u2$ values to missing in the data input directly.
 I arbitrarily chose the third julian week to demonstrate this feature.
+
+I find it easiest if bad recaptures (a value of $m2$) result in zeroing out both
+$n1$ and $m2$ for that stratum.
 
 The $BTSPAS$ function also allows you specify
 

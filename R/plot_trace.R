@@ -9,7 +9,7 @@
 #' also shows the value of Rhat
 #' 
 #' 
-#' @param title A character string used for a title on reports and graphs
+#' @template title
 #' @param results The MCMC object containing the results from the call to JAGS
 #' @param parms_to_plot A character vector of names of parameters to plot.
 #' These must match exactly to the parameter names used in the simulation.

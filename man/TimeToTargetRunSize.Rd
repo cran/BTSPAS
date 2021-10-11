@@ -11,7 +11,8 @@ TimeToTargetRunSize(U, time, targetU, file_prefix, ci_prob = 0.95)
 \item{U}{Elements of sim.list from MCMC object for U - the estimate runsize
 in each stratum}
 
-\item{time}{Vector of stratum time indices}
+\item{time}{A numeric vector of time used to label the strata. For example,
+this could be julian week for data stratified at a weekly level.}
 
 \item{targetU}{The targeted cumulative run size. E.g. 10,000}
 

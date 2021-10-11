@@ -7,7 +7,7 @@
 #' 
 #' @param U Elements of sim.list from MCMC object for U - the estimate runsize
 #' in each stratum
-#' @param time Vector of stratum time indices
+#' @template time
 #' @param targetU The targeted cumulative run size. E.g. 10,000
 #' @param file_prefix Character string giving prefix for plot. A plot will be
 #' produced of the posterior in the filename
@@ -32,7 +32,7 @@
 #' } % end of dontrun
 #' 
 #' @export TimeToTargetRunSize
-#' 
+#' @importFrom stats approx density median quantile sd
 
 TimeToTargetRunSize <- function(U, time, targetU, file_prefix, ci_prob=.95){
 #
@@ -59,20 +59,20 @@ index <- rep(0,nrow(U))  #array to save times to reach the target value
 
 for(i in 1:nrow(U)){
    cumU <- cumsum(U[i,])
-   T <- approx( cumU, 1:ncol(U), xout=targetU, rule=2)  # find when the target value is reached
+   T <- stats::approx( cumU, 1:ncol(U), xout=targetU, rule=2)  # find when the target value is reached
    index[i] <- T$y
 }
 index <- index + min(time) - 1 # convert to strata units
 
 mean.index <- mean(index)
-med.index  <- median(index)
-sd.index   <- sd(index)
+med.index  <- stats::median(index)
+sd.index   <- stats::sd(index)
 probs <- c(seq(0,1,.05),round((1-ci_prob)/2,3),round(1-(1-ci_prob)/2,3))
-quant.index <- quantile(index, probs, names=TRUE)  # get the quantiles
+quant.index <- stats::quantile(index, probs, names=TRUE)  # get the quantiles
 
 # Generate the density plot and give the relevant statistics as well
 pdf(file=paste(file_prefix,"-target.pdf",sep=""))
-temp<- density(index)
+temp<- stats::density(index)
 
 plot(temp,
     main=paste("Posterior distribution of time needed to reach U=",targetU),
@@ -81,8 +81,8 @@ text(min(index),max(temp$y),
     label=paste("Mean  : ",         round(mean.index,1), 
                 ";       SD: ",     round(sd.index,1),
                 ";       ",round(100*ci_prob,0),"% CI: ", 
-                round(quantile(index,prob=(1-ci_prob)/2),1), 
-                round(quantile(index,prob=1-(1-ci_prob)/2),1)),pos=4)
+                round(stats::quantile(index,prob=(1-ci_prob)/2),1), 
+                round(stats::quantile(index,prob=1-(1-ci_prob)/2),1)),pos=4)
 dev.off()
 
 return( list(targetU=targetU, mean=mean.index, median=med.index, sd=sd.index, quantiles=quant.index, index=index))

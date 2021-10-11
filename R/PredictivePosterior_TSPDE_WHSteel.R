@@ -1,5 +1,6 @@
 #' @rdname PredictivePosterior.TSPDE
-#' @import stats plyr
+#' @importFrom stats sd rbinom 
+#' @import plyr
 
 
 # 2015-06-10 CJS Bug fix on selecting after hatch after
@@ -21,10 +22,10 @@ select.u2.H.1   <- !is.na(u2.H.1) & (time>hatch.after)
 
 for(i in 1:nrow(p)){
    # generate sample data
-   gen.m2       <- rbinom(ncol(p), n1,          p[i,])
-   gen.u2.W.YoY <- rbinom(ncol(p), U.W.YoY[i,], p[i,])  
-   gen.u2.W.1   <- rbinom(ncol(p), U.W.1  [i,], p[i,])  
-   gen.u2.H.1   <- rbinom(ncol(p), U.H.1  [i,], p[i,])*(time>hatch.after) 
+   gen.m2       <- stats::rbinom(ncol(p), n1,          p[i,])
+   gen.u2.W.YoY <- stats::rbinom(ncol(p), U.W.YoY[i,], p[i,])  
+   gen.u2.W.1   <- stats::rbinom(ncol(p), U.W.1  [i,], p[i,])  
+   gen.u2.H.1   <- stats::rbinom(ncol(p), U.H.1  [i,], p[i,])*(time>hatch.after) 
  
    # compute a discrepancy measure
    # Observed vs expected values for recaptures of marked fish

@@ -18,7 +18,7 @@
 #' SimplePetersen( 200, 10, 300) 
 #' SimplePetersen(c(200,400), c(10,20), c(300,600))
 #'
-#' 
+#' @importFrom stats chisq.test
 #' @export SimplePetersen TestIfPool
 #' 
 #' 
@@ -70,7 +70,7 @@ TestIfPool <- function(n1, m2){
 #   browser()
     options(warn=-1)  # turn off warnng display about small Chi-equare values  
     temp <- cbind(n1-m2, m2)
-    chi <- chisq.test(temp)
+    chi <- stats::chisq.test(temp)
     fisher <- NULL   # fisher.test(temp, simulate.p.value=TRUE)
     list(chi=chi, fisher=fisher)
 } # end of function

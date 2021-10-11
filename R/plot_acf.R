@@ -7,17 +7,17 @@
 #' @return acf plot(s) as an ggplot2 object 
 #' @keywords internal
 #' @import plyr ggplot2
-#'
+#' @importFrom stats acf
 #'
 plot_acf <- function(mcmc.sample, ncol=2){
   acf.parm <- plyr::ddply(mcmc.sample, "parm", function(x){
-     acf.list <- acf(x$sample, plot=FALSE)
+     acf.list <- stats::acf(x$sample, plot=FALSE)
      data.frame(lag=acf.list$lag, acf=acf.list$acf, stringsAsFactors=FALSE)
   })
-  acfplot <- ggplot(data=acf.parm, aes(x = lag, y = acf)) +
+  acfplot <- ggplot(data=acf.parm, aes_(x =~lag, y =~acf)) +
      ggtitle("Autocorrelation")+
      geom_hline(aes(yintercept = 0)) +
-     geom_segment(aes(xend = lag, yend = 0))+
+     geom_segment(aes_(xend =~lag, yend = 0))+
      facet_wrap(~parm, ncol=ncol)
   acfplot
 }

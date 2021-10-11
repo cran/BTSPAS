@@ -139,7 +139,7 @@ library("BTSPAS")
 # necessary to separate out the wild vs hatchery
 demo.hatch.after <- c(22)  # julian weeks after which hatchery fish arrive.
 
-# Which julian weeks have "bad"  values. These will be set to missing and estimated.
+# Which julian weeks have "bad"  values. These will be set to 0 (releases or recaptures) or missing (unmarked) and estimated.
 demo.bad.m2     <- c()   # list of julian weeks with bad m2 values
 demo.bad.u2.A   <- c()     # list of julian weeks with bad u2.A values
 demo.bad.u2.N   <- c()     # list of julian weeks with bad u2.N values
@@ -317,7 +317,7 @@ library("BTSPAS")
 # necessary to separate out the YoY wild vs hatchery
 demo2.hatch.after.YoY <- c(22)  # julian weeks after which YoY hatchery fish arrive.
 
-# Which julian weeks have "bad"  values. These will be set to missing and estimated.
+# Which julian weeks have "bad"  values. These will be set 0 (releases or recaptures) or  missing (unmarked) and estimated.
 demo2.bad.m2       <- c()     # list of julian weeks with bad m2 values
 demo2.bad.u2.A.YoY <- c()     # list of julian weeks with bad u2.A.YoY values
 demo2.bad.u2.N.YoY <- c()     # list of julian weeks with bad u2.N.YoY values
@@ -510,7 +510,7 @@ library("BTSPAS")
 # necessary to separate out the wild vs hatchery
 demo3.hatch.after <- c(11)  # julian weeks after which hatchery fish arrive.
 
-# Which julian weeks have "bad"  values. These will be set to missing and estimated.
+# Which julian weeks have "bad"  values. These will be set to 0 (releases and recapture) or missing (unmarked captured) and estimated.
 demo3.bad.m2       <- c()     # list of julian weeks with bad m2 values
 demo3.bad.u2.W.YoY <- c()     # list of julian weeks with bad u2.W.YoY values
 demo3.bad.u2.W.1   <- c()     # list of julian weeks with bad u2.W.1   values

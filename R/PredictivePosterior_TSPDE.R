@@ -13,7 +13,8 @@
 #' @aliases PredictivePosteriorPlot.TSPDE.WHCH2 
 #' @aliases PredictivePosteriorPlot.TSPDE.WHSteel 
 #' @aliases PredictivePosteriorPlot.TSPNDE 
-#' @import stats plyr
+#' @importFrom stats sd dbinom rbinom
+#' @import plyr
 
 #' @keywords internal
 
@@ -36,8 +37,8 @@ select.u2 <- !is.na(u2)
 
 for(i in 1:nrow(p)){
    # generate sample data
-   gen.m2 <- rbinom(ncol(p), n1, p[i,])
-   gen.u2 <- rbinom(ncol(p), U[i,], p[i,])
+   gen.m2 <- stats::rbinom(ncol(p), n1, p[i,])
+   gen.u2 <- stats::rbinom(ncol(p), U[i,], p[i,])
    # compute a discrepancy measure
    # Observed vs expected values for recaptures of marked fish
      temp <- sqrt(m2) - sqrt(n1*p[i,])
@@ -52,13 +53,13 @@ for(i in 1:nrow(p)){
      d1.u2.s <- sum( temp[select.u2]^2, na.rm=TRUE)
      
    # Deviance (-2*log-likelihood )
-     temp <- dbinom(m2,     n1, p[i,], log=TRUE)
+     temp <- stats::dbinom(m2,     n1, p[i,], log=TRUE)
      d2.m2.o <- -2*sum(temp[select.m2])
-     temp <- dbinom(gen.m2, n1, p[i,], log=TRUE)
+     temp <- stats::dbinom(gen.m2, n1, p[i,], log=TRUE)
      d2.m2.s <- -2*sum(temp[select.m2])
-     temp <- dbinom(u2,     U[i,], p[i,], log=TRUE)
+     temp <- stats::dbinom(u2,     U[i,], p[i,], log=TRUE)
      d2.u2.o <- -2*sum(temp[select.u2])
-     temp <- dbinom(gen.u2, U[i,], p[i,], log=TRUE)
+     temp <- stats::dbinom(gen.u2, U[i,], p[i,], log=TRUE)
      d2.u2.s <- -2*sum(temp[select.u2])
      
    # combined discrepancy measures

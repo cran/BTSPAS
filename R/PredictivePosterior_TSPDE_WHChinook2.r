@@ -1,5 +1,6 @@
 #' @rdname PredictivePosterior.TSPDE
-#' @import stats plyr
+#' @importFrom stats sd rbinom 
+#' @import plyr
 
 
 
@@ -26,14 +27,14 @@ select.u2.N.1   <- !is.na(u2.N.1)
 
 for(i in 1:nrow(p)){
    # generate sample data
-   gen.m2 <- rbinom(ncol(p), n1, p[i,])
-   gen.u2.A.YoY <- rbinom(ncol(p), U.H.YoY[i,], p[i,]*clip.frac.H.YoY)*(time>hatch.after.YoY)  # only hatchery fish can generate adipose clipped fish
+   gen.m2 <- stats::rbinom(ncol(p), n1, p[i,])
+   gen.u2.A.YoY <- stats::rbinom(ncol(p), U.H.YoY[i,], p[i,]*clip.frac.H.YoY)*(time>hatch.after.YoY)  # only hatchery fish can generate adipose clipped fish
 
-   gen.u2.N.YoY <- rbinom(ncol(p), U.W.YoY[i,], p[i,]) +
-                   rbinom(ncol(p), U.H.YoY[i,], p[i,]*(1-clip.frac.H.YoY))*(time>hatch.after.YoY) # wild and hatchery fish generate non-clipped fish
-   gen.u2.A.1   <- rbinom(ncol(p), U.H.1  [i,], p[i,]*clip.frac.H.1)
-   gen.u2.N.1   <- rbinom(ncol(p), U.W.1  [i,], p[i,]) +
-                   rbinom(ncol(p), U.H.1  [i,], p[i,]*(1-clip.frac.H.1)) # wild and hatchery fish generate non-clipped fish
+   gen.u2.N.YoY <- stats::rbinom(ncol(p), U.W.YoY[i,], p[i,]) +
+                   stats::rbinom(ncol(p), U.H.YoY[i,], p[i,]*(1-clip.frac.H.YoY))*(time>hatch.after.YoY) # wild and hatchery fish generate non-clipped fish
+   gen.u2.A.1   <- stats::rbinom(ncol(p), U.H.1  [i,], p[i,]*clip.frac.H.1)
+   gen.u2.N.1   <- stats::rbinom(ncol(p), U.W.1  [i,], p[i,]) +
+                   stats::rbinom(ncol(p), U.H.1  [i,], p[i,]*(1-clip.frac.H.1)) # wild and hatchery fish generate non-clipped fish
    # compute a discrepancy measure
    # Observed vs expected values for recaptures of marked fish
      temp <- sqrt(m2) - sqrt(n1*p[i,])

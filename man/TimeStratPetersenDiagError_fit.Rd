@@ -30,14 +30,14 @@ TimeStratPetersenDiagError_fit(
   taueU.beta = 0.05,
   prior.beta.logitP.mean = c(logit(sum(m2, na.rm = TRUE)/sum(n1, na.rm = TRUE)), rep(0,
     ncol(as.matrix(logitP.cov)) - 1)),
-  prior.beta.logitP.sd = c(sd(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE), rep(10,
+  prior.beta.logitP.sd = c(stats::sd(logit((m2 + 0.5)/(n1 + 1)), na.rm = TRUE), rep(10,
     ncol(as.matrix(logitP.cov)) - 1)),
   tauP.alpha = 0.001,
   tauP.beta = 0.001,
   run.prob = seq(0, 1, 0.1),
   debug = FALSE,
   debug2 = FALSE,
-  InitialSeed = ceiling(runif(1, min = 0, max = 1e+06)),
+  InitialSeed = ceiling(stats::runif(1, min = 0, max = 1e+06)),
   save.output.to.files = TRUE
 )
 }
@@ -177,7 +177,7 @@ where recaptures take place outside the stratum of release.
 Bonner, S. J., & Schwarz, C. J. (2011). 
 Smoothing population size estimates for Time-Stratified Mark-Recapture experiments Using Bayesian P-Splines. 
 Biometrics, 67, 1498-1507. 
-\url{https://doi.org/10.1111/j.1541-0420.2011.01599.x}
+\doi{10.1111/j.1541-0420.2011.01599.x}
 
 Schwarz, C. J., & Dempson, J. B. (1994).
 Mark-recapture estimation of a salmon smolt population. 

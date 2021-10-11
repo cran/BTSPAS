@@ -19,6 +19,7 @@
 # 2009-12-01 CJS added openbugs/winbugs directory to argument list
 
 #' @keywords internal
+#' @importFrom stats lm spline sd
 
 
 TimeStratPetersenNonDiagError <- function(title,
@@ -126,7 +127,7 @@ model {
 #      tauP.alpha, tauP.beta - parameter for prior on tauP (residual variance of logit(P)'s after adjusting for
 #                         covariates)
 #      xiMu, tauMu  - mean and precision (1/variance) for prior on mean(log travel-times)
-#      xiSd, tauSd  - mean and precision (1/variance) for prior on sd(log travel times) - ON THE LOG SCALE
+#      xiSd, tauSd  - mean and precision (1/variance) for prior on stats::sd(log travel times) - ON THE LOG SCALE
 #
 #  Parameters of the model are:
 #      p[i]
@@ -315,8 +316,8 @@ fixed.logitP.value <- logitP.fixed[ fixed.logitP.index]
 Nfixed.logitP      <- length(fixed.logitP.index)
 
 # create copy of u2 for use in improving mixing
-u2copy <- exp(spline(x = 1:length(u2), y = log(u2+1), xout = 1:length(u2))$y)-1 # on log scale to avoid negative values
-u2copy <- round(u2copy) # round to integers
+u2copy <- exp(stats::spline(x = 1:length(u2), y = log(u2+1), xout = 1:length(u2))$y)-1 # on log scale to avoid negative values
+u2copy <- pmax(0,round(u2copy)) # round to integers
 
 datalist <- list("Nstrata.rel", "Nstrata.cap", "n1", "m2", "u2", "u2copy",
                  "logitP", "Nfree.logitP", "free.logitP.index",   # those indices that are fixed and free to vary
@@ -339,7 +340,7 @@ Uguess <- pmax(c((u2[1:Nstrata.rel]+1)*(n1+2)/
                  (u2+1)/expit(prior.beta.logitP.mean[1]), na.rm=TRUE)  # try and keep Uguess larger than observed values
 Uguess[which(is.na(Uguess))] <- mean(Uguess,na.rm=TRUE)
 
-init.bU   <- lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
+init.bU   <- stats::lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
 if(debug2) {
    cat("compute init.bU \n")
    browser()  # Stop here to examine the spline design matrix function
@@ -348,7 +349,7 @@ if(debug2) {
 logitPguess <- c(logit(pmax(0.05,pmin(.95,(apply(m2[,1:Nstrata.cap],1,sum,na.rm=TRUE)+1)/(n1+1))))
                  ,rep(prior.beta.logitP.mean[1],Nstrata.cap-Nstrata.rel))
 #browser()
-init.beta.logitP <- as.vector(lm( logitPguess ~ logitP.cov-1)$coefficients)
+init.beta.logitP <- as.vector(stats::lm( logitPguess ~ logitP.cov-1)$coefficients)
 if(debug2) {
    cat(" obtained initial values of beta.logitP\n")
    browser()

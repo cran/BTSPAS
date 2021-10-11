@@ -16,6 +16,7 @@
 # 2009-12-01 CJS (added WinBugs/OpenBugs directory to the argument list
 
 #' @import graphics grDevices splines
+#' @importFrom stats lm spline var sd
 #' @keywords internal
 
 TimeStratPetersenDiagError <- function(
@@ -35,7 +36,7 @@ TimeStratPetersenDiagError <- function(
     tauU.alpha=1, tauU.beta=.05,
     taueU.alpha=1,  taueU.beta=.05,
     prior.beta.logitP.mean = c(logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),rep(0,  ncol(as.matrix(logitP.cov))-1)),
-    prior.beta.logitP.sd   = c(sd(logit((m2+.5)/(n1+1)),na.rm=TRUE),        rep(10, ncol(as.matrix(logitP.cov))-1)), 
+    prior.beta.logitP.sd   = c(stats::sd(logit((m2+.5)/(n1+1)),na.rm=TRUE),        rep(10, ncol(as.matrix(logitP.cov))-1)), 
     tauP.alpha=.001, tauP.beta=.001,
     debug=FALSE,
     debug2=FALSE,
@@ -47,13 +48,6 @@ set.seed(InitialSeed)  # set prior to initial value computations
 #
 #  Fit the smoothed time-Stratified Petersen estimator with Diagonal recoveries (i.e. no recoveries
 #  outside stratum of release) and error in the smoothed U curve
-#
-#  Packages Required - must be installed BEFORE calling this functin
-#
-#    rjags       - only needed if using JAGS
-#    Coda
-#    actuar
-#    splines
 #
 #  This routine assumes that the strata are time (e.g. weeks).
 #  In each stratum n1 fish are released (with marks). These are ususall
@@ -246,8 +240,9 @@ Nfixed.logitP      <- length(fixed.logitP.index)
 
 
 # create a copy of the u2 to improve mixing in the MCMC model
-u2copy <- exp(spline(x = 1:Nstrata, y = log(u2+1), xout = 1:Nstrata)$y)-1 # on log scale to avoid negative values
-u2copy <- round(u2copy)  # round to integersbrowser()
+u2copy <- exp(stats::spline(x = 1:Nstrata, y = log(u2+1), xout = 1:Nstrata)$y)-1 # on log scale to avoid negative values
+u2copy <- pmax(0,round(u2copy))  # round to integers and avoid negative values
+#browser()
 
 datalist <- list("Nstrata", "n1", "m2", "u2", "u2copy", 
                  "logitP", "Nfree.logitP", "free.logitP.index", "Nfixed.logitP", "fixed.logitP.index", "fixed.logitP.value",   # those indices that are fixed and free to vary
@@ -267,14 +262,14 @@ avgP <- sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)
 Uguess <- pmax((u2+1)*(n1+2)/(m2+1), u2/avgP, 1, na.rm=TRUE)  # try and keep Uguess larger than observed values
 Uguess[which(is.na(Uguess))] <- mean(Uguess,na.rm=TRUE)
 
-init.bU   <- lm(log(Uguess+1) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
+init.bU   <- stats::lm(log(Uguess+1) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
 if(debug2) {
    cat("compute init.bU \n")
    browser()  # Stop here to examine the spline design matrix function
 }
 
 logitPguess <- pmax(-10, pmin(10, logit( (m2+1)/(n1+1))))
-init.beta.logitP <- as.vector(lm( logitPguess ~ logitP.cov-1)$coefficients)
+init.beta.logitP <- as.vector(stats::lm( logitPguess ~ logitP.cov-1)$coefficients)
 if(debug2) {
    cat(" obtained initial values of beta.logitP\n")
    browser()
@@ -305,13 +300,13 @@ if( any(is.na(u2))) {parameters <- c(parameters,"u2")}
 ## init.vals <- function(){
 ##    init.logitP <- logit((m2+1)/(n1+2))         # initial capture rates based on observed recaptures
 ##    init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
-##    init.beta.logitP <- as.vector(lm( init.logitP ~ logitP.cov-1)$coefficients)
+##    init.beta.logitP <- as.vector(stats::lm( init.logitP ~ logitP.cov-1)$coefficients)
 ##    init.beta.logitP[is.na(init.beta.logitP)] <- 0
 ##    init.beta.logitP <- c(init.beta.logitP, 0)   # add one extra element so that single beta is still written as a
 ##                                              # vector in the init files etc.
-##    init.tauP <- 1/var(init.logitP, na.rm=TRUE)     # 1/variance of logit(p)'s (ignoring the covariates for now)
+##    init.tauP <- 1/stats::var(init.logitP, na.rm=TRUE)     # 1/variance of logit(p)'s (ignoring the covariates for now)
 
-##    init.bU   <- lm(log(Uguess+1) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
+##    init.bU   <- stats::lm(log(Uguess+1) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
 ##    init.eU   <- as.vector(log(Uguess)-SplineDesign%*%init.bU)  # error terms set as differ between obs and pred
 ##    init.etaU <- log(Uguess)
 

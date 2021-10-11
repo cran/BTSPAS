@@ -10,6 +10,7 @@
 # 2011-02-28 CJS First version
 
 #' @keywords internal
+#' @importFrom stats lm spline var sd
 
 TimeStratPetersenNonDiagErrorNPMarkAvail <- function(title,
                                                      prefix,
@@ -144,7 +145,7 @@ model {
 #         + error term eU[i] 
 #
 #      muTT[j] = mean(logit(delta[i,i+j-1])), j=1,...,Delta.max
-#      sdTT = sd(logit(delta[i,i+j-1])), j=1,....,Delta.max
+#      sdTT = stats::sd(logit(delta[i,i+j-1])), j=1,....,Delta.max
 #      delta[i,i+j-1]=Theta[i,i+j-1]/(1-Theta[i,i]-...-Theta[i,i+j-2])
 #       
 
@@ -309,9 +310,10 @@ storage.mode(logitP) <- "double"  # force the storage class to be correct if the
 free.logitP.index <- (1:Nstrata.cap)[ is.na(logitP.fixed)]  # free values are those where NA is specifed
 Nfree.logitP <- length(free.logitP.index)
 
-# make a copy of u2 to improve mixing (not yet implemented)#u2copy <- spline(x=1:length(u2), y=u2, xout=1:length(u2))$y
-#u2copy <- exp(spline(x = 1:length(u2), y = log(u2+1), xout = 1:length(u2))$y)-1 # on log scale to avoid negative values
-#u2copy <- round(u2copy) # round to integers
+# make a copy of u2 to improve mixing (not yet implemented)
+#u2copy <- stats::spline(x=1:length(u2), y=u2, xout=1:length(u2))$y
+#u2copy <- exp(stats::spline(x = 1:length(u2), y = log(u2+1), xout = 1:length(u2))$y)-1 # on log scale to avoid negative values
+#u2copy <- pmax(0,round(u2copy)) # round to integers
 
 datalist <- list("Nstrata.rel", "Nstrata.cap","Extra.strata.cap",
                  "Delta.max","n1", "m2", "u2", # "u2copy", # u2copy not yet implemented
@@ -332,7 +334,7 @@ datalist <- list("Nstrata.rel", "Nstrata.cap","Extra.strata.cap",
 Uguess <- pmax((u2+1)/expit(prior.beta.logitP.mean[1]),1)  # try and keep Uguess larger than observed values
 Uguess[which(is.na(Uguess))] <- mean(Uguess,na.rm=TRUE)
 
-init.bU   <- lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
+init.bU   <- stats::lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
 
 if(debug2) {
    cat("compute init.bU \n")
@@ -343,7 +345,7 @@ if(debug2) {
 logitPguess <- c(logit(pmin(.99,pmax(.01,(apply(m2[,1:(Delta.max+1)],1,sum)+1)/(n1+1)))),
                  rep(prior.beta.logitP.mean[1],Nstrata.cap-Nstrata.rel))
 #browser()
-init.beta.logitP <- as.vector(lm( logitPguess ~ logitP.cov-1)$coefficients)
+init.beta.logitP <- as.vector(stats::lm( logitPguess ~ logitP.cov-1)$coefficients)
 if(debug2) {
    cat(" obtained initial values of beta.logitP\n")
    browser()
@@ -384,25 +386,25 @@ init.vals <- function(){
    init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
    init.logitP[!is.na(logitP.fixed)] <- NA        # no need to initialize the fixed values
    
-   init.beta.logitP <- as.vector(lm( init.logitP ~ logitP.cov-1)$coefficients)
+   init.beta.logitP <- as.vector(stats::lm( init.logitP ~ logitP.cov-1)$coefficients)
    init.beta.logitP[is.na(init.beta.logitP)] <- 0 
    init.beta.logitP <- c(init.beta.logitP, 0)   # add one extra element so that single beta is still written as a 
                                              # vector in the init files etc.
 
    init.logitP <- c(init.logitP,rep(NA,Extra.strata.cap)) # Add values for extra capture probabilities
    
-   init.tauP <- 1/var(init.logitP, na.rm=TRUE)     # 1/variance of logit(p)'s (ignoring the covariates for now)
+   init.tauP <- 1/stats::var(init.logitP, na.rm=TRUE)     # 1/variance of logit(p)'s (ignoring the covariates for now)
 
-   init.bU   <- lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
+   init.bU   <- stats::lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
    init.eU   <- as.vector(log(Uguess)-SplineDesign%*%init.bU)  # error terms set as differ between obs and pred
    init.etaU <- log(Uguess)
 
    # variance of spline difference
-   sigmaU <- sd( init.bU[b.notflat]-2*init.bU[b.notflat-1]+init.bU[b.notflat-2], na.rm=TRUE)
+   sigmaU <- stats::sd( init.bU[b.notflat]-2*init.bU[b.notflat-1]+init.bU[b.notflat-2], na.rm=TRUE)
    init.tauU <- 1/sigmaU^2
 
    # variance of error in the U' over and above the spline fit
-   sigmaeU <- sd(init.eU, na.rm=TRUE)
+   sigmaeU <- stats::sd(init.eU, na.rm=TRUE)
    init.taueU <- 1/sigmaeU^2
 
    # initialize the u2 where missing
@@ -432,7 +434,7 @@ init.vals <- function(){
    
    ## mean and standard deviation of transition probabilties
    init.muTT <- apply(logit(init.delta),2,mean,na.rm=TRUE)
-   init.sdTT <- sd(as.vector(t(logit(init.delta)))-init.muTT,na.rm=TRUE)
+   init.sdTT <- stats::sd(as.vector(t(logit(init.delta)))-init.muTT,na.rm=TRUE)
  
    ## ma.p
    init.ma.p <- ma.p.alpha/(ma.p.alpha+ma.p.beta)

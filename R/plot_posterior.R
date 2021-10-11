@@ -6,6 +6,7 @@
 #' @return Posterior plot(s) as an ggplot2 object 
 #' @keywords internal
 #' @import plyr ggplot2 scales
+#' @importFrom stats quantile sd
 #'
 #'
 
@@ -14,12 +15,12 @@
 # for how to get around this
 plot_posterior <- function(mcmc.sample, alpha=0.05, ncol=1){
   qparm <- plyr::ddply(mcmc.sample, "parm", function(x){
-     quants<- quantile(x$sample, probs=c(alpha/2, 1-alpha/2))
+     quants<- stats::quantile(x$sample, probs=c(alpha/2, 1-alpha/2))
      data.frame(quants=quants, stringsAsFactors=FALSE)
   })
   post_stat <- plyr::ddply(mcmc.sample, "parm", plyr::summarize,
-                    post.mean=signif(mean(sample),5),
-                    post.sd  =signif(sd  (sample),5))
+                    post.mean=signif(      mean(sample),5),
+                    post.sd  =signif(stats::sd  (sample),5))
   
   postplot <- ggplot(data=mcmc.sample, aes_(x = ~sample, y =~ ..density..)) +
      ggtitle(paste("Posterior plots with ", formatC(100*(1-alpha), format="f", digits=0),"% credible intervals",sep=""))+

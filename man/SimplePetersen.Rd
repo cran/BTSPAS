@@ -27,7 +27,6 @@ and total population (N) given n1, m2, and u2.
 SimplePetersen( 200, 10, 300) 
 SimplePetersen(c(200,400), c(10,20), c(300,600))
 
-
 }
 \author{
 Bonner, S.J. \email{sbonner6@uwo.ca} and 

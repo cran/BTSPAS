@@ -17,6 +17,7 @@
 # 2010-03-02 SJB Created file.
 
 #' @keywords internal
+#' @importFrom stats lm spline sd
 
 
 TimeStratPetersenNonDiagErrorNP <- function(title,
@@ -145,7 +146,7 @@ model {
 #         + error term eU[i]
 #
 #      muTT[j] = mean(logit(delta[i,i+j-1])), j=1,...,Delta.max
-#      sdTT = sd(logit(delta[i,i+j-1])), j=1,....,Delta.max
+#      sdTT = stats::sd(logit(delta[i,i+j-1])), j=1,....,Delta.max
 #      delta[i,i+j-1]=Theta[i,i+j-1]/(1-Theta[i,i]-...-Theta[i,i+j-2])
 #
 
@@ -314,8 +315,8 @@ Nfree.logitP <- length(free.logitP.index)
 tau.muTT <- 1/sd.muTT**2  # convert from sd to precision = 1/variance
 
 # make a copy of u2 to improve mixing
-u2copy <- exp(spline(x = 1:length(u2), y = log(u2+1), xout = 1:length(u2))$y)-1 # on log scale to avoid negative values
-u2copy <- round(u2copy) # round to integers
+u2copy <- exp(stats::spline(x = 1:length(u2), y = log(u2+1), xout = 1:length(u2))$y)-1 # on log scale to avoid negative values
+u2copy <- pmax(0,round(u2copy)) # round to integers
 
 datalist <- list("Nstrata.rel", "Nstrata.cap","Extra.strata.cap",
                  "Delta.max","n1", "m2", "u2", "u2copy",
@@ -336,7 +337,7 @@ datalist <- list("Nstrata.rel", "Nstrata.cap","Extra.strata.cap",
 Uguess <- pmax((u2+1)/expit(prior.beta.logitP.mean[1]),1)  # try and keep Uguess larger than observed values
 Uguess[which(is.na(Uguess))] <- mean(Uguess,na.rm=TRUE)
 
-init.bU   <- lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
+init.bU   <- stats::lm(log(Uguess) ~ SplineDesign-1)$coefficients  # initial values for spline coefficients
 
 if(debug2) {
    cat("compute init.bU \n")
@@ -347,7 +348,7 @@ if(debug2) {
 logitPguess <- c(logit(pmin(.99,pmax(.01,(apply(m2[,1:(Delta.max+1)],1,sum)+1)/(n1+1)))),
                  rep(prior.beta.logitP.mean[1],Nstrata.cap-Nstrata.rel))
 #browser()
-init.beta.logitP <- as.vector(lm( logitPguess ~ logitP.cov-1)$coefficients)
+init.beta.logitP <- as.vector(stats::lm( logitPguess ~ logitP.cov-1)$coefficients)
 if(debug2) {
    cat(" obtained initial values of beta.logitP\n")
    browser()

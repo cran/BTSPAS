@@ -2,7 +2,8 @@
 #                any contribution from the simulated data when u2 is missing
 
 #' @rdname PredictivePosterior.TSPDE
-#' @import stats plyr
+#' @importFrom stats sd dbinom dmultinom pnorm rbinom rmultinom 
+#' @import plyr
 
 
 PredictivePosterior.TSPNDE <- function (n1,
@@ -73,11 +74,11 @@ discrep <- t(sapply(1:nrow(p),function(k){
     cellProbs <- Theta[[k]][i,] * p[k,1:t]
     cellProbs <- c(cellProbs,1-sum(cellProbs))
 
-    dmultinom(m2[i,],n1[i],cellProbs,log=TRUE)
+    stats::dmultinom(m2[i,],n1[i],cellProbs,log=TRUE)
   }))
   
   notmissing <- !is.na(u2)  # need to ignore contributions from missing u2 values
-  d2.u2.o <- -2 * sum(dbinom(u2[notmissing],U[k,notmissing],p[k,notmissing],log=TRUE))
+  d2.u2.o <- -2 * sum(stats::dbinom(u2[notmissing],U[k,notmissing],p[k,notmissing],log=TRUE))
 
   d2.o <- d2.m2.o + d2.u2.o
 
@@ -86,11 +87,10 @@ discrep <- t(sapply(1:nrow(p),function(k){
     cellProbs <- Theta[[k]][i,] * p[k,1:t]
     cellProbs <- c(cellProbs,1-sum(cellProbs))
 
-
-    dmultinom(simData[[k]]$m2[i,],n1[i],cellProbs,log=TRUE)
+    stats::dmultinom(simData[[k]]$m2[i,],n1[i],cellProbs,log=TRUE)
   }))
 
-  d2.u2.s <- -2 * sum(dbinom(simData[[k]]$u2[notmissing],U[k,notmissing],p[k,notmissing],log=TRUE))
+  d2.u2.s <- -2 * sum(stats::dbinom(simData[[k]]$u2[notmissing],U[k,notmissing],p[k,notmissing],log=TRUE))
 
   d2.s <- d2.m2.s + d2.u2.s
 
@@ -111,8 +111,8 @@ lnTheta <- function(mu,sigma,s,t){
   ## s,t = number of strata at site 1,2
 
   tmp <- t(sapply(1:s,function(i){
-    tmp1 <- pnorm(log(1:(t-i+1)),mu[i],sigma[i]) -
-      pnorm(log(1:(t-i+1)-1),mu[i],sigma[i])
+    tmp1 <- stats::pnorm(log(1:(t-i+1)),mu[i],sigma[i]) -
+      stats::pnorm(log(1:(t-i+1)-1),mu[i],sigma[i])
 
     c(rep(0,i-1),tmp1)
   }))
@@ -129,14 +129,14 @@ simTSPNDE <- function(n1,U,p,Theta){
     cellProbs <- Theta[i,] * p
     cellProbs <- c(cellProbs,1-sum(cellProbs))
 
-    rmultinom(1,n1[i],cellProbs)[1:t]
+    stats:rmultinom(1,n1[i],cellProbs)[1:t]
   }))
 
   ## 2) Compute number of marked individuals not recaptured
   m2 <- cbind(m2,n1-apply(m2,1,sum))
 
   ## 3) Simulate captures of unmarked fish
-  u2 <- rbinom(t,U,p)
+  u2 <- stats::rbinom(t,U,p)
 
   return(list(m2=m2,u2=u2))
 }

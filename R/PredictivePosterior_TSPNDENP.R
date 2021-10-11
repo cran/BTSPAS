@@ -1,6 +1,7 @@
 #' @rdname PredictivePosterior.TSPDE
-#' @import stats 
+#' @importFrom stats sd dbinom dmultinom rbinom rmultinom 
 
+# 2021-10-05 CJS Fixed computation of discrepancy measure when some m2.expanded are missing
 # 2020-12-15 CJS Fixed computation of discrepancy measures when u2 is missing
 # 2018-11-30 CJS Changed defintion of m2.expanded propogates down here
 # 2018-11-27 CJS Removed openbugs stuff
@@ -54,6 +55,7 @@ simData <- lapply(1:nrow(p),function(k) simTSPNDE(n1,U[k,],p[k,],Theta[[k]]))
 
 #browser()
 ## Compute discrepancy measures
+#browser()
 discrep <- t(sapply(1:nrow(p),function(k){
 
   ## 1) Observed vs expected values for recaptures of marked fish
@@ -80,10 +82,14 @@ discrep <- t(sapply(1:nrow(p),function(k){
   d2.m2.o <- -2 * sum(sapply(1:length(n1),function(i){
     cellProbs <- Theta[[k]][i,] * p[k,1:t]  # 2014-09-01 need to ignore extra p's at end which were needed for OPENbugs quirk
     cellProbs <- c(cellProbs,1-sum(cellProbs))
-    dmultinom(c(m2.expanded[i,1:t], n1[i]-sum(m2.expanded[i,1:t])),n1[i],cellProbs,log=TRUE)
+    res <- 0
+    if(!is.na(sum(m2.expanded[i,1:t]))){  # data is present, so compute the deviance; otherwise nothing
+       res<- stats::dmultinom(c(m2.expanded[i,1:t], n1[i]-sum(m2.expanded[i,1:t])),n1[i],cellProbs,log=TRUE)
+    }
+    res
   }))
 
-  d2.u2.o <- -2 * sum(dbinom(u2[select.u2],U[k,select.u2],p[k,select.u2],log=TRUE), na.rm=TRUE)
+  d2.u2.o <- -2 * sum(stats::dbinom(u2[select.u2],U[k,select.u2],p[k,select.u2],log=TRUE), na.rm=TRUE)
 
   d2.o <- d2.m2.o + d2.u2.o
 
@@ -91,10 +97,14 @@ discrep <- t(sapply(1:nrow(p),function(k){
   d2.m2.s <- -2 * sum(sapply(1:length(n1),function(i){
     cellProbs <- Theta[[k]][i,] * p[k,1:t]  # 2014-09-01 ditto to previous fix
     cellProbs <- c(cellProbs,1-sum(cellProbs))
-    dmultinom(simData[[k]]$m2[i,],n1[i],cellProbs,log=TRUE)
+    res <- 0
+    if(!is.na(sum(m2.expanded[i,1:t]))){  # data is present, so compute the deviance on sim data; otherwise nothing
+       res<- stats::dmultinom(simData[[k]]$m2[i,],n1[i],cellProbs,log=TRUE)
+    }
+    res
   }))
 
-  d2.u2.s <- -2 * sum(dbinom(simData[[k]]$u2[select.u2],U[k,select.u2],p[k,select.u2],log=TRUE), na.rm=TRUE)
+  d2.u2.s <- -2 * sum(stats::dbinom(simData[[k]]$u2[select.u2],U[k,select.u2],p[k,select.u2],log=TRUE), na.rm=TRUE)
 
   d2.s <- d2.m2.s + d2.u2.s
 
@@ -117,14 +127,14 @@ simTSPNDE <- function(n1,U,p,Theta){
     cellProbs <- Theta[i,] * p[1:t]
     cellProbs <- c(cellProbs,1-sum(cellProbs))
     if( any(cellProbs < 0)){browser()}
-    rmultinom(1,n1[i],cellProbs)[1:t]
+    stats::rmultinom(1,n1[i],cellProbs)[1:t]
   }))
 
   ## 2) Add number of individuals not recovered to last column of m2
   m2 <- cbind(m2,n1-apply(m2,1,sum))
 
   ## 3) Simulate captures of unmarked fish
-  u2 <- rbinom(t,U,p)
+  u2 <- stats::rbinom(t,U,p)
 
   return(list(m2=m2,u2=u2))
 }

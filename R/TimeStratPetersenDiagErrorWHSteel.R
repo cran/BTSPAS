@@ -21,6 +21,7 @@
 # 2009-12-01 CJS added openbugs/winbugs directory to argument list
 
 #' @keywords internal 
+#' @importFrom stats lm spline var sd
 
 
 TimeStratPetersenDiagErrorWHSteel <-
@@ -32,7 +33,7 @@ TimeStratPetersenDiagErrorWHSteel <-
            n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000,
            tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
            prior.beta.logitP.mean = c(logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),rep(0,  ncol(as.matrix(logitP.cov))-1)),
-           prior.beta.logitP.sd   = c(sd(logit((m2+.5)/(n1+1)),na.rm=TRUE),        rep(10, ncol(as.matrix(logitP.cov))-1)), 
+           prior.beta.logitP.sd   = c(stats::sd(logit((m2+.5)/(n1+1)),na.rm=TRUE),        rep(10, ncol(as.matrix(logitP.cov))-1)), 
            tauP.alpha=.001, tauP.beta=.001,
            debug=FALSE, debug2=FALSE,
            InitialSeed,
@@ -267,15 +268,15 @@ sink()  # End of saving the Bugs program
 Nstrata <- length(n1)
 
 # Make a copy of u2.W.YoY/u2.W.1/u2.H.1 to improve mixing in the MCMC model
-u2.W.YoYcopy <- spline(x=1:Nstrata, y=u2.W.YoY, xout=1:Nstrata)$y
+u2.W.YoYcopy <- stats::spline(x=1:Nstrata, y=u2.W.YoY, xout=1:Nstrata)$y
 u2.W.YoYcopy <- round(u2.W.YoYcopy) # round to integers
-u2.W.1copy   <- spline(x=1:Nstrata, y=u2.W.1,   xout=1:Nstrata)$y
+u2.W.1copy   <- stats::spline(x=1:Nstrata, y=u2.W.1,   xout=1:Nstrata)$y
 u2.W.1copy   <- round(u2.W.1copy) # round to integers
 
 # similarly make a copy of u2.H.1 to improve mixing in the MCMC model
 # notice that hatchery fish occur at hatch.after or later
 u2.H.1copy <- u2.H.1 * 0
-u2.H.1copy[hatch.after:Nstrata] <- spline(x=hatch.after:Nstrata, y=u2.H.1[hatch.after:Nstrata], xout=hatch.after:Nstrata)$y
+u2.H.1copy[hatch.after:Nstrata] <- stats::spline(x=hatch.after:Nstrata, y=u2.H.1[hatch.after:Nstrata], xout=hatch.after:Nstrata)$y
 u2.H.1copy <- round(u2.H.1copy) # round to integers
 
 
@@ -339,7 +340,7 @@ b.notflat.W.YoY   <- 3:(ncol(SplineDesign.W.YoY))
 n.b.flat.W.YoY    <- length(b.flat.W.YoY)
 n.b.notflat.W.YoY <- length(b.notflat.W.YoY)
 n.bU.W.YoY        <- n.b.flat.W.YoY + n.b.notflat.W.YoY
-init.bU.W.YoY    <- lm(log(Uguess.W.YoY+1) ~ SplineDesign.W.YoY-1)$coefficients  # initial values for spline coefficients
+init.bU.W.YoY    <- stats::lm(log(Uguess.W.YoY+1) ~ SplineDesign.W.YoY-1)$coefficients  # initial values for spline coefficients
 
 # Wild 1+  fish. This covers the entire experiment.
 SplineDegree <- 3           # Degree of spline between occasions
@@ -350,7 +351,7 @@ b.notflat.W.1     <- 3:(ncol(SplineDesign.W.1))
 n.b.flat.W.1      <- length(b.flat.W.1)
 n.b.notflat.W.1   <- length(b.notflat.W.1)
 n.bU.W.1          <- n.b.flat.W.1 + n.b.notflat.W.1
-init.bU.W.1       <- lm(log(Uguess.W.1+1) ~ SplineDesign.W.1-1)$coefficients  # initial values for spline coefficients
+init.bU.W.1       <- stats::lm(log(Uguess.W.1+1) ~ SplineDesign.W.1-1)$coefficients  # initial values for spline coefficients
 
 # hatchery fish. Notice they can only enter AFTER hatch.after, The spline design matrix still has rows
 # of zero for 1:hatch.after to make it easier in Bugs
@@ -362,7 +363,7 @@ b.notflat.H.1   <- 3:(ncol(SplineDesign.H.1))
 n.b.flat.H.1    <- length(b.flat.H.1)
 n.b.notflat.H.1 <- length(b.notflat.H.1)
 n.bU.H.1        <- n.b.flat.H.1 + n.b.notflat.H.1
-init.bU.H.1     <- lm(log(Uguess.H.1[(hatch.after+1):Nstrata]+1) ~ SplineDesign.H.1-1)$coefficients  # initial values for spline coefficients
+init.bU.H.1     <- stats::lm(log(Uguess.H.1[(hatch.after+1):Nstrata]+1) ~ SplineDesign.H.1-1)$coefficients  # initial values for spline coefficients
 # patch up the initial rows of the spline design matrix
 SplineDesign.H.1 <- rbind(matrix(0,nrow=hatch.after, ncol=ncol(SplineDesign.H.1)), SplineDesign.H.1)
 
@@ -402,16 +403,16 @@ NlogitP.cov <- ncol(as.matrix(logitP.cov))
 ##    # Initial values for the probability of capture
 ##    init.logitP <- pmax(-10,pmin(10,logit((m2+1)/(n1+2))))  # initial capture rates based on observed recaptures
 ##    init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
-##    init.beta.logitP <- as.vector(lm( init.logitP ~ logitP.cov-1)$coefficients)
+##    init.beta.logitP <- as.vector(stats::lm( init.logitP ~ logitP.cov-1)$coefficients)
 ##    init.beta.logitP[init.beta.logitP=NA] <- 0
 ##    init.beta.logitP <- c(init.beta.logitP, 0)   # add one extra element so that single beta is still written as a
 ##                                              # vector in the init files etc.
-##    init.tauP <- 1/var(init.logitP, na.rm=TRUE)     # 1/variance of logit(p)'s (ignoring the covariates for now)
+##    init.tauP <- 1/stats::var(init.logitP, na.rm=TRUE)     # 1/variance of logit(p)'s (ignoring the covariates for now)
 
 ##    # inital values for the spline coefficients
-##    init.bU.W.YoY   <- lm(log(Uguess.W.YoY+1) ~ SplineDesign.W.YoY-1)$coefficients  # initial values for spline coefficients
-##    init.bU.W.1     <- lm(log(Uguess.W.1  +1) ~ SplineDesign.W.1  -1)$coefficients  # initial values for spline coefficients
-##    init.bU.H.1     <- lm(log(Uguess.H.1[(hatch.after+1):Nstrata]+1) ~ SplineDesign.H.1[(hatch.after+1):Nstrata,]-1)$coefficients  # initial values for spline coefficients
+##    init.bU.W.YoY   <- stats::lm(log(Uguess.W.YoY+1) ~ SplineDesign.W.YoY-1)$coefficients  # initial values for spline coefficients
+##    init.bU.W.1     <- stats::lm(log(Uguess.W.1  +1) ~ SplineDesign.W.1  -1)$coefficients  # initial values for spline coefficients
+##    init.bU.H.1     <- stats::lm(log(Uguess.H.1[(hatch.after+1):Nstrata]+1) ~ SplineDesign.H.1[(hatch.after+1):Nstrata,]-1)$coefficients  # initial values for spline coefficients
 
 ##    init.eU.W.YoY   <- as.vector(log(Uguess.W.YoY+1)-SplineDesign.W.YoY%*%init.bU.W.YoY)  # error terms set as differ between obs and pred
 ##    init.eU.W.1     <- as.vector(log(Uguess.W.1  +1)-SplineDesign.W.1  %*%init.bU.W.1)  # error terms set as differ between obs and pred
@@ -423,11 +424,11 @@ NlogitP.cov <- ncol(as.matrix(logitP.cov))
 ##    init.etaU.H.1[1:hatch.after] <- NA  # these are never used.
 
 ##    # variance of spline difference (use only the wild fish to initialize)
-##    sigmaU <- sd( init.bU.W.YoY[b.notflat.W.YoY]-2*init.bU.W.YoY[b.notflat.W.YoY-1]+init.bU.W.YoY[b.notflat.W.YoY-2], na.rm=TRUE)
+##    sigmaU <- stats::sd( init.bU.W.YoY[b.notflat.W.YoY]-2*init.bU.W.YoY[b.notflat.W.YoY-1]+init.bU.W.YoY[b.notflat.W.YoY-2], na.rm=TRUE)
 ##    init.tauU <- 1/sigmaU^2
 
 ##    # variance of error in the U' over and above the spline fit (use only the wild fish to initialize)
-##    sigmaeU <- sd(init.eU.W.YoY, na.rm=TRUE)
+##    sigmaeU <- stats::sd(init.eU.W.YoY, na.rm=TRUE)
 ##    init.taueU <- 1/sigmaeU^2
 
 ##    # initialize the u2.* where missing

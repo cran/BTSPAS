@@ -196,16 +196,17 @@ capture probabilities in much the same way as the diagonal case.
 The $BTSPAS$ package also has additional features and options:
 
 * if $u2$ is missing for any stratum, the program will use the spline to interpolate for the
+number of unmarked fish in the population 
 missing stratum.
-* if $n1$ and/or the entire corresponding row of $m2$ are missing, the program will use the hierarchical model to interpolate the capture
-probabilities for the missing strata.
+* if $n1$ and the entire corresponding row of $m2$ are 0, the program will use the hierarchical model to interpolate the capture
+probabilities for the missing strata because no information is available from 0 fish released.
 * the program allows you specify break points in the underlying spline to account
 for external events.
 * sometimes bad thing happen.  The vector $bad.m2$ indicates which julian weeks something went wrong. In the above example, the
 number of recoveries in julian week 41 is far below expectations and leads to impossible
 Petersen estimate for julian week 41. Similarly, the vector $bad.u2$ indicates which julian weeks, the number of unmarked fish is suspect.
-In both cases, the suspect values of $m2$ and $u2$ are set to missing.
-Alternatively, the user can set the $m2$ and $u2$ values to missing in the data input directly.
+In both cases, the suspect values of $n1$ and $m2$ are set to 0, and the suspect values of $u2$ are set to missing.
+Alternatively, the user can set the $n1$ and $m2$ values to 0, and set the suspect $u2$ values to missing in the data input directly.
 I arbitrarily chose the third julian week to demonstrate this feature.
 
 The $BTSPAS$ function also allows you specify

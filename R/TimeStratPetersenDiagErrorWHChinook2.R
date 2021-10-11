@@ -18,6 +18,7 @@
 # 2010-03-29 CJS Created first release
 
 #' @keywords internal
+#' @importFrom stats lm var sd
 
 # This DIFFERS from the TimeStratPetersenDiagErrorWHChinook routine in the following ways.
 #   YoY chinook are separated from age 1 chinook
@@ -35,7 +36,7 @@ TimeStratPetersenDiagErrorWHChinook2 <-
                 n.chains=3, n.iter=200000, n.burnin=100000, n.sims=2000, 
                 tauU.alpha=1, tauU.beta=.05, taueU.alpha=1, taueU.beta=.05,
                 prior.beta.logitP.mean = c(logit(sum(m2,na.rm=TRUE)/sum(n1,na.rm=TRUE)),rep(0,  ncol(as.matrix(logitP.cov))-1)),
-                prior.beta.logitP.sd   = c(sd(logit((m2+.5)/(n1+1)),na.rm=TRUE),        rep(10, ncol(as.matrix(logitP.cov))-1)), 
+                prior.beta.logitP.sd   = c(stats::sd(logit((m2+.5)/(n1+1)),na.rm=TRUE),        rep(10, ncol(as.matrix(logitP.cov))-1)), 
                 tauP.alpha=.001, tauP.beta=.001, 
                 debug=FALSE, debug2=FALSE,
                 InitialSeed,
@@ -389,7 +390,7 @@ b.notflat.W.YoY   <- 3:(ncol(SplineDesign.W.YoY))
 n.b.flat.W.YoY    <- length(b.flat.W.YoY)
 n.b.notflat.W.YoY <- length(b.notflat.W.YoY)
 n.bU.W.YoY        <- n.b.flat.W.YoY + n.b.notflat.W.YoY
-init.bU.W.YoY   <- lm(log(Uguess.W.YoY+1) ~ SplineDesign.W.YoY-1)$coefficients  # initial values for spline coefficients
+init.bU.W.YoY   <- stats::lm(log(Uguess.W.YoY+1) ~ SplineDesign.W.YoY-1)$coefficients  # initial values for spline coefficients
 
 # Age1 Wild fish. This covers the entire experiment.
 SplineDegree <- 3           # Degree of spline between occasions
@@ -400,7 +401,7 @@ b.notflat.W.1     <- 3:(ncol(SplineDesign.W.1))
 n.b.flat.W.1      <- length(b.flat.W.1)
 n.b.notflat.W.1   <- length(b.notflat.W.1)
 n.bU.W.1          <- n.b.flat.W.1 + n.b.notflat.W.1
-init.bU.W.1     <- lm(log(Uguess.W.1+1) ~ SplineDesign.W.1-1)$coefficients  # initial values for spline coefficients
+init.bU.W.1     <- stats::lm(log(Uguess.W.1+1) ~ SplineDesign.W.1-1)$coefficients  # initial values for spline coefficients
 
 # YoY hatchery fish. Notice they can only enter AFTER hatch.after, The spline design matrix still has rows
 # of zero for 1:hatch.after to make it easier in Bugs
@@ -412,7 +413,7 @@ b.notflat.H.YoY   <- 3:(ncol(SplineDesign.H.YoY))
 n.b.flat.H.YoY    <- length(b.flat.H.YoY)
 n.b.notflat.H.YoY <- length(b.notflat.H.YoY)
 n.bU.H.YoY        <- n.b.flat.H.YoY + n.b.notflat.H.YoY
-init.bU.H.YoY   <- lm(log(Uguess.H.YoY[(hatch.after.YoY+1):Nstrata]+1) ~ SplineDesign.H.YoY-1)$coefficients  # initial values for spline coefficients
+init.bU.H.YoY   <- stats::lm(log(Uguess.H.YoY[(hatch.after.YoY+1):Nstrata]+1) ~ SplineDesign.H.YoY-1)$coefficients  # initial values for spline coefficients
 # patch up the initial rows of the spline design matrix
 SplineDesign.H.YoY <- rbind(matrix(0,nrow=hatch.after.YoY, ncol=ncol(SplineDesign.H.YoY)), SplineDesign.H.YoY)
 
@@ -425,7 +426,7 @@ b.notflat.H.1     <- 3:(ncol(SplineDesign.H.1))
 n.b.flat.H.1      <- length(b.flat.H.1)
 n.b.notflat.H.1   <- length(b.notflat.H.1)
 n.bU.H.1          <- n.b.flat.H.1 + n.b.notflat.H.1
-init.bU.H.1   <- lm(log(Uguess.H.1+1) ~ SplineDesign.H.1-1)$coefficients  # initial values for spline coefficients
+init.bU.H.1   <- stats::lm(log(Uguess.H.1+1) ~ SplineDesign.H.1-1)$coefficients  # initial values for spline coefficients
 
 
 # create an initial plot of the fit to the number of YoY and Age1 unmarked fish
@@ -468,18 +469,18 @@ init.vals <- function(){
    # Initial values for the probability of capture
    init.logitP <- pmax(-10,pmin(10,logit((m2+1)/(n1+2))))         # initial capture rates based on observed recaptures
    init.logitP[is.na(init.logitP)] <- -2         # those cases where initial probability is unknown
-   init.beta.logitP <- as.vector(lm( init.logitP ~ logitP.cov-1)$coefficients)
+   init.beta.logitP <- as.vector(stats::lm( init.logitP ~ logitP.cov-1)$coefficients)
    init.beta.logitP[init.beta.logitP=NA] <- 0 
    init.beta.logitP <- c(init.beta.logitP, 0)   # add one extra element so that single beta is still written as a 
                                              # vector in the init files etc.
-   init.tauP <- 1/var(init.logitP, na.rm=TRUE)     # 1/variance of logit(p)'s (ignoring the covariates for now)
+   init.tauP <- 1/stats::var(init.logitP, na.rm=TRUE)     # 1/variance of logit(p)'s (ignoring the covariates for now)
 
    # inital values for the YoY spline coefficients
-   init.bU.W.YoY   <- lm(log(Uguess.W.YoY+1) ~ SplineDesign.W.YoY-1)$coefficients  
-   init.bU.H.YoY   <- lm(log(Uguess.H.YoY[(hatch.after.YoY+1):Nstrata]+1) ~ SplineDesign.H.YoY[(hatch.after.YoY+1):Nstrata,]-1)$coefficients  
+   init.bU.W.YoY   <- stats::lm(log(Uguess.W.YoY+1) ~ SplineDesign.W.YoY-1)$coefficients  
+   init.bU.H.YoY   <- stats::lm(log(Uguess.H.YoY[(hatch.after.YoY+1):Nstrata]+1) ~ SplineDesign.H.YoY[(hatch.after.YoY+1):Nstrata,]-1)$coefficients  
    # inital values for the Age1 spline coefficients
-   init.bU.W.1     <- lm(log(Uguess.W.1+1) ~ SplineDesign.W.1-1)$coefficients  
-   init.bU.H.1     <- lm(log(Uguess.H.1+1) ~ SplineDesign.H.1-1)$coefficients  
+   init.bU.W.1     <- stats::lm(log(Uguess.W.1+1) ~ SplineDesign.W.1-1)$coefficients  
+   init.bU.H.1     <- stats::lm(log(Uguess.H.1+1) ~ SplineDesign.H.1-1)$coefficients  
 
    init.eU.W.YoY   <- as.vector(log(Uguess.W.YoY+1)-SplineDesign.W.YoY%*%init.bU.W.YoY)  # error terms set as differ between obs and pred
    init.etaU.W.YoY <- log(Uguess.W.YoY+1)
@@ -493,11 +494,11 @@ init.vals <- function(){
    init.etaU.H.1   <- log(Uguess.H.1  +1)
 
    # variance of spline difference (use only the YoY wild fish to initialize)
-   sigmaU <- sd( init.bU.W.YoY[b.notflat.W.YoY]-2*init.bU.W.YoY[b.notflat.W.YoY-1]+init.bU.W.YoY[b.notflat.W.YoY-2], na.rm=TRUE)
+   sigmaU <- stats::sd( init.bU.W.YoY[b.notflat.W.YoY]-2*init.bU.W.YoY[b.notflat.W.YoY-1]+init.bU.W.YoY[b.notflat.W.YoY-2], na.rm=TRUE)
    init.tauU <- 1/sigmaU^2
 
    # variance of error in the U' over and above the spline fit (use only the YoY wild fish to initialize)
-   sigmaeU <- sd(init.eU.W.YoY, na.rm=TRUE)
+   sigmaeU <- stats::sd(init.eU.W.YoY, na.rm=TRUE)
    init.taueU <- 1/sigmaeU^2
 
    # initialize the u2.A.YoY and u2.N.YoY where missing
