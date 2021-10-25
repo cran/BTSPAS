@@ -1,3 +1,4 @@
+# 2021-10-24 CJS added trunc.logitP to avoid problems with plotting
 # 2020-12-15 CJS removed sampfrac from code but left argument with warning message
 # 2020-11-07 CJS Allowed user to specify prior for beta coefficient for logitP
 # 2018-12-19 CJS Deprecated use of sampling.fraction
@@ -47,15 +48,9 @@
 #' @param m2 A numeric vector of the number of marked fish from n1 that are
 #' recaptured in each time stratum. All recaptures take place within the
 #' stratum of release.
-#' @param u2 A numeric vector of the number of unmarked fish captured in each
-#' stratum. These will be expanded by the capture efficiency to estimate the
-#' population size in each stratum.
+#' @template u2.D
 #' @template sampfrac
-#' @param jump.after A numeric vector with elements belonging to \code{time}.
-#' In some cases, the spline fitting the population numbers should be allowed
-#' to jump. For example, the population size could take a jump when hatchery
-#' released fish suddenly arrive at the trap. The jumps occur AFTER the strata
-#' listed in this argument.
+#' @template jump.after
 #' @template bad.n1 
 #' @template bad.m2 
 #' @template bad.u2
@@ -71,33 +66,15 @@
 #' as -50 because numerical problems could occur in WinBugs/OpenBugs.
 
 #' @template mcmc-parms
-#' @param tauU.alpha One of the parameters along with \code{tauU.beta} for the
-#' prior for the variance of the random noise for the smoothing spline.
-#' @param tauU.beta One of the parameters along with \code{tauU.alpha} for the
-#' prior for the variance of the random noise for the smoothing spline.
-#' @param taueU.alpha One of the parameters along with \code{taueU.beta} for
-#' the prior for the variance of noise around the spline.
-#' @param taueU.beta One of the parameters along with \code{taueU.alpha} for
-#' the prior for the variance of noise around the spline.
-#' @param prior.beta.logitP.mean Mean of the prior normal distribution for
-#' logit(catchability) across strata
-#' @param prior.beta.logitP.sd   SD of the prior normal distribution for
-#' logit(catchability) across strata
-#' @param tauP.alpha One of the parameters for the prior for the variance in
-#' logit(catchability) among strata
-#' @param tauP.beta One of the parameters for the prior for the variance in
-#' logit(catchability) among strata
-#' @param run.prob Numeric vector indicating percentiles of run timing should
-#' be computed.
-#' @param debug Logical flag indicating if a debugging run should be made. In
-#' the debugging run, the number of samples in the posterior is reduced
-#' considerably for a quick turn around.
-#' @param debug2 Logical flag indicated if additional debugging information is
-#' produced. Normally the functions will halt at \code{browser()} calls to
-#' allow the user to peek into the internal variables. Not useful except to
-#' package developers.
+#' @template tauU.alpha.beta
+#' @template taueU.alpha.beta
+#' @template prior.beta.logitP.mean.sd
+#' @template tauP.alpha.beta
+#' @template run.prob 
+#' @template debug
 #' @template InitialSeed
 #' @template save.output.to.files
+#' @template trunc.logitP
 
 #' 
 #' @return An MCMC object with samples from the posterior distribution. A
@@ -125,12 +102,13 @@ TimeStratPetersenDiagError_fit <-
            run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
            debug=FALSE, debug2=FALSE,
            InitialSeed=ceiling(stats::runif(1,min=0, max=1000000)),
-           save.output.to.files=TRUE) {
+           save.output.to.files=TRUE,
+           trunc.logitP=15) {
     
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2021-11-01'
+   version <- '2021-11-02'
    options(width=200)
 
 # Input parameters are
@@ -471,9 +449,9 @@ if (debug)
   results.row.names <- rownames(results$summary)
   etaU.row.index    <- grep("etaU", results.row.names)
   etaU<- results$summary[etaU.row.index,]
-  plot.df$logU =etaU[,"mean"]
-  plot.df$lcl =etaU[,"2.5%"]
-  plot.df$ucl =etaU[,"97.5%"]
+  plot.df$logU    = etaU[,"mean"]
+  plot.df$logUlcl = etaU[,"2.5%"]
+  plot.df$logUucl = etaU[,"97.5%"]
 
 # extract the spline values
    logUne.row.index <- grep("logUne", results.row.names)
@@ -481,13 +459,20 @@ if (debug)
    plot.df$spline <- results$summary[logUne.row.index,"mean"]
 
    #browser()
+# add limits to the plot to avoid non-monotone secondary axis problems with extreme values
+   plot.df$logUi     <- pmax(-10 , pmin(20, plot.df$logUi))
+   plot.df$logU      <- pmax(-10 , pmin(20, plot.df$logU ))
+   plot.df$logUlcl   <- pmax(-10 , pmin(20, plot.df$logUlcl  ))
+   plot.df$logUucl   <- pmax(-10 , pmin(20, plot.df$logUucl  ))
+   plot.df$spline    <- pmax(-10 , pmin(20, plot.df$spline))
+   
 fit.plot <- ggplot(data=plot.df, aes_(x=~time))+
    ggtitle(title, subtitle="Fitted spline curve with 95% credible intervals for estimated log(U[i])")+
    geom_point(aes_(y=~logUi), color="red", shape=1)+  # open circle
    xlab("Time Index\nOpen/closed circles - initial and final estimates")+ylab("log(U[i]) + 95% credible interval")+
    geom_point(aes_(y=~logU), color="black", shape=19)+
    geom_line (aes_(y=~logU), color="black")+
-   geom_errorbar(aes_(ymin=~lcl, ymax=~ucl), width=.1)+
+   geom_errorbar(aes_(ymin=~logUlcl, ymax=~logUucl), width=.1)+
    geom_line(aes_(y=~spline),linetype="dashed")+
    scale_x_continuous(breaks=seq(min(plot.df$time, na.rm=TRUE),max(plot.df$time, na.rm=TRUE),2))+
    scale_y_continuous(sec.axis = sec_axis(~ exp(.), name="U + 95% credible interval",
@@ -504,7 +489,9 @@ if(save.output.to.files)ggsave(plot=fit.plot, filename=paste(prefix,"-fit.pdf",s
 results$plots$fit.plot <- fit.plot
 
 # plot logit(P) over time
-logitP.plot <- plot_logitP(title=title, time=new.time, n1=new.n1, m2=new.m2, u2=new.u2, logitP.cov=new.logitP.cov, results=results)
+logitP.plot <- plot_logitP(title=title, time=new.time, n1=new.n1, m2=new.m2, u2=new.u2, 
+                           logitP.cov=new.logitP.cov, results=results, 
+                           trunc.logitP=trunc.logitP)
 if(save.output.to.files)ggsave(plot=logitP.plot, filename=paste(prefix,"-logitP.pdf",sep=""), height=6, width=10, units="in")
 results$plots$logitP.plot <- logitP.plot
 

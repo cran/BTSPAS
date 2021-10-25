@@ -1,3 +1,4 @@
+# 2021-10-23 CJS Added trunc.logitP parameter to avoid plotting problems
 # 2020-12-15 CJS Removed all uses of sampfrac in the code
 # 2020-11-07 CJS Allowed user to specify prior for beta coefficient for logitP
 # 2018-12-19 CSJ deprecated use of sampling fraction
@@ -84,33 +85,15 @@
 #'               These are set to NA prior to the fit.
 #' @template logitP.cov
 #' @template mcmc-parms
-#' @param tauU.alpha One of the parameters along with \code{tauU.beta} for the
-#' prior for the variance of the random noise for the smoothing spline.
-#' @param tauU.beta One of the parameters along with \code{tauU.alpha} for the
-#' prior for the variance of the random noise for the smoothing spline.
-#' @param taueU.alpha One of the parameters along with \code{taueU.beta} for
-#' the prior for the variance of noise around the spline.
-#' @param taueU.beta One of the parameters along with \code{taueU.alpha} for
-#' the prior for the variance of noise around the spline.
-#' @param prior.beta.logitP.mean Mean of the prior normal distribution for
-#' logit(catchability) across strata
-#' @param prior.beta.logitP.sd   SD of the prior normal distribution for
-#' logit(catchability) across strata
-#' @param tauP.alpha One of the parameters for the prior for the variance in
-#' logit(catchability) among strata
-#' @param tauP.beta One of the parameters for the prior for the variance in
-#' logit(catchability) among strata
-#' @param run.prob Numeric vector indicating percentiles of run timing should
-#' be computed.
-#' @param debug Logical flag indicating if a debugging run should be made. In
-#' the debugging run, the number of samples in the posterior is reduced
-#' considerably for a quick turn around.
-#' @param debug2 Logical flag indicated if additional debugging information is
-#' produced. Normally the functions will halt at \code{browser()} calls to
-#' allow the user to peek into the internal variables. Not useful except to
-#' package developers.
+#' @template tauU.alpha.beta
+#' @template taueU.alpha.beta
+#' @template prior.beta.logitP.mean.sd
+#' @template tauP.alpha.beta
+#' @template run.prob 
+#' @template debug 
 #' @template InitialSeed
 #' @template save.output.to.files
+#' @template trunc.logitP
 
 #' @return An MCMC object with samples from the posterior distribution. A
 #' series of graphs and text file are also created in the working directory.
@@ -138,12 +121,13 @@ TimeStratPetersenDiagErrorWHChinook_fit<-
                  run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
                  debug=FALSE, debug2=FALSE,
                  InitialSeed=ceiling(stats::runif(1,min=0, max=1000000)),
-                 save.output.to.files=TRUE) {
+                 save.output.to.files=TRUE,
+                 trunc.logitP=15) {
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error,
 # covariates for the the capture probabilities, and separating the wild vs hatchery fish
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2021-11-01'
+   version <- '2021-11-02'
    options(width=200)
 
 # Input parameters are
@@ -666,18 +650,18 @@ if (debug2) {
   results.row.names <- rownames(results$summary)
   etaU.W.row.index    <- grep("etaU.W", results.row.names)
   etaU.W <- results$summary[etaU.W.row.index,]
-  plot.df$logU.W =etaU.W[,"mean"]
-  plot.df$lcl.W  =etaU.W[,"2.5%"]
-  plot.df$ucl.W  =etaU.W[,"97.5%"]
+  plot.df$logU.W     = etaU.W[,"mean"]
+  plot.df$logUlcl.W  = etaU.W[,"2.5%"]
+  plot.df$logUucl.W  = etaU.W[,"97.5%"]
   
   etaU.H.row.index    <- grep("etaU.H", results.row.names)
   etaU.H <- results$summary[etaU.H.row.index,]
-  plot.df$logU.H =etaU.H[,"mean"]
-  plot.df$lcl.H  =etaU.H[,"2.5%"]
-  plot.df$ucl.H  =etaU.H[,"97.5%"]
+  plot.df$logU.H     = etaU.H[,"mean"]
+  plot.df$logUlcl.H  = etaU.H[,"2.5%"]
+  plot.df$logUucl.H  = etaU.H[,"97.5%"]
   plot.df$logU.H [1:(hatch.after - min(time)+1)] <- NA # no hatchery fish until release at hatch.after
-  plot.df$lcl.H  [1:(hatch.after - min(time)+1)] <- NA
-  plot.df$ucl.H  [1:(hatch.after - min(time)+1)] <- NA
+  plot.df$logUlcl.H  [1:(hatch.after - min(time)+1)] <- NA
+  plot.df$logUucl.H  [1:(hatch.after - min(time)+1)] <- NA
 
 # extract the spline values for W (wild) and H (hatchery) fish
   logUne.W.row.index <- grep("logUne.W", results.row.names)
@@ -686,18 +670,32 @@ if (debug2) {
   plot.df$spline.H  <- results$summary[logUne.H.row.index,"mean"]
   plot.df$spline.H [1:(hatch.after - min(time)+1)] <- NA # no hatchery fish until release at hatch.after
 
+  # add limits to the plot to avoid non-monotone secondary axis problems with extreme values
+   plot.df$logUguess.W <- pmax(-10 , pmin(20, plot.df$logUguess.W))
+   plot.df$logUguess.H <- pmax(-10 , pmin(20, plot.df$logUguess.H))
+   plot.df$logU.W      <- pmax(-10 , pmin(20, plot.df$logU.W ))
+   plot.df$logU.H      <- pmax(-10 , pmin(20, plot.df$logU.H ))
+   plot.df$logUlcl.W   <- pmax(-10 , pmin(20, plot.df$logUlcl.W  ))
+   plot.df$logUlcl.H   <- pmax(-10 , pmin(20, plot.df$logUlcl.H  ))
+   plot.df$logUucl.W   <- pmax(-10 , pmin(20, plot.df$logUucl.W  ))
+   plot.df$logUucl.H   <- pmax(-10 , pmin(20, plot.df$logUucl.H  ))
+   plot.df$spline.W    <- pmax(-10 , pmin(20, plot.df$spline.W))
+   plot.df$spline.H    <- pmax(-10 , pmin(20, plot.df$spline.H))
+
+  
 fit.plot <- ggplot(data=plot.df, aes_(x=~time))+
    ggtitle(title, subtitle="Fitted spline curve to raw U.W[i] U.H[i] with 95% credible intervals")+
    geom_point(aes_(y=~logUguess.W), color="red",  shape="w")+  # guesses for wild file
    geom_point(aes_(y=~logUguess.H), color="green", shape="h")+  # guesses for hatchery fish
-   xlab("Time Index\nFitted/Smoothed/Raw values plotted for W(black) and H(blue)")+ylab("log(U[i]) + 95% credible interval")+
+   xlab("Time Index\nFitted/Smoothed/Raw values plotted for W(black) and H(blue)")+
+   ylab("log(U[i]) + 95% credible interval")+
    geom_point(aes_(y=~logU.W), color="black", shape=19)+
    geom_line (aes_(y=~logU.W), color="black")+
-   geom_errorbar(aes_(ymin=~lcl.W, ymax=~ucl.W), width=.1)+
+   geom_errorbar(aes_(ymin=~logUlcl.W, ymax=~logUucl.W), width=.1)+
    geom_line(aes_(y=~spline.W),linetype="dashed") +  
    geom_point(aes_(y=~logU.H), color="blue", shape=19)+
    geom_line (aes_(y=~logU.H), color="blue")+
-   geom_errorbar(aes_(ymin=~lcl.H, ymax=~ucl.H), width=.1, color="blue")+
+   geom_errorbar(aes_(ymin=~logUlcl.H, ymax=~logUucl.H), width=.1, color="blue")+
    geom_line(aes_(y=~spline.H),linetype="dashed",color="blue")+
    ylim(c(-2,NA))+
    scale_x_continuous(breaks=seq(min(plot.df$time, na.rm=TRUE),max(plot.df$time, na.rm=TRUE),2))+
@@ -716,7 +714,9 @@ if(save.output.to.files)ggsave(plot=fit.plot, filename=paste(prefix,"-fit.pdf",s
 results$plots$fit.plot <- fit.plot
 
 # Plot the logitP over time
-logitP.plot <- plot_logitP(title=title, time=new.time, n1=new.n1, m2=new.m2, u2=new.u2.A+new.u2.N,  logitP.cov=new.logitP.cov, results=results)
+logitP.plot <- plot_logitP(title=title, time=new.time, n1=new.n1, m2=new.m2, u2=new.u2.A+new.u2.N,  
+                           logitP.cov=new.logitP.cov, results=results,
+                           trunc.logitP=trunc.logitP)
 if(save.output.to.files)ggsave(plot=logitP.plot, filename=paste(prefix,"-logitP.pdf",sep=""), height=6, width=10, units="in", dpi=300)
 results$plots$logitP.plot <- logitP.plot
 

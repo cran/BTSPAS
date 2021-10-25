@@ -1,3 +1,4 @@
+# 2021-10-23 CJS Added trunc.logitP to deal with extreme values of logitP during plotting
 # 2020-12-15 CJS Removed sampfrac from code
 # 2020-12-14 CJS All bad.n1 or bad.m2 are set to 0. No NA allows for n1 or m2
 #                Fixed problem with some u2=NA in the GOF computations and plots
@@ -63,15 +64,9 @@
 #' \code{\link{TimeStratPetersenDiagError_fit}} function for cases where
 #' recaptures take place ONLY in the stratum of release, i.e. the diagonal
 #' case.
-#' @param u2 A numeric vector of the number of unmarked fish captured in each
-#' stratum.  These will be expanded by the capture efficiency to estimate the
-#' population size in each stratum. The length of u2 should be between the length of n1 and length n1 + number of columns in m2 -1
+#' @template u2.ND
 #' @template sampfrac
-#' @param jump.after A numeric vector with elements belonging to \code{time}.
-#' In some cases, the spline fitting the population numbers should be allowed
-#' to jump.  For example, the population size could take a jump when hatchery
-#' released fish suddenly arrive at the trap.  The jumps occur AFTER the strata
-#' listed in this argument.
+#' @template jump.after
 #' @template bad.n1
 #' @template bad.m2 
 #' @template bad.u2 
@@ -86,34 +81,16 @@
 #' which on the logit scale gives p[i] essentially 0. Don't specify values such
 #' as -50 because numerical problems could occur in JAGS.
 #' @template mcmc-parms
-#' @param tauU.alpha One of the parameters along with \code{tauU.beta} for the
-#' prior for the variance of the random noise for the smoothing spline.
-#' @param tauU.beta One of the parameters along with \code{tauU.alpha} for the
-#' prior for the variance of the random noise for the smoothing spline.
-#' @param taueU.alpha One of the parameters along with \code{taueU.beta} for
-#' the prior for the variance of noise around the spline.
-#' @param taueU.beta One of the parameters along with \code{taueU.alpha} for
-#' the prior for the variance of noise around the spline.
-#' @param prior.beta.logitP.mean Mean of the prior normal distribution for
-#' logit(catchability) across strata
-#' @param prior.beta.logitP.sd   SD of the prior normal distribution for
-#' logit(catchability) across strata
-#' @param tauP.alpha One of the parameters for the prior for the variance in
-#' logit(catchability) among strata
-#' @param tauP.beta One of the parameters for the prior for the variance in
-#' logit(catchability) among strata
-#' @param run.prob Numeric vector indicating percentiles of run timing should
-#' be computed.
-#' @param debug Logical flag indicating if a debugging run should be made. In
-#' the debugging run, the number of samples in the posterior is reduced
-#' considerably for a quick turn around.
-#' @param debug2 Logical flag indicated if additional debugging information is
-#' produced. Normally the functions will halt at \code{browser()} calls to
-#' allow the user to peek into the internal variables. Not useful except to
-#' package developers.
+#' @template tauU.alpha.beta
+#' @template taueU.alpha.beta
+#' @template prior.beta.logitP.mean.sd
+#' @template tauP.alpha.beta
+#' @template run.prob 
+#' @template debug
 #' @template InitialSeed
 #' @template save.output.to.files
-#' 
+#' @template trunc.logitP
+
 #' @return An MCMC object with samples from the posterior distribution. A
 #' series of graphs and text file are also created in the working directory.
 #' @template author 
@@ -143,12 +120,13 @@ TimeStratPetersenNonDiagError_fit <-
            run.prob=seq(0,1,.1), # what percentiles of run timing are wanted
            debug=FALSE, debug2=FALSE,
            InitialSeed=ceiling(stats::runif(1,min=0,1000000)),
-           save.output.to.files=TRUE) {
+           save.output.to.files=TRUE,
+           trunc.logitP=15) {
 # Fit a Time Stratified Petersen model with NON-diagonal entries and with smoothing on U allowing for random error
 # This is the classical stratified Petersen model where the recoveries can take place for this and multiple
 # strata later
 #
-    version <- '2021-11-01'
+    version <- '2021-11-02'
     options(width=200)
 
 # Input parameters are
@@ -462,7 +440,7 @@ else #notice R syntax requires { before the else
 Nstrata.rel <- length(n1)
 Nstrata.cap <- ncol(expanded.m2) -1 # don't forget that last column of m2 is number of fish never seen
 
-# A plot of the observered log(U) on the log scale, and the final mean log(U)
+# A plot of the observed log(U) on the log scale, and the final mean log(U)
 plot.df   <- data.frame(time =new.time)
 plot.df$logUi <-log( c((new.u2[1:Nstrata.rel]+1)*(new.n1+2)/(apply(expanded.m2[,1:Nstrata.cap],1,sum)+1), rep(NA, length(u2)-Nstrata.rel)))
 
@@ -470,14 +448,21 @@ plot.df$logUi <-log( c((new.u2[1:Nstrata.rel]+1)*(new.n1+2)/(apply(expanded.m2[,
 results.row.names <- rownames(results$summary)
 etaU.row.index    <- grep("etaU", results.row.names)
 etaU<- results$summary[etaU.row.index,]
-plot.df$logU =etaU[,"mean"]
-plot.df$lcl =etaU[,"2.5%"]
-plot.df$ucl =etaU[,"97.5%"]
+plot.df$logU    =etaU[,"mean"]
+plot.df$logUlcl =etaU[,"2.5%"]
+plot.df$logUucl =etaU[,"97.5%"]
 
 # extract the spline values
 logUne.row.index <- grep("logUne", results.row.names)
 logUne<- results$summary[logUne.row.index,"mean"]
 plot.df$spline <- results$summary[logUne.row.index,"mean"]
+
+# add limits to the plot to avoid non-monotone secondary axis problems with extreme values
+   plot.df$logUi     <- pmax(-10 , pmin(20, plot.df$logUi))
+   plot.df$logU      <- pmax(-10 , pmin(20, plot.df$logU ))
+   plot.df$logUlcl   <- pmax(-10 , pmin(20, plot.df$logUlcl  ))
+   plot.df$logUucl   <- pmax(-10 , pmin(20, plot.df$logUucl  ))
+   plot.df$spline    <- pmax(-10 , pmin(20, plot.df$spline))
 
 fit.plot <- ggplot(data=plot.df, aes_(x=~time))+
      ggtitle(title, subtitle="Fitted spline curve with 95% credible intervals for estimated log(U[i])")+
@@ -486,7 +471,7 @@ fit.plot <- ggplot(data=plot.df, aes_(x=~time))+
      ylab("log(U[i]) + 95% credible interval")+
      geom_point(aes_(y=~logU), color="black", shape=19)+
      geom_line (aes_(y=~logU), color="black")+
-     geom_errorbar(aes_(ymin=~lcl, ymax=~ucl), width=.1)+
+     geom_errorbar(aes_(ymin=~logUlcl, ymax=~logUucl), width=.1)+
      geom_line(aes_(y=~spline),linetype="dashed")+
      scale_x_continuous(breaks=seq(min(plot.df$time, na.rm=TRUE),max(plot.df$time, na.rm=TRUE),2))+
      scale_y_continuous(sec.axis = sec_axis(~ exp(.), name="U + 95% credible interval",
@@ -505,7 +490,9 @@ results$plots$fit.plot <- fit.plot
 
 
 # plot of the logit(p) over time
-logitP.plot <- plot_logitP(title=title, time=new.time, n1=new.n1, m2=expanded.m2, u2=new.u2, logitP.cov=new.logitP.cov, results=results)
+logitP.plot <- plot_logitP(title=title, time=new.time, n1=new.n1, m2=expanded.m2, u2=new.u2, 
+                           logitP.cov=new.logitP.cov, results=results,
+                           trunc.logitP=trunc.logitP)
 if(save.output.to.files)ggsave(plot=logitP.plot, filename=paste(prefix,"-logitP.pdf",sep=""), height=6, width=10, units="in")
 results$plots$logitP.plot <- logitP.plot
 

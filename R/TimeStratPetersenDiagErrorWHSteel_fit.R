@@ -1,3 +1,4 @@
+# 2021-10-24 CJS Added trunc.logitP to fix plotting problems with extreme values of logitP
 # 2020-12-15 CJS Remove sampfrac from code
 # 2020-11-07 CJS Allowed user to specify prior for beta coefficient for logitP
 # 2018-12-19 CJS deprecated use of sampling fraction
@@ -67,33 +68,15 @@
 #' hatchery unmarked (but adipose fin clipped) age 1+ fish should be ignored.
 #' @template logitP.cov
 #' @template mcmc-parms
-#' @param tauU.alpha One of the parameters along with \code{tauU.beta} for the
-#' prior for the variance of the random noise for the smoothing spline.
-#' @param tauU.beta One of the parameters along with \code{tauU.alpha} for the
-#' prior for the variance of the random noise for the smoothing spline.
-#' @param taueU.alpha One of the parameters along with \code{taueU.beta} for
-#' the prior for the variance of noise around the spline.
-#' @param taueU.beta One of the parameters along with \code{taueU.alpha} for
-#' the prior for the variance of noise around the spline.
-#' @param prior.beta.logitP.mean Mean of the prior normal distribution for
-#' logit(catchability) across strata
-#' @param prior.beta.logitP.sd   SD of the prior normal distribution for
-#' logit(catchability) across strata
-#' @param tauP.alpha One of the parameters for the prior for the variance in
-#' logit(catchability) among strata
-#' @param tauP.beta One of the parameters for the prior for the variance in
-#' logit(catchability) among strata
-#' @param run.prob Numeric vector indicating percentiles of run timing should
-#' be computed.
-#' @param debug Logical flag indicating if a debugging run should be made. In
-#' the debugging run, the number of samples in the posterior is reduced
-#' considerably for a quick turn around.
-#' @param debug2 Logical flag indicated if additional debugging information is
-#' produced. Normally the functions will halt at \code{browser()} calls to
-#' allow the user to peek into the internal variables. Not useful except to
-#' package developers.
+#' @template tauU.alpha.beta
+#' @template taueU.alpha.beta 
+#' @template prior.beta.logitP.mean.sd
+#' @template tauP.alpha.beta
+#' @template run.prob
+#' @template debug 
 #' @template InitialSeed
-#' @template save.output.to.files  
+#' @template save.output.to.files 
+#' @template trunc.logitP 
 #' 
 #' @return An MCMC object with samples from the posterior distribution. A
 #' series of graphs and text file are also created in the working directory.
@@ -121,13 +104,14 @@ TimeStratPetersenDiagErrorWHSteel_fit <-
            run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
            debug=FALSE, debug2=FALSE,
            InitialSeed=ceiling(stats::runif(1,min=0, 1000000)),
-           save.output.to.files=TRUE) {
+           save.output.to.files=TRUE,
+           trunc.logitP=15) {
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error,
 # covariates for the the capture probabilities, and separating the wild vs hatchery fish for STEELHEAD releases
 # The steelhead are nice because 100% of hatchery fish are adipose fin clipped and no wild fish are adipose fin clipped
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2021-11-01'
+   version <- '2021-11-02'
    options(width=200)
 
 # Input parameters are
@@ -223,7 +207,7 @@ if(!all(bad.u2.W.1 %in% time, na.rm=TRUE)){
 if(!all(bad.u2.H.1 %in% time, na.rm=TRUE)){
    cat("***** ERROR ***** bad.u2.H.1 must be elements of strata identifiers. You entered \n bad.u2.H.1:",
        paste(bad.u2.H.1,collapse=","),"\n Strata identifiers are \n time:",
-       paste(time,     ,collapse=","), "\n")
+       paste(time      ,collapse=","), "\n")
    return()}
 if(!all(hatch.after %in% time, na.rm=TRUE)){
    cat("***** ERROR ***** hatch.after must be elements of strata identifiers. You entered \n hatch.after:",
@@ -621,6 +605,14 @@ if (debug)
   plot.data <-rbind( get.est("H.1"  ,plot.df, hatch.after, results),
                      get.est("W.YoY",plot.df, hatch.after, results),
                      get.est("W.1"  ,plot.df, hatch.after, results))
+  
+  # add limits to the plot to avoid non-monotone secondary axis problems with extreme values
+  plot.data$logUguess <- pmax(-10 , pmin(20, plot.data$logUguess))
+  plot.data$logU      <- pmax(-10 , pmin(20, plot.data$logU ))
+  plot.data$logUlcl   <- pmax(-10 , pmin(20, plot.data$logUlcl  ))
+  plot.data$logUucl   <- pmax(-10 , pmin(20, plot.data$logUucl  ))
+  plot.data$spline    <- pmax(-10 , pmin(20, plot.data$spline))
+
   fit.plot <- ggplot(data=plot.data, aes_(x=~time, color=~group))+
      ggtitle(title, subtitle="Fitted spline curve with 95% credible intervals")+
      geom_point(aes_(y=~logUguess), shape=16, position=position_dodge(width=.2))+  # guesses for population
@@ -650,7 +642,8 @@ results$plots$fit.plot <- fit.plot
 
 # plot the estimated logits over time
 logitP.plot <- plot_logitP(title=title, time=new.time, n1=new.n1, m2=new.m2, 
-               u2=new.u2.W.YoY+new.u2.W.1+new.u2.H.1, logitP.cov=new.logitP.cov, results=results)
+               u2=new.u2.W.YoY+new.u2.W.1+new.u2.H.1, logitP.cov=new.logitP.cov, results=results,
+               trunc.logitP=trunc.logitP)
 if(save.output.to.files)ggsave(plot=logitP.plot, filename=paste(prefix,"-logitP.pdf",sep=""), height=6, width=10, units="in")
 results$plots$logitP.plot <- logitP.plot
 

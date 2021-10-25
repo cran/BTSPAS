@@ -12,7 +12,7 @@
 
 <meta name="author" content="Carl James Schwarz" />
 
-<meta name="date" content="2021-10-09" />
+<meta name="date" content="2021-10-24" />
 
 <title>Non-Diagonal Fall-Back Model</title>
 
@@ -141,7 +141,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <h1 class="title toc-ignore">Non-Diagonal Fall-Back Model</h1>
 <h4 class="author">Carl James Schwarz</h4>
-<h4 class="date">2021-10-09</h4>
+<h4 class="date">2021-10-24</h4>
 
 
 <div id="TOC">
@@ -164,14 +164,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 
 <div id="location-of-vignette-source-and-code." class="section level1" number="1">
-<h1 number="1"><span class="header-section-number">1</span> Location of vignette source and code.</h1>
+<h1><span class="header-section-number">1</span> Location of vignette source and code.</h1>
 <p>Because of the length of time needed to run the vignettes, only static vignettes have been included with this package.</p>
 <p>The original of the vignettes and the code can be obtained from the GitHub site at <a href="https://github.com/cschwarz-stat-sfu-ca/BTSPAS" class="uri">https://github.com/cschwarz-stat-sfu-ca/BTSPAS</a></p>
 </div>
 <div id="introduction" class="section level1" number="2">
-<h1 number="2"><span class="header-section-number">2</span> Introduction</h1>
+<h1><span class="header-section-number">2</span> Introduction</h1>
 <div id="experimental-set-up" class="section level2" number="2.1">
-<h2 number="2.1"><span class="header-section-number">2.1</span> Experimental set-up</h2>
+<h2><span class="header-section-number">2.1</span> Experimental set-up</h2>
 <p>This case represents a generalization of the non-diagonal case considered in a separate vignette. Now we allow some fish (marked and unmarked) to approach the second trap, but fall back and never pass the trap. Schwarz and Bonner (2011) considered this model to estimate the number of steelhead that passed upstream of Moricetown Canyon.</p>
 <p>The experimental setup is the same as the non-diagonal case. Consider an experiment to estimate the number of outgoing smolts on a small river. The run of smolts extends over several weeks. As smolts migrate, they are captured and marked with individually numbered tags and released at the first capture location using, for example, a fishwheel. The migration continues, and a second fishwheel takes a second sample several kilometers down stream. At the second fishwheel, the captures consist of a mixture of marked (from the first fishwheel) and unmarked fish.</p>
 <p>The efficiency of the fishwheels varies over time in response to stream flow, run size passing the wheel and other uncontrollable events. So it is unlikely that the capture probabilities are equal over time at either location, i.e. are heterogeneous over time.</p>
@@ -193,7 +193,7 @@ captured  </code></pre>
 <p>Because the lower diagonal of the recovery matrix is zero, the data can be entered in a shorthand fashion by showing the recoveries in the same stratum as release, the next stratum, etc, up to a maximum number of recovery strata per release.</p>
 </div>
 <div id="fall-back-information" class="section level2" number="2.2">
-<h2 number="2.2"><span class="header-section-number">2.2</span> Fall-back information</h2>
+<h2><span class="header-section-number">2.2</span> Fall-back information</h2>
 <p>This information is obtained by also marking radio-tagged fish whose ultimate fate (i.e. did they pass the second trap nor not) can be determined. We measure:</p>
 <ul>
 <li><span class="math inline">\(marked\_available\_n\)</span> representing the number of radio-tagged fish.</li>
@@ -203,14 +203,14 @@ captured  </code></pre>
 <p>This model could also be used for mortality between the marking and recovery trap.</p>
 </div>
 <div id="fixing-values-of-p-or-using-covariates." class="section level2" number="2.3">
-<h2 number="2.3"><span class="header-section-number">2.3</span> Fixing values of <span class="math inline">\(p\)</span> or using covariates.</h2>
+<h2><span class="header-section-number">2.3</span> Fixing values of <span class="math inline">\(p\)</span> or using covariates.</h2>
 <p>Refer to the vignette on the <em>Diagonal Case</em> for information about fixing values of <span class="math inline">\(p\)</span> or modelling <span class="math inline">\(p\)</span> using covariates such a stream flow or smoothing <span class="math inline">\(p\)</span> using a temporal spline.</p>
 </div>
 </div>
 <div id="example-of-non-diagonal-model-with-fall-back." class="section level1" number="3">
-<h1 number="3"><span class="header-section-number">3</span> Example of non-diagonal model with fall-back.</h1>
+<h1><span class="header-section-number">3</span> Example of non-diagonal model with fall-back.</h1>
 <div id="reading-in-the-data" class="section level2" number="3.1">
-<h2 number="3.1"><span class="header-section-number">3.1</span> Reading in the data</h2>
+<h2><span class="header-section-number">3.1</span> Reading in the data</h2>
 <p>Here is an example of some raw data that is read in:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>demo.data.csv <span class="ot">&lt;-</span> <span class="fu">textConnection</span>(<span class="st">&quot;</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="st">jweek,n1,    X0,X1 ,X2 ,X3,X4,X5,X6,X7 </span></span>
@@ -257,7 +257,7 @@ captured  </code></pre>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>demo.mark.available.x <span class="ot">&lt;-</span> <span class="dv">40</span></span></code></pre></div>
 </div>
 <div id="fitting-the-btspas-non-diagonal-model-with-fall-back-model-with-a-non-parametric-movement-distribution." class="section level2" number="3.2">
-<h2 number="3.2"><span class="header-section-number">3.2</span> Fitting the BTSPAS non-diagonal model with fall-back model with a non-parametric movement distribution.</h2>
+<h2><span class="header-section-number">3.2</span> Fitting the BTSPAS non-diagonal model with fall-back model with a non-parametric movement distribution.</h2>
 <p>Schwarz and Bonner (2011) extended Bonner and Schwarz (2011) with a model with the following features.</p>
 <ul>
 <li>Non-parametric distribution of the distribution of times between release and availability at the second trap.</li>
@@ -442,7 +442,7 @@ captured  </code></pre>
 <span id="cb6-160"><a href="#cb6-160" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; *** Finished JAGS ***</span></span></code></pre></div>
 </div>
 <div id="the-output-from-the-fit" class="section level2" number="3.3">
-<h2 number="3.3"><span class="header-section-number">3.3</span> The output from the fit</h2>
+<h2><span class="header-section-number">3.3</span> The output from the fit</h2>
 <p>Here is the fitted spline curve to the number of unmarked fish available in each recovery stratum at the second trap</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>demo.fit<span class="sc">$</span>plots<span class="sc">$</span>fit.plot</span></code></pre></div>
 <div class="figure" style="text-align: center">
@@ -509,7 +509,7 @@ Estimates of logit(p)
 </div>
 </div>
 <div id="references" class="section level1" number="4">
-<h1 number="4"><span class="header-section-number">4</span> References</h1>
+<h1><span class="header-section-number">4</span> References</h1>
 <p>Bonner, S. J., &amp; Schwarz, C. J. (2011). Smoothing population size estimates for Time-Stratified Mark–Recapture experiments Using Bayesian P-Splines. Biometrics, 67, 1498–1507. <a href="https://doi.org/10.1111/j.1541-0420.2011.01599.x" class="uri">https://doi.org/10.1111/j.1541-0420.2011.01599.x</a></p>
 <p>Schwarz, C. J. and Bonner, S. B. (2011). A spline-based capture-mark-recapture model applied to estimating the number of steelhead within the Bulkley River passing the Moricetown Canyon in 2001-2010. Prepared for the B.C. Ministry of Environment. <!---http://www.stat.sfu.ca/~cschwarz/Consulting/Moricetown/Report-2011-06-01.pdf ---></p>
 <p>Schwarz, C. J., &amp; Dempson, J. B. (1994). Mark-recapture estimation of a salmon smolt population. Biometrics, 50, 98–108.</p>

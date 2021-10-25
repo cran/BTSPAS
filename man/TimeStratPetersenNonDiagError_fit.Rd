@@ -37,7 +37,8 @@ TimeStratPetersenNonDiagError_fit(
   debug = FALSE,
   debug2 = FALSE,
   InitialSeed = ceiling(stats::runif(1, min = 0, 1e+06)),
-  save.output.to.files = TRUE
+  save.output.to.files = TRUE,
+  trunc.logitP = 15
 )
 }
 \arguments{
@@ -158,6 +159,9 @@ in the MCMC iterations.}
 
 \item{save.output.to.files}{Should the plots and text output be save to the files
 in addition to being stored in the MCMC object?}
+
+\item{trunc.logitP}{Truncate logit(P) between c(=trunc.logitP, trunc.logitP) when plotting the
+logitP over time. Actual values of logit(P) are not affected.}
 }
 \value{
 An MCMC object with samples from the posterior distribution. A

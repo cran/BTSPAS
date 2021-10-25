@@ -1,3 +1,8 @@
+# BTSPAS 2011.11.2
+
+* Added trunc.logitP to truncate logit(P) when plotting to avoid problems with extreme cases (issue #30)
+* Editorial changes
+
 # BTSPAS 2011.11.1
 
 * Fixed importing sd() from stat package that conflicts with revised sd() in actuar package

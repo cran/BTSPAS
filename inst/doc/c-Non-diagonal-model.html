@@ -12,7 +12,7 @@
 
 <meta name="author" content="Carl James Schwarz" />
 
-<meta name="date" content="2021-10-09" />
+<meta name="date" content="2021-10-24" />
 
 <title>Non-Diagonal Case</title>
 
@@ -141,7 +141,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <h1 class="title toc-ignore">Non-Diagonal Case</h1>
 <h4 class="author">Carl James Schwarz</h4>
-<h4 class="date">2021-10-09</h4>
+<h4 class="date">2021-10-24</h4>
 
 
 <div id="TOC">
@@ -173,12 +173,12 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 
 <div id="location-of-vignette-source-and-code." class="section level1" number="1">
-<h1 number="1"><span class="header-section-number">1</span> Location of vignette source and code.</h1>
+<h1><span class="header-section-number">1</span> Location of vignette source and code.</h1>
 <p>Because of the length of time needed to run the vignettes, only static vignettes have been included with this package.</p>
 <p>The original of the vignettes and the code can be obtained from the GitHub site at <a href="https://github.com/cschwarz-stat-sfu-ca/BTSPAS" class="uri">https://github.com/cschwarz-stat-sfu-ca/BTSPAS</a></p>
 </div>
 <div id="introduction" class="section level1" number="2">
-<h1 number="2"><span class="header-section-number">2</span> Introduction</h1>
+<h1><span class="header-section-number">2</span> Introduction</h1>
 <p>This case represents a generalization of the diagonal case considered in a separate vignette. Now, rather than assuming that all recaptures from a release take place in a single recovery stratum, recoveries could take place over multiple recovery strata.</p>
 <p>Again, consider an experiment to estimate the number of outgoing smolts on a small river. The run of smolts extends over several weeks. As smolts migrate, they are captured and marked with individually numbered tags and released at the first capture location using, for example, a fishwheel. The migration continues, and a second fishwheel takes a second sample several kilometers down stream. At the second fishwheel, the captures consist of a mixture of marked (from the first fishwheel) and unmarked fish.</p>
 <p>The efficiency of the fishwheels varies over time in response to stream flow, run size passing the wheel and other uncontrollable events. So it is unlikely that the capture probabilities are equal over time at either location, i.e. are heterogeneous over time.</p>
@@ -199,14 +199,14 @@ captured  </code></pre>
 <p>Here the tagging and recapture events have been stratified in to <span class="math inline">\(k\)</span> temporal strata. Marked fish from one stratum tend to spread out and are recaptured over multiple strata. Several additional recovery strata are needed at the end of the experiment to fully capture the final release stratum.</p>
 <p>Because the lower diagonal of the recovery matrix is zero, the data can be entered in a shorthand fashion by showing the recoveries in the same stratum as release, the next stratum, etc, up to a maximum number of recovery strata per release.</p>
 <div id="fixing-values-of-p-or-using-covariates." class="section level2" number="2.1">
-<h2 number="2.1"><span class="header-section-number">2.1</span> Fixing values of <span class="math inline">\(p\)</span> or using covariates.</h2>
+<h2><span class="header-section-number">2.1</span> Fixing values of <span class="math inline">\(p\)</span> or using covariates.</h2>
 <p>Refer to the vignette on the <em>Diagonal Case</em> for information about fixing values of <span class="math inline">\(p\)</span> or modelling <span class="math inline">\(p\)</span> using covariates such a stream flow or smoothing <span class="math inline">\(p\)</span> using a temporal spline.</p>
 </div>
 </div>
 <div id="example-of-basic-non-diagonal-btspas-fit." class="section level1" number="3">
-<h1 number="3"><span class="header-section-number">3</span> Example of basic non-diagonal BTSPAS fit.</h1>
+<h1><span class="header-section-number">3</span> Example of basic non-diagonal BTSPAS fit.</h1>
 <div id="reading-in-the-data" class="section level2" number="3.1">
-<h2 number="3.1"><span class="header-section-number">3.1</span> Reading in the data</h2>
+<h2><span class="header-section-number">3.1</span> Reading in the data</h2>
 <p>Here is an example of some raw data that is read in:</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>demo.data.csv <span class="ot">&lt;-</span> <span class="fu">textConnection</span>(</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;Date        ,     n1  , X0  , X1  , X2  , X3  , X4</span></span>
@@ -317,7 +317,7 @@ captured  </code></pre>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>demo.data.m2 <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(demo.data[,<span class="fu">c</span>(<span class="st">&quot;X0&quot;</span>,<span class="st">&quot;X1&quot;</span>,<span class="st">&quot;X2&quot;</span>,<span class="st">&quot;X3&quot;</span>,<span class="st">&quot;X4&quot;</span>)])</span></code></pre></div>
 </div>
 <div id="preliminary-screening-of-the-data" class="section level2" number="3.2">
-<h2 number="3.2"><span class="header-section-number">3.2</span> Preliminary screening of the data</h2>
+<h2><span class="header-section-number">3.2</span> Preliminary screening of the data</h2>
 <p>A pooled-Petersen estimator would add all of the marked, recaptured and unmarked fish to give an estimate of 73,385.</p>
 <p>Let us look at the data in more detail:</p>
 <ul>
@@ -341,7 +341,7 @@ Observed number of unmarked recaptures
 </div>
 </div>
 <div id="fitting-the-btspas-non-diagonal-model-with-a-log-normal-movement-distribution." class="section level1" number="4">
-<h1 number="4"><span class="header-section-number">4</span> Fitting the BTSPAS non-diagonal model with a log-normal movement distribution.</h1>
+<h1><span class="header-section-number">4</span> Fitting the BTSPAS non-diagonal model with a log-normal movement distribution.</h1>
 <p>Bonner and Schwarz (2011) developed a model with the following features.</p>
 <ul>
 <li>Log-normal distribution of the distribution of times between release and availability at the second trap.</li>
@@ -526,7 +526,7 @@ and the suspect <span class="math inline">\(u2\)</span> values to missing in the
 <span id="cb5-160"><a href="#cb5-160" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; *** Finished JAGS ***</span></span></code></pre></div>
 <p>The final parameter (<em>save.output.to.files</em>) can be set to automatically to save plots and reports in files with the appropriate prefix in the working directory.</p>
 <div id="the-output-from-the-fit" class="section level2" number="4.1">
-<h2 number="4.1"><span class="header-section-number">4.1</span> The output from the fit</h2>
+<h2><span class="header-section-number">4.1</span> The output from the fit</h2>
 <p>The final object has many components</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(demo.fit)</span></code></pre></div>
 <pre><code>#&gt;  [1] &quot;n.chains&quot;           &quot;n.iter&quot;             &quot;n.burnin&quot;          
@@ -548,8 +548,8 @@ and the suspect <span class="math inline">\(u2\)</span> values to missing in the
 <p>These plots are all created using the <span class="math inline">\(ggplot2\)</span> packages, so the user can modify the plot (e.g. change titles etc).</p>
 <p>The <span class="math inline">\(BTSPAS\)</span> program also creates a report, which includes information about the data used in the fitting, the pooled- and stratified-Petersen estimates, a test for pooling, and summaries of the posterior. Only the first few lines are shown below:</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(demo.fit<span class="sc">$</span>report)</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Time Stratified Petersen with Non-Diagonal recaptures, error in smoothed U, and log-normal distribution for travel time -  Sat Oct  9 20:55:18 2021&quot;</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2] &quot;Version:  2021-11-01&quot;                                                                                                                               </span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Time Stratified Petersen with Non-Diagonal recaptures, error in smoothed U, and log-normal distribution for travel time -  Sun Oct 24 15:46:59 2021&quot;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [2] &quot;Version:  2021-11-02&quot;                                                                                                                               </span></span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [3] &quot;&quot;                                                                                                                                                   </span></span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [4] &quot; Conne River 1987 Atlantic Salmon Smolts - Log-normal Results &quot;                                                                                     </span></span>
 <span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; [5] &quot;&quot;                                                                                                                                                   </span></span>
@@ -625,7 +625,7 @@ Estimates of logit(p)
 </div>
 </div>
 <div id="fitting-the-btspas-non-diagonal-model-with-a-non-parametric-movement-distribution." class="section level1" number="5">
-<h1 number="5"><span class="header-section-number">5</span> Fitting the BTSPAS non-diagonal model with a non-parametric movement distribution.</h1>
+<h1><span class="header-section-number">5</span> Fitting the BTSPAS non-diagonal model with a non-parametric movement distribution.</h1>
 <p>Bonner and Schwarz (2011) developed a model with the following features.</p>
 <ul>
 <li>Non-parametric distribution of the distribution of times between release and availability at the second trap.</li>
@@ -809,7 +809,7 @@ Estimates of logit(p)
 <span id="cb18-160"><a href="#cb18-160" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; *** Finished JAGS ***</span></span></code></pre></div>
 <p>The final parameter (<em>save.output.to.files</em>) can be set to automatically to save plots and reports in files with the appropriate prefix in the working directory.</p>
 <div id="the-output-from-the-fit-1" class="section level2" number="5.1">
-<h2 number="5.1"><span class="header-section-number">5.1</span> The output from the fit</h2>
+<h2><span class="header-section-number">5.1</span> The output from the fit</h2>
 <p>Here is the fitted spline curve to the number of unmarked fish available in each recovery sample</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>demo2.fit<span class="sc">$</span>plots<span class="sc">$</span>fit.plot</span></code></pre></div>
 <div class="figure" style="text-align: center">
@@ -865,7 +865,7 @@ Estimates of logit(p)
 </div>
 </div>
 <div id="prior-information-on-the-movement-probabilities." class="section level1" number="6">
-<h1 number="6"><span class="header-section-number">6</span> Prior information on the movement probabilities.</h1>
+<h1><span class="header-section-number">6</span> Prior information on the movement probabilities.</h1>
 <p>It is possible to impose prior information on the movement probabilities in both cases. This would be useful in cases with VERY sparse data!</p>
 <p>In the non-parametric case, specify a vector that gives the relative weight of belief of movement. These are similar to a Dirchelet-type prior where the values representing belief in the distribution of travel times. For example, <span class="math inline">\(prior.muTT=c(1,4,3,2)\)</span> represents a system where the maximum travel time is 3 strata after release with <span class="math inline">\(1/10=.1\)</span> of the animals moving in the stratum of release <span class="math inline">\(4/10=.4\)</span> of the animals taking 1 stratum to move etc So if <span class="math inline">\(prior.muTT=c(10,40,30,20)\)</span>, this represent the same movement pattern but a strong degree of belief because all of the numbers are larger. AN intuitive explanation is that the <span class="math inline">\(sum(prior.muTT)\)</span> represents the number of animals observed to make this travel time distribution.</p>
 <p>Here we will fit a fairly strong prior on the movement probabilities:</p>
@@ -1037,7 +1037,7 @@ Estimates of logit(p)
 <span id="cb27-161"><a href="#cb27-161" aria-hidden="true" tabindex="-1"></a><span class="co">#&gt; *** Finished JAGS ***</span></span></code></pre></div>
 <p>The final parameter (<em>save.output.to.files</em>) can be set to automatically to save plots and reports in files with the appropriate prefix in the working directory.</p>
 <div id="the-output-from-the-fit-2" class="section level2" number="6.1">
-<h2 number="6.1"><span class="header-section-number">6.1</span> The output from the fit</h2>
+<h2><span class="header-section-number">6.1</span> The output from the fit</h2>
 <p>Here is the fitted spline curve to the number of unmarked fish available in each recovery sample</p>
 <div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>demo3.fit<span class="sc">$</span>plots<span class="sc">$</span>fit.plot</span></code></pre></div>
 <div class="figure" style="text-align: center">
@@ -1093,7 +1093,7 @@ Estimates of logit(p)
 </div>
 </div>
 <div id="references" class="section level1" number="7">
-<h1 number="7"><span class="header-section-number">7</span> References</h1>
+<h1><span class="header-section-number">7</span> References</h1>
 <p>Bonner, S. J., &amp; Schwarz, C. J. (2011). Smoothing population size estimates for Time-Stratified Mark–Recapture experiments Using Bayesian P-Splines. Biometrics, 67, 1498–1507. <a href="https://doi.org/10.1111/j.1541-0420.2011.01599.x" class="uri">https://doi.org/10.1111/j.1541-0420.2011.01599.x</a></p>
 <p>Schwarz, C. J., &amp; Dempson, J. B. (1994). Mark-recapture estimation of a salmon smolt population. Biometrics, 50, 98–108.</p>
 </div>

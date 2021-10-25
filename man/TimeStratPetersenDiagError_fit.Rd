@@ -38,7 +38,8 @@ TimeStratPetersenDiagError_fit(
   debug = FALSE,
   debug2 = FALSE,
   InitialSeed = ceiling(stats::runif(1, min = 0, max = 1e+06)),
-  save.output.to.files = TRUE
+  save.output.to.files = TRUE,
+  trunc.logitP = 15
 )
 }
 \arguments{
@@ -67,8 +68,8 @@ for more information.}
 
 \item{jump.after}{A numeric vector with elements belonging to \code{time}.
 In some cases, the spline fitting the population numbers should be allowed
-to jump. For example, the population size could take a jump when hatchery
-released fish suddenly arrive at the trap. The jumps occur AFTER the strata
+to jump.  For example, the population size could take a jump when hatchery
+released fish suddenly arrive at the trap.  The jumps occur AFTER the strata
 listed in this argument.}
 
 \item{bad.n1}{A numeric vector with elements belonging to \code{time}.  In
@@ -154,6 +155,9 @@ in the MCMC iterations.}
 
 \item{save.output.to.files}{Should the plots and text output be save to the files
 in addition to being stored in the MCMC object?}
+
+\item{trunc.logitP}{Truncate logit(P) between c(=trunc.logitP, trunc.logitP) when plotting the
+logitP over time. Actual values of logit(P) are not affected.}
 }
 \value{
 An MCMC object with samples from the posterior distribution. A

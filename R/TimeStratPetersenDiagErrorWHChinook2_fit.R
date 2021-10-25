@@ -1,3 +1,4 @@
+# 2021-10-23 CJS Added trunc.logitP to fix plotting problems with extreme logitP
 # 2020-12-15 CJS Removed all references to sampfrac in the code
 # 2020-11-07 CJS Allowed user to specify prior for beta coefficient for logitP
 # 2018-12-19 CJS deprecation of sampling fraction
@@ -37,12 +38,13 @@ TimeStratPetersenDiagErrorWHChinook2_fit<-
                  run.prob=seq(0,1,.1),  # what percentiles of run timing are wanted 
                  debug=FALSE, debug2=FALSE, 
                  InitialSeed=ceiling(stats::runif(1,min=0,1000000)),
-                 save.output.to.files=TRUE) {
+                 save.output.to.files=TRUE,
+                 trunc.logitP=15) {
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error,
 # covariates for the the capture probabilities, and separating the YoY and Age1 wild vs hatchery fish
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2021-11-01'
+   version <- '2021-11-02'
    options(width=200)
 
 # Input parameters are
@@ -630,6 +632,14 @@ if (debug)
                      get.est("H.1"  ,plot.df, hatch.after.YoY, results),
                      get.est("W.YoY",plot.df, hatch.after.YoY, results),
                      get.est("W.1"  ,plot.df, hatch.after.YoY, results))
+  
+  # add limits to the plot to avoid non-monotone secondary axis problems with extreme values
+   plot.data$logUguess <- pmax(-10 , pmin(20, plot.data$logUguess))
+   plot.data$logU      <- pmax(-10 , pmin(20, plot.data$logU ))
+   plot.data$logUlcl   <- pmax(-10 , pmin(20, plot.data$logUlcl  ))
+   plot.data$logUucl   <- pmax(-10 , pmin(20, plot.data$logUucl  ))
+   plot.data$spline<- pmax(-10 , pmin(20, plot.data$spline))
+
   fit.plot <- ggplot(data=plot.data, aes_(x=~time, color=~group))+
      ggtitle(title, subtitle="Fitted spline curve with 95% credible intervals")+
      geom_point(aes_(y=~logUguess), shape=16, position=position_dodge(width=.2))+  # guesses for population
@@ -658,7 +668,8 @@ results$plots$fit.plot <- fit.plot
 
 # plot logit P vs time
 logitP.plot <- plot_logitP(title=title, time=new.time, n1=new.n1, m2=new.m2, 
-             	    u2=u2.A.YoY+u2.N.YoY+u2.A.1+u2.N.1,   logitP.cov=new.logitP.cov, results=results)
+             	    u2=u2.A.YoY+u2.N.YoY+u2.A.1+u2.N.1,   logitP.cov=new.logitP.cov, results=results,
+             	    trunc.logitP=trunc.logitP)
 if(save.output.to.files)ggsave(plot=logitP.plot, filename=paste(prefix,"-logitP.pdf",sep=""), height=6, width=10, units="in")
 results$plots$logitP.plot <- logitP.plot
 

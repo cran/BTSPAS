@@ -28,7 +28,7 @@
 RunTime <- function(time, U, prob=seq(0,1,.1)) {
   timing <- c(min(time):(1+max(time)))
   q.U <- plyr::adply(U, 1, function(U.sample, timing){
-       quant <- stats::quantile(actuar::grouped.data(Group=timing, Frequency=U.sample), prob=prob)
+       quant <- stats::quantile(actuar::grouped.data(Group=timing, Frequency=U.sample), prob=prob, na.rm=TRUE)
        quant
   }, timing=timing, .id=NULL)
   q.U
