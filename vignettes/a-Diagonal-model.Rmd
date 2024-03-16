@@ -284,7 +284,7 @@ missing stratum.
 * if $n1$ **and** $m2$ are 0, then these strata provide no information towards recapture probabilities.
 This is useful when no release take place in a stratum (e.g. trap did not run) and so you need
 'dummy' values as placeholders.
-Of course is $n1>0$ and $m2=0$, this provides information that the capture probability may be small.
+Of course if $n1>0$ and $m2=0$, this provides information that the capture probability may be small.
 If $n1=0$ and $m2>0$, this is an error (recoveries from no releases).
 * the program allows you specify break points in the underlying spline to account
 for external events. We was in the above example, that hatchery fish were released at

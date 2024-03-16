@@ -29,7 +29,7 @@
 #'         targetU=10000,
 #'         file_prefix = 'Time10000')
 #' 
-#' } % end of dontrun
+#' } # end of dontrun
 #' 
 #' @export TimeToTargetRunSize
 #' @importFrom stats approx density median quantile sd

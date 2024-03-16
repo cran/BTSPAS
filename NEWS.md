@@ -1,3 +1,12 @@
+
+# BTSPAS 2024=04-01
+
+* CRAN fixups to correct error in example. No change in functionality.
+
+# BTSPAS 2023-03-31
+
+* Documentation updates. No change in functionality.
+
 # BTSPAS 2011.11.2
 
 * Added trunc.logitP to truncate logit(P) when plotting to avoid problems with extreme cases (issue #30)

@@ -34,7 +34,7 @@
 #'   plyr::l_ply(trace.plot, function(x){plot(x)})
 #'   dev.off()
 #'}
-#' } % end of dontrun
+#' } # end of dontrun
 #' 
 
 plot_trace <- function(title=" ", results=NULL, parms_to_plot=NULL, nrow=2, ncol=2){

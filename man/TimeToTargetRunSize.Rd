@@ -43,7 +43,7 @@ results$TimeToTargetRunSize <- TimeToTargetRunSize(
         targetU=10000,
         file_prefix = 'Time10000')
 
-} \% end of dontrun
+} # end of dontrun
 
 }
 \author{

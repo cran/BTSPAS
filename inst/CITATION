@@ -3,16 +3,18 @@ citHeader("To cite package 'BTSPAS' in publications use:")
 year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date, perl = TRUE)
 vers <- paste("R package version", meta$Version)
 
-citEntry(entry="Manual",
+
+bibentry(bibtype= "Manual",
          title = "BTSPAS: Bayesian Time Stratified Petersen Analysis System.",
-         author = personList(as.person("Simon J. Bonner"),
-                             as.person("Carl J. Schwarz")
-                  ),
+         author = c(person(given = "Simon J.", family = "Bonner"),
+                   person(given = "Carl J.", family = "Schwarz")),
          year = year,
          note = vers,
-
-         textVersion =
-         paste("Bonner, S. J. and Schwarz, C. J. (",
+         version = version,
+         textVersion =          
+               paste("Bonner, S. J. and Schwarz, C. J. (",
                year,
                "). BTSPAS: Bayesian Time Stratified Petersen Analysis System.",
-               vers, ".", sep=""))
+               vers, ".", sep="")
+
+         )

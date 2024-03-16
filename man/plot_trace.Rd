@@ -46,7 +46,7 @@ if(save.output.to.files){
   plyr::l_ply(trace.plot, function(x){plot(x)})
   dev.off()
 }
-} \% end of dontrun
+} # end of dontrun
 
 }
 \author{
