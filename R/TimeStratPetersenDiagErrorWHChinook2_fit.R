@@ -1,3 +1,4 @@
+# 2024-05-09 CJS TestIfPool only if at least 2 valid release groups
 # 2021-10-23 CJS Added trunc.logitP to fix plotting problems with extreme logitP
 # 2020-12-15 CJS Removed all references to sampfrac in the code
 # 2020-11-07 CJS Allowed user to specify prior for beta coefficient for logitP
@@ -44,7 +45,7 @@ TimeStratPetersenDiagErrorWHChinook2_fit<-
 # covariates for the the capture probabilities, and separating the YoY and Age1 wild vs hatchery fish
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2021-11-02'
+   version <- '2024-05-09'
    options(width=200)
 
 # Input parameters are
@@ -454,14 +455,19 @@ cat("Est U.W.1(total) ", format(round(sum(sp$U.est, na.rm=TRUE)),big.mark=","),
 # Test if pooling can be done
 cat("*** Test if pooled Petersen is allowable. [Check if marked fractions are equal] ***\n\n")
 select <- (n1>0) & (!is.na(n1)) & (!is.na(temp.m2)) 
-temp.n1 <- n1[select]
-temp.m2 <- m2[select]
-test <- TestIfPool( temp.n1, temp.m2)
-cat("(Large Sample) Chi-square test statistic ", test$chi$statistic," has p-value", test$chi$p.value,"\n\n")
-temp <- cbind(time[select],test$chi$observed, round(test$chi$expected,1), round(test$chi$residuals^2,1))
-colnames(temp) <- c('time','n1-m2','m2','E[n1-m2]','E[m2]','X2[n1-m2]','X2[m2]')
-print(temp)
-cat("\n Be cautious of using this test in cases of small expected values. \n\n")
+if(sum(select)<2){
+  cat("Test for pooling not done because less than 2 release groups remaining\n")
+}
+if(sum(select)>=2){
+  temp.n1 <- n1[select]
+  temp.m2 <- m2[select]
+  test <- TestIfPool( temp.n1, temp.m2)
+  cat("(Large Sample) Chi-square test statistic ", test$chi$statistic," has p-value", test$chi$p.value,"\n\n")
+  temp <- cbind(time[select],test$chi$observed, round(test$chi$expected,1), round(test$chi$residuals^2,1))
+  colnames(temp) <- c('time','n1-m2','m2','E[n1-m2]','E[m2]','X2[n1-m2]','X2[m2]')
+  print(temp)
+  cat("\n Be cautious of using this test in cases of small expected values. \n\n")
+}
 
 
 

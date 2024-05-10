@@ -1,5 +1,10 @@
 
-# BTSPAS 2024=04-01
+# BTSPAS 2024-05-09
+
+* Bug fix where test for pooling of release groups does not make sense when there is only 1 release group.
+
+
+# BTSPAS 2024-04-01
 
 * CRAN fixups to correct error in example. No change in functionality.
 

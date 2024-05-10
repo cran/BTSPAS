@@ -167,7 +167,7 @@ model{
       beta.logitP[i] ~ dnorm(prior.beta.logitP.mean[i], 1/prior.beta.logitP.sd[i]^2)  # rest of beta terms are normal 0 and a large variance
    }
    beta.logitP[NlogitP.cov+1] ~ dnorm(0, .01) # dummy so that covariates of length 1 function properly
-   tauP ~ dgamma(tauP.alpha,tauP.beta)
+   tauP ~ dgamma(tauP.alpha,tauP.beta) T(,10)
    sigmaP <- 1/sqrt(tauP)
 
    ##### Likelihood contributions #####

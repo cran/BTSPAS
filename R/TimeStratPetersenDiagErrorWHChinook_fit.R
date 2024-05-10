@@ -1,3 +1,4 @@
+# 2024-05-09 CJS Check that test for pooling only occurs if at least two release groups
 # 2021-10-23 CJS Added trunc.logitP parameter to avoid plotting problems
 # 2020-12-15 CJS Removed all uses of sampfrac in the code
 # 2020-11-07 CJS Allowed user to specify prior for beta coefficient for logitP
@@ -511,15 +512,19 @@ cat("Est U.W(total) ", format(round(sum(sp$U.est, na.rm=TRUE)),big.mark=","),
 # Test if pooling can be done
 cat("*** Test if pooled Petersen is allowable. [Check if marked fractions are equal] ***\n\n")
 select <- (n1>0) & (!is.na(n1)) & (!is.na(temp.m2)) 
-temp.n1 <- n1[select]
-temp.m2 <- m2[select]
-test <- TestIfPool( temp.n1, temp.m2)
-cat("(Large Sample) Chi-square test statistic ", test$chi$statistic," has p-value", test$chi$p.value,"\n\n")
-temp <- cbind(time[select],test$chi$observed, round(test$chi$expected,1), round(test$chi$residuals^2,1))
-colnames(temp) <- c('time','n1-m2','m2','E[n1-m2]','E[m2]','X2[n1-m2]','X2[m2]')
-print(temp)
-cat("\n Be cautious of using this test in cases of small expected values. \n\n")
-
+if(sum(select)<2){
+  cat("Test for pooling not done because less than 2 release groups remaining\n")
+}
+if(sum(select)>=2){
+  temp.n1 <- n1[select]
+  temp.m2 <- m2[select]
+  test <- TestIfPool( temp.n1, temp.m2)
+  cat("(Large Sample) Chi-square test statistic ", test$chi$statistic," has p-value", test$chi$p.value,"\n\n")
+  temp <- cbind(time[select],test$chi$observed, round(test$chi$expected,1), round(test$chi$residuals^2,1))
+  colnames(temp) <- c('time','n1-m2','m2','E[n1-m2]','E[m2]','X2[n1-m2]','X2[m2]')
+  print(temp)
+  cat("\n Be cautious of using this test in cases of small expected values. \n\n")
+}
 
 
 # Fix up any data problems and prepare for the call.

@@ -1,3 +1,4 @@
+## 2024-05-09 CJS constrained tauP from getting too large when initialized in all models
 ## 2019-04-24 CJS if sdmuTT=0 in genInitsTTnp gives infinite value for taumuTT. So i set this to a minimum of .01
 ##                if Delta.max=1, then deal with droping row dimensions in np routines.
 ## 2014-09-01 CJS bug in init.muLogTT which gives log(0) if a release has all recoveries only in initial strataum of
@@ -174,11 +175,12 @@ genInitValsChain <- function(
   #browser()
   init.beta.logitP <- as.vector(stats::lm(init.logitP ~ logitP.cov - 1)$coeff)
 
+  #browser()
   ## 2.3) Set variance for hierarchical model of capture probabilities
   if(length(init.beta.logitP)==1)
-     init.tauP <- 1/stats::var(init.logitP - logitP.cov*init.beta.logitP,na.rm=TRUE)
+     init.tauP <- min(c(1/stats::var(init.logitP - logitP.cov*init.beta.logitP,na.rm=TRUE),5)) # keep from going to infinity
   else
-     init.tauP <- 1/stats::var(init.logitP - logitP.cov %*% init.beta.logitP,na.rm=TRUE)
+     init.tauP <- min(c(1/stats::var(init.logitP - logitP.cov %*% init.beta.logitP,na.rm=TRUE),5))# keep from going to infinity
 
   init.beta.logitP <- c(init.beta.logitP, 0)   # add one extra element so that single beta is still written as a vector
 

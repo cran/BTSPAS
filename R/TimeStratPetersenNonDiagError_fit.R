@@ -1,3 +1,4 @@
+# 2024-05-09 CJS TestIfPool only if at least 2 valid release groups
 # 2021-10-23 CJS Added trunc.logitP to deal with extreme values of logitP during plotting
 # 2020-12-15 CJS Removed sampfrac from code
 # 2020-12-14 CJS All bad.n1 or bad.m2 are set to 0. No NA allows for n1 or m2
@@ -118,7 +119,7 @@ TimeStratPetersenNonDiagError_fit <-
 # This is the classical stratified Petersen model where the recoveries can take place for this and multiple
 # strata later
 #
-    version <- '2021-11-02'
+    version <- '2024-05-09'
     options(width=200)
 
 # Input parameters are
@@ -321,14 +322,19 @@ cat("Est N(total) ", format(round(pp$N.est),big.mark=","),"  (SE ", format(round
 cat("*** Test if pooled Petersen is allowable. [Check if equal recovery from each stratum not flagged and without missing recoveries] ***\n\n")
 #browser()
 select <- select.rel  & (!is.na(apply(m2,1,sum)))
-temp.n1 <- n1[select.rel]
-temp.m2 <- m2[select.rel,]
-test <- TestIfPool( temp.n1, apply(temp.m2,1,sum, na.rm=TRUE))
-cat("(Large Sample) Chi-square test statistic ", test$chi$statistic," has p-value", test$chi$p.value,"\n\n")
-temp <- cbind(time[1:length(n1)][select],test$chi$observed, round(test$chi$expected,1), round(test$chi$residuals^2,1))
-colnames(temp) <- c('time','n1-m2','m2','E[n1-m2]','E[m2]','X2[n1-m2]','X2[m2]')
-print(temp)
-cat("\n Be cautious of using this test in cases of small expected values. \n\n")
+if(sum(select)<2){
+  cat("Test for pooling not done because less than 2 release groups remaining\n")
+}
+if(sum(select)>=2){
+  temp.n1 <- n1[select]
+  temp.m2 <- m2[select,]
+  test <- TestIfPool( temp.n1, apply(temp.m2,1,sum, na.rm=TRUE))
+  cat("(Large Sample) Chi-square test statistic ", test$chi$statistic," has p-value", test$chi$p.value,"\n\n")
+  temp <- cbind(time[select],test$chi$observed, round(test$chi$expected,1), round(test$chi$residuals^2,1))
+  colnames(temp) <- c('time','n1-m2','m2','E[n1-m2]','E[m2]','X2[n1-m2]','X2[m2]')
+  print(temp)
+  cat("\n Be cautious of using this test in cases of small expected values. \n\n")
+}
 
 
 # Adjust the data for the explicitly bad values or other problems

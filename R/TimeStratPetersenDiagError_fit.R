@@ -1,3 +1,4 @@
+# 2024-05-09 CJS TestIfPool only if at least 2 valid release groups
 # 2021-10-24 CJS added trunc.logitP to avoid problems with plotting
 # 2020-12-15 CJS removed sampfrac from code but left argument with warning message
 # 2020-11-07 CJS Allowed user to specify prior for beta coefficient for logitP
@@ -66,6 +67,7 @@
 #' @template InitialSeed
 #' @template save.output.to.files
 #' @template trunc.logitP
+#' @template set.browser
 
 #' 
 #' @return An MCMC object with samples from the posterior distribution. A
@@ -94,13 +96,16 @@ TimeStratPetersenDiagError_fit <-
            debug=FALSE, debug2=FALSE,
            InitialSeed=ceiling(stats::runif(1,min=0, max=1000000)),
            save.output.to.files=TRUE,
-           trunc.logitP=15) {
+           trunc.logitP=15,
+           set.browser=FALSE) {
     
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2021-11-02'
+   version <- '2024-05-09'
    options(width=200)
+   
+   if(set.browser)browser()
 
 # Input parameters are
 #    prefix - prefix used for files created with the analysis results
@@ -324,18 +329,23 @@ cat("\n")
 cat("Est U(total) ", format(round(sum(sp$U.est, na.rm=TRUE)),big.mark=","),
     "  (SE ", format(round(sqrt(sum(sp$U.se^2, na.rm=TRUE))), big.mark=","), ")\n\n\n")
 
+
 # Test if pooling can be done
 cat("*** Test if pooled Petersen is allowable on strata without problems in n1 or m2. [Check if marked fractions are equal] ***\n\n")
-select <- (temp.n1>0) & (!is.na(temp.n1)) & (!is.na(temp.m2)) 
-temp.n1 <- n1[select]
-temp.m2 <- m2[select]
-test <- TestIfPool( temp.n1, temp.m2)
-cat("(Large Sample) Chi-square test statistic ", test$chi$statistic," has p-value", test$chi$p.value,"\n\n")
-temp <- cbind(time[select],test$chi$observed, round(test$chi$expected,1), round(test$chi$residuals^2,1))
-colnames(temp) <- c('time','n1-m2','m2','E[n1-m2]','E[m2]','X2[n1-m2]','X2[m2]')
-print(temp)
-cat("\n Be cautious of using this test in cases of small expected values. \n\n")
-
+select <- (temp.n1>0) & (!is.na(temp.n1)) & (!is.na(temp.m2))
+if(sum(select)<2){
+   cat("Test for pooling not done because less than 2 release groups remaining\n")
+}
+if(sum(select)>=2){
+   temp.n1 <- n1[select]
+   temp.m2 <- m2[select]
+   test <- TestIfPool( temp.n1, temp.m2)
+   cat("(Large Sample) Chi-square test statistic ", test$chi$statistic," has p-value", test$chi$p.value,"\n\n")
+   temp <- cbind(time[select],test$chi$observed, round(test$chi$expected,1), round(test$chi$residuals^2,1))
+   colnames(temp) <- c('time','n1-m2','m2','E[n1-m2]','E[m2]','X2[n1-m2]','X2[m2]')
+   print(temp)
+   cat("\n Be cautious of using this test in cases of small expected values. \n\n")
+}
 
 
 # Fix up any data problems and prepare for the call.
@@ -449,7 +459,7 @@ if (debug)
    logUne<- results$summary[logUne.row.index,"mean"]
    plot.df$spline <- results$summary[logUne.row.index,"mean"]
 
-   #browser()
+   if(set.browser)browser()
 # add limits to the plot to avoid non-monotone secondary axis problems with extreme values
    plot.df$logUi     <- pmax(-10 , pmin(20, plot.df$logUi))
    plot.df$logU      <- pmax(-10 , pmin(20, plot.df$logU ))
@@ -505,7 +515,7 @@ results$plots$post.UNtot.plot <- post.UNtot.plot
 
 
 #save the Bayesian predictive distribution (Bayesian p-value plots)
-#browser()
+if(set.browser)browser()
 discrep <-PredictivePosterior.TSPDE (new.n1, new.m2, new.u2,
              new.logitP.fixed,
 				     expit(results$sims.list$logitP),

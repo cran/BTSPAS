@@ -1,3 +1,4 @@
+## 2024-05-09 CJS TestIfPool only if at least 2 valid release groups
 ## 2021-10-23 CJS Added trunc.logitP to deal with extreme values of logitP during plotting
 ## 2020-12-15 CJS removed sampfrac from body of code
 ## 2020-12-15 CJS Fixed problem when specifyin u2==NA
@@ -118,7 +119,7 @@ TimeStratPetersenNonDiagErrorNPMarkAvail_fit<- function( title="TSPNDENP-avail",
   ## strata later. Transisions of marked fish are modelled non-parametrically.
   ##
   
-  version <- '2021-11-02'
+  version <- '2024-05-09'
   options(width=200)
   
   ## Input parameters are
@@ -348,15 +349,19 @@ if(length(prior.beta.logitP.mean) != ncol(logitP.cov) | length(prior.beta.logitP
   ## Test if pooling can be done
   cat("*** Test if pooled Petersen is allowable. [Check if fraction captured equal] ***\n\n")
   select <- (n1>0) & (!is.na(n1)) & (!is.na(apply(m2,1,sum)))
-  temp.n1 <- n1[select]
-  temp.m2 <- m2[select,]
-  test <- TestIfPool( temp.n1, apply(temp.m2,1,sum))
-  cat("(Large Sample) Chi-square test statistic ", test$chi$statistic," has p-value", test$chi$p.value,"\n\n")
-  temp <- cbind(time[1:length(n1)][select],test$chi$observed, round(test$chi$expected,1), round(test$chi$residuals^2,1))
-  colnames(temp) <- c('time','n1-m2*','m2*','E[n1-m2]','E[m2]','X2[n1-m2]','X2[m2]')
-  print(temp)
-  cat("\n Be cautious of using this test in cases of small expected values. \n\n")
-
+  if(sum(select)<2){
+    cat("Test for pooling not done because less than 2 release groups remaining\n")
+  }
+  if(sum(select)>=2){
+     temp.n1 <- n1[select]
+     temp.m2 <- m2[select,]
+     test <- TestIfPool( temp.n1, apply(temp.m2,1,sum))
+     cat("(Large Sample) Chi-square test statistic ", test$chi$statistic," has p-value", test$chi$p.value,"\n\n")
+     temp <- cbind(time[1:length(n1)][select],test$chi$observed, round(test$chi$expected,1), round(test$chi$residuals^2,1))
+     colnames(temp) <- c('time','n1-m2*','m2*','E[n1-m2]','E[m2]','X2[n1-m2]','X2[m2]')
+     print(temp)
+     cat("\n Be cautious of using this test in cases of small expected values. \n\n")
+  }
   
   ## Adjust the data for the explicity bad values or other problems
   new.time <- time
