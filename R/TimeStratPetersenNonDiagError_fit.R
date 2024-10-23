@@ -119,7 +119,7 @@ TimeStratPetersenNonDiagError_fit <-
 # This is the classical stratified Petersen model where the recoveries can take place for this and multiple
 # strata later
 #
-    version <- '2024-05-09'
+    version <- as.character(packageDate("BTSPAS"))
     options(width=200)
 
 # Input parameters are
@@ -582,6 +582,7 @@ results$plots$trace.logU.plot <- trace.plot
 
 sink(report, append=TRUE)
 
+#browser()
 # Global summary of results
 cat("\n\n*** Summary of MCMC results *** \n\n")
   save.max.print <- getOption("max.print")

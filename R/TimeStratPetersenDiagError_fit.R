@@ -102,7 +102,7 @@ TimeStratPetersenDiagError_fit <-
 # Fit a Time Stratified Petersen model with diagonal entries and with smoothing on U allowing for random error
 # The "diagonal entries" implies that no marked fish are recaptured outside the (time) stratum of release
 #
-   version <- '2024-05-09'
+   version <- as.character(packageDate("BTSPAS"))
    options(width=200)
    
    if(set.browser)browser()
@@ -437,7 +437,9 @@ if (debug)
             debug=debug, debug2=debug2, InitialSeed=InitialSeed, save.output.to.files=save.output.to.files)
    }
 
-# Now to create the various summary tables of the results
+# Now to create the various summary tables of the result
+
+#browser()
 
 # A plot of the observered log(U) on the log scale, and the final mean log(U)
 # Create the data frame needed for ggplot. 
@@ -552,6 +554,7 @@ results$plots$trace.logU.plot <- trace.plot
 #sink(results.filename, append=TRUE)
 sink(report, append=TRUE)
 # Global summary of results
+#browser()
 cat("\n\n*** Summary of MCMC results *** \n\n")
   save.max.print <- getOption("max.print")
   options(max.print=.Machine$integer.max)

@@ -1,10 +1,15 @@
 Package: BTSPAS
-Version: 2024.5.9
-Date: 2024-05-09
+Version: 2024.11.1
+Date: 2024-11-01
 Title: Bayesian Time-Stratified Population Analysis
-Author: Carl J Schwarz <cschwarz.stat.sfu.ca@gmail.com> and
-	Simon J Bonner <sbonner6@uwo.ca>
-Maintainer: Carl J Schwarz <cschwarz.stat.sfu.ca@gmail.com>
+Authors@R: c(person(given = c("Carl", "J"),
+                      family = "Schwarz",
+                      role = c("aut", "cre"),
+                      email = "cschwarz.stat.sfu.ca@gmail.com"),
+               person(given = c("Simon", "J"),
+                      family = "Bonner",
+                      role = "aut",
+                      email = "sbonner6@uwo.ca"))
 Imports: actuar, coda, data.table, ggplot2, ggforce, graphics,
         grDevices, gridExtra, plyr, reshape2, R2jags, scales, splines,
         stats, utils
@@ -18,10 +23,13 @@ Description: Provides advanced Bayesian methods to estimate
          <doi:10.1111/j.1541-0420.2011.01599.x>.
 License: GPL (>= 2)
 URL: https://github.com/cschwarz-stat-sfu-ca/BTSPAS
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Suggests: R.rsp
 VignetteBuilder: R.rsp
 NeedsCompilation: no
-Packaged: 2024-05-10 21:36:22 UTC; cschwarz
+Packaged: 2024-10-23 21:56:47 UTC; cschwarz
+Author: Carl J Schwarz [aut, cre],
+  Simon J Bonner [aut]
+Maintainer: Carl J Schwarz <cschwarz.stat.sfu.ca@gmail.com>
 Repository: CRAN
-Date/Publication: 2024-05-10 22:03:03 UTC
+Date/Publication: 2024-10-23 22:20:07 UTC

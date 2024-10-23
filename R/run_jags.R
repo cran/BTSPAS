@@ -1,3 +1,4 @@
+## 2024-10-21 CJS added code to deal with bug in R2jags::jags() where pD is not placed in the BUGSoutput object if pD==0
 ## 2018-12-21 CJS converted to simple call to jags using R2jags package. This fixed problem that arrays not stored properly in output
 ## 2014-09-01 CJS added code to dump out mcmc.list to coda files to match functionality of OpenBugs
 ##                Set the seed here.
@@ -64,6 +65,7 @@ run.jags <-
   parametersToSave <- unique(c(parameters))
 
   results1 <- R2jags::jags( 
+  #results1 <- my.jags( 
       data       =dataList,   # list of data variables
       inits      =initVals,   # list/function for initial values
       parameters =parametersToSave,# list of parameters to monitor
@@ -72,7 +74,8 @@ run.jags <-
       n.iter     =nIter,           # total iterations INCLUDING burn in
       n.burnin   =nBurnin,          # number of burning iterations
       n.thin     =nThin,                # how much to thin
-      DIC=TRUE,                # is DIC to be computed?
+      DIC=TRUE,                    # is DIC to be computed in both ways
+      pD=TRUE, 
       jags.seed  = initialSeed,
       working.dir=working.directory      # store results in current working directory
       )
@@ -92,6 +95,15 @@ run.jags <-
 
   
   results <- results1$BUGSoutput
+  
+  # there is bug in the R2jags::jags code which does not include pD if pD is zero (despite the pD=TRUE being set)
+  # see 
+  # we need to add back the pD 
+  if(is.null(results$pD)){
+    results$pD <- 0
+    results$DIC2 <- NA
+  }
+  
   results$model <- results1$model
   results$parameters.to.save <- results1$parameters.to.save
   ## Return results

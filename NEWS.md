@@ -1,4 +1,10 @@
 
+# BTSPAS 2024-11-01
+
+* Added code to deal with bug in R2Jags::jags() where pD not placed in BUGSoutput if pD=0
+* This fixes a CRAN error in the Petersen package with one of the examples
+
+
 # BTSPAS 2024-05-09
 
 * Bug fix where test for pooling of release groups does not make sense when there is only 1 release group.
